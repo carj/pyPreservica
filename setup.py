@@ -12,6 +12,8 @@ setup(
     name="pyPreservica",
     version="0.1.0",
     description="Python library for the Preservica Rest API",
+    long_description=README.md,
+    url="https://github.com/carj/pyPreservica",
     author="James Carr",
     author_email="james.carr@preservica.com",
     license="Apache License 2.0",
