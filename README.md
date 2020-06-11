@@ -3,7 +3,7 @@ Python language binding for the Preservica API
 
 This library provides a Python class for working with the Preservica Entity Rest API
 
-https://demo.preservica.com/api/entity/documentation.html
+https://us.preservica.com/api/entity/documentation.html
 
 The library includes the following calls:
 

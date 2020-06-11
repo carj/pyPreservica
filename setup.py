@@ -13,6 +13,7 @@ setup(
     version="0.1.0",
     description="Python library for the Preservica Rest API",
     long_description=README,
+    long_description_content_type="text/markdown",
     url="https://github.com/carj/pyPreservica",
     author="James Carr",
     author_email="james.carr@preservica.com",
