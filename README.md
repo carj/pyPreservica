@@ -17,3 +17,18 @@ The library includes the following calls:
 * add_identifier() Adds a new external identifier to an entity.
 * add_metadata() Add new descriptive metadata to an entity.
 * update_metadata() Update the descriptive metadata attached to an entity.
+
+## usage 
+````
+from pyPreservica.entityAPI import EntityAPI
+
+client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
+
+asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+asset.title = "New Asset Title"
+asset.description = "New Asset Description"
+asset = client.save(asset)
+
+
+
+````
