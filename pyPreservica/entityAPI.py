@@ -1,4 +1,6 @@
 import uuid
+from enum import Enum
+
 import requests
 import xml.etree.ElementTree
 from io import IOBase
@@ -25,6 +27,12 @@ def _entity_(xml_data):
     return {'reference': reference.text, 'title': title.text if hasattr(title, 'text') else "",
             'description': description.text if hasattr(description, 'text') else "",
             'security_tag': security_tag.text, 'parent': parent, 'metadata': metadata}
+
+
+class Thumbnail(Enum):
+    SMALL = "small"
+    MEDIUM = "medium"
+    LARGE = "large"
 
 
 class EntityAPI:
@@ -136,12 +144,29 @@ class EntityAPI:
             return self.results.__str__()
 
     def download(self, entity):
-        headers = {'Preservica-Access-Token': self.token, 'Content-Type':  'application/octet-stream'}
+        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/octet-stream'}
         if isinstance(entity, self.Asset):
             params = {'id': f'sdb:IO|{entity.reference}'}
         elif isinstance(entity, self.Folder):
             params = {'id': f'sdb:SO|{entity.reference}'}
         request = requests.get(f'https://{self.server}/api/content/download', params=params, headers=headers)
+        if request.status_code == 200:
+            return request.content
+        elif request.status_code == 401:
+            self.token = self.__token__()
+            return self.download(entity)
+        else:
+            print(f"download failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
+    def thumbnail(self, entity, size=Thumbnail.LARGE):
+        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/octet-stream'}
+        if isinstance(entity, self.Asset):
+            params = {'id': f'sdb:IO|{entity.reference}', 'size': f'{size.value}'}
+        elif isinstance(entity, self.Folder):
+            params = {'id': f'sdb:SO|{entity.reference}', 'size': f'{size.value}'}
+        request = requests.get(f'https://{self.server}/api/content/thumbnail', params=params, headers=headers)
         if request.status_code == 200:
             return request.content
         elif request.status_code == 401:
