@@ -1,9 +1,13 @@
+import os
 import uuid
 from enum import Enum
-
 import requests
 import xml.etree.ElementTree
 from io import IOBase
+
+NS_XIPV6 = "http://preservica.com/XIP/v6.0"
+NS_ENTITY = "http://preservica.com/EntityAPI/v6.0"
+CHUNK_SIZE = 1024 * 2
 
 
 def _entity_(xml_data):
@@ -105,6 +109,47 @@ class EntityAPI:
             print(response.request.url)
             raise SystemExit
 
+    class Representation:
+        def __init__(self, asset, type, name, url):
+            self.asset = asset
+            self.type = type
+            self.name = name
+            self.url = url
+
+        def __str__(self):
+            return f"Type:\t\t\t{self.type}\nname:\t\t\t{self.Name}\nURL:\t{self.url}"
+
+        def __repr__(self):
+            return f"Type:\t\t\t{self.type}\nname:\t\t\t{self.Name}\nURL:\t{self.url}"
+
+    class Bitstream:
+        def __init__(self, filename, length, fixity, content_url):
+            self.filename = filename
+            self.length = length
+            self.fixity = fixity
+            self.content_url = content_url
+
+        def __str__(self):
+            return f"Filename:\t\t\t{self.filename}\nFileSize:\t\t\t{self.length}\nContent:\t{self.content_url}\nFixity:\t{self.fixity}"
+
+        def __repr__(self):
+            return f"Filename:\t\t\t{self.filename}\nFileSize:\t\t\t{self.length}\nContent:\t{self.content_url}\nFixity:\t{self.fixity}"
+
+    class Generation:
+        def __init__(self, original, active, format_group, effective_date, bitstreams):
+            self.original = original
+            self.active = active
+            self.content_object = None
+            self.format_group = format_group
+            self.effective_date = effective_date
+            self.bitstreams = bitstreams
+
+        def __str__(self):
+            return f"Active:\t\t\t{self.active}\nOriginal:\t\t\t{self.original}\nFormat_group:\t{self.format_group}"
+
+        def __repr__(self):
+            return f"Active:\t\t\t{self.active}\nOriginal:\t\t\t{self.original}\nFormat_group:\t{self.format_group}"
+
     class Entity:
         def __init__(self, reference, title, description, security_tag, parent, metadata):
             self.reference = reference
@@ -133,6 +178,12 @@ class EntityAPI:
             super().__init__(reference, title, description, security_tag, parent, metadata)
             self.type = "IO"
 
+    class ContentObject(Entity):
+        def __init__(self, reference, title, description, security_tag, parent, metadata):
+            super().__init__(reference, title, description, security_tag, parent, metadata)
+            self.type = "CO"
+            self.representation_type = None
+
     class PagedSet:
         def __init__(self, results, has_more, total, next_page):
             self.results = results
@@ -143,45 +194,75 @@ class EntityAPI:
         def __str__(self):
             return self.results.__str__()
 
-    def download(self, entity):
+    def bitstream_content(self, bitstream, filename):
+        headers = {'Preservica-Access-Token': self.token}
+        if not isinstance(bitstream, self.Bitstream):
+            return None
+        with requests.get(bitstream.content_url, headers=headers, stream=True) as req:
+            if req.status_code == 401:
+                self.token = self.__token__()
+                return self.bitstream_content(bitstream, filename)
+            elif req.status_code == 200:
+                with open(filename, 'wb') as file:
+                    for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                        file.write(chunk)
+                        file.flush()
+                file.close()
+                if os.path.getsize(filename) == bitstream.length:
+                    return filename
+            else:
+                print(f"bitstream_content failed with error code: {req.status_code}")
+                print(req.request.url)
+                raise SystemExit
+
+    def download(self, entity, filename):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/octet-stream'}
         if isinstance(entity, self.Asset):
             params = {'id': f'sdb:IO|{entity.reference}'}
         elif isinstance(entity, self.Folder):
             params = {'id': f'sdb:SO|{entity.reference}'}
-        request = requests.get(f'https://{self.server}/api/content/download', params=params, headers=headers)
-        if request.status_code == 200:
-            return request.content
-        elif request.status_code == 401:
-            self.token = self.__token__()
-            return self.download(entity)
-        else:
-            print(f"download failed with error code: {request.status_code}")
-            print(request.request.url)
-            raise SystemExit
+        with requests.get(f'https://{self.server}/api/content/download',  params=params, headers=headers, stream=True) as req:
+            if req.status_code == 200:
+                with open(filename, 'wb') as file:
+                    for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                        file.write(chunk)
+                        file.flush()
+                file.close()
+                return filename
+            elif req.status_code == 401:
+                self.token = self.__token__()
+                return self.download(entity, filename)
+            else:
+                print(f"download failed with error code: {req.status_code}")
+                print(req.request.url)
+                raise SystemExit
 
-    def thumbnail(self, entity, size=Thumbnail.LARGE):
+    def thumbnail(self, entity, filename, size=Thumbnail.LARGE):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/octet-stream'}
         if isinstance(entity, self.Asset):
             params = {'id': f'sdb:IO|{entity.reference}', 'size': f'{size.value}'}
         elif isinstance(entity, self.Folder):
             params = {'id': f'sdb:SO|{entity.reference}', 'size': f'{size.value}'}
-        request = requests.get(f'https://{self.server}/api/content/thumbnail', params=params, headers=headers)
-        if request.status_code == 200:
-            return request.content
-        elif request.status_code == 401:
-            self.token = self.__token__()
-            return self.download(entity)
-        else:
-            print(f"download failed with error code: {request.status_code}")
-            print(request.request.url)
-            raise SystemExit
+        with requests.get(f'https://{self.server}/api/content/thumbnail', params=params, headers=headers) as req:
+            if req.status_code == 200:
+                with open(filename, 'wb') as file:
+                    for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                        file.write(chunk)
+                        file.flush()
+                file.close()
+                return filename
+            elif req.status_code == 401:
+                self.token = self.__token__()
+                return self.thumbnail(entity, filename, size=size)
+            else:
+                print(f"thumbnail failed with error code: {req.status_code}")
+                print(req.request.url)
+                raise SystemExit
 
     def identifier(self, identifier_type, identifier_value):
         headers = {'Preservica-Access-Token': self.token}
         payload = {'type': identifier_type, 'value': identifier_value}
-        request = requests.get(f'https://{self.server}/api/entity/entities/by-identifier', params=payload,
-                               headers=headers)
+        request = requests.get(f'https://{self.server}/api/entity/entities/by-identifier', params=payload, headers=headers)
         if request.status_code == 200:
             xml_response = str(request.content.decode('UTF-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
@@ -191,9 +272,12 @@ class EntityAPI:
                 if entity.attrib['type'] == 'SO':
                     f = self.Folder(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                     result.add(f)
-                else:
+                elif entity.attrib['type'] == 'IO':
                     a = self.Asset(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                     result.add(a)
+                elif entity.attrib['type'] == 'CO':
+                    c = self.ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                    result.add(c)
             return result
         elif request.status_code == 401:
             self.token = self.__token__()
@@ -211,8 +295,13 @@ class EntityAPI:
         xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
         if isinstance(entity, self.Asset):
             end_point = f"/information-objects/{entity.reference}/identifiers"
-        else:
+        elif isinstance(entity, self.Folder):
             end_point = f"/structural-objects/{entity.reference}/identifiers"
+        elif isinstance(entity, self.ContentObject):
+            end_point = f"/content-objects/{entity.reference}/identifiers"
+        else:
+            print("Unknown entity type")
+            raise SystemExit
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='UTF-8', xml_declaration=True)
         request = requests.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == 200:
@@ -252,8 +341,10 @@ class EntityAPI:
                 if request.status_code == 200:
                     if isinstance(entity, self.Asset):
                         return self.asset(entity.reference)
-                    else:
+                    elif isinstance(entity, self.Folder):
                         return self.folder(entity.reference)
+                    elif isinstance(entity, self.ContentObject):
+                        return self.ContentObject(entity.reference)
                 elif request.status_code == 401:
                     self.token = self.__token__()
                     return self.update_metadata(entity, namespace, data)
@@ -277,14 +368,21 @@ class EntityAPI:
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='UTF-8', xml_declaration=True)
         if isinstance(entity, self.Asset):
             end_point = f"/information-objects/{entity.reference}/metadata"
-        else:
+        elif isinstance(entity, self.Folder):
             end_point = f"/structural-objects/{entity.reference}/metadata"
+        elif isinstance(entity, self.ContentObject):
+            end_point = f"/content-objects/{entity.reference}/metadata"
+        else:
+            print("Unknown entity type")
+            raise SystemExit
         request = requests.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == 200:
             if isinstance(entity, self.Asset):
                 return self.asset(entity.reference)
-            else:
+            elif isinstance(entity, self.Folder):
                 return self.folder(entity.reference)
+            elif isinstance(entity, self.ContentObject):
+                return self.content_object(entity.reference)
         elif request.status_code == 401:
             self.token = self.__token__()
             return self.add_metadata(entity, namespace, data)
@@ -301,9 +399,12 @@ class EntityAPI:
         elif isinstance(entity, self.Folder):
             end_point = "/structural-objects"
             xml_object = xml.etree.ElementTree.Element('StructuralObject', {"xmlns": "http://preservica.com/XIP/v6.0"})
+        elif isinstance(entity, self.ContentObject):
+            end_point = "/content-objects"
+            xml_object = xml.etree.ElementTree.Element('ContentObject', {"xmlns": "http://preservica.com/XIP/v6.0"})
         else:
-            return
-
+            print("Unknown entity type")
+            raise SystemExit
         xml.etree.ElementTree.SubElement(xml_object, "Ref").text = entity.reference
         xml.etree.ElementTree.SubElement(xml_object, "Title").text = entity.title
         xml.etree.ElementTree.SubElement(xml_object, "Description").text = entity.description
@@ -321,10 +422,14 @@ class EntityAPI:
                 return self.Asset(response['reference'], response['title'], response['description'],
                                   response['security_tag'],
                                   response['parent'], response['metadata'])
-            else:
+            elif isinstance(entity, self.Folder):
                 return self.Folder(response['reference'], response['title'], response['description'],
                                    response['security_tag'],
                                    response['parent'], response['metadata'])
+            elif isinstance(entity, self.ContentObject):
+                return self.ContentObject(response['reference'], response['title'], response['description'],
+                                          response['security_tag'],
+                                          response['parent'], response['metadata'])
         elif request.status_code == 401:
             self.token = self.__token__()
             return self.save(entity)
@@ -410,6 +515,138 @@ class EntityAPI:
             return self.folder(reference)
         else:
             print(f"folder failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
+    def content_object(self, identifier):
+        headers = {'Preservica-Access-Token': self.token}
+        request = requests.get(f'https://{self.server}/api/entity/content-objects/{identifier}', headers=headers)
+        if request.status_code == 200:
+            xml_response = str(request.content.decode('UTF-8'))
+            entity = _entity_(xml_response)
+            c = self.ContentObject(entity['reference'], entity['title'], entity['description'], entity['security_tag'],
+                                   entity['parent'], entity['metadata'])
+            return c
+        elif request.status_code == 401:
+            self.token = self.__token__()
+            return self.content_objects(identifier)
+        else:
+            print(f"content_object failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
+    def content_objects(self, representation):
+        headers = {'Preservica-Access-Token': self.token}
+        if not isinstance(representation, self.Representation):
+            return None
+        request = requests.get(f'{representation.url}', headers=headers)
+        if request.status_code == 200:
+            results = list()
+            xml_response = str(request.content.decode('UTF-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            content_objects = entity_response.findall('.//{http://preservica.com/XIP/v6.0}ContentObject')
+            for co in content_objects:
+                content_object = self.content_object(co.text)
+                content_object.representation_type = representation.type
+                results.append(content_object)
+            return results
+        elif request.status_code == 401:
+            self.token = self.__token__()
+            return self.content_objects(representation)
+        else:
+            print(f"content_objects failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
+    def generation(self, url):
+        headers = {'Preservica-Access-Token': self.token}
+        request = requests.get(url, headers=headers)
+        if request.status_code == 200:
+            xml_response = str(request.content.decode('UTF-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            ge = entity_response.find('.//{http://preservica.com/XIP/v6.0}Generation')
+            format_group = entity_response.find('.//{http://preservica.com/XIP/v6.0}FormatGroup')
+            effective_date = entity_response.find('.//{http://preservica.com/XIP/v6.0}EffectiveDate')
+            bitstreams = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Bitstream')
+            bitstream_list = list()
+            for bit in bitstreams:
+                bitstream_list.append(self.bitstream(bit.text))
+            generation = self.Generation(bool(ge.attrib['original']), bool(ge.attrib['active']), format_group.text, effective_date.text,
+                                         bitstream_list)
+            return generation
+        elif request.status_code == 401:
+            self.token = self.__token__()
+            return self.generation(url)
+        else:
+            print(f"generations failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
+    def bitstream(self, url):
+        headers = {'Preservica-Access-Token': self.token}
+        request = requests.get(url, headers=headers)
+        if request.status_code == 200:
+            xml_response = str(request.content.decode('UTF-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            filename = entity_response.find('.//{http://preservica.com/XIP/v6.0}Filename')
+            filesize = entity_response.find('.//{http://preservica.com/XIP/v6.0}FileSize')
+            fixity_values = entity_response.findall('.//{http://preservica.com/XIP/v6.0}Fixity')
+            content = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}Content')
+            fixity = dict()
+            for f in fixity_values:
+                fixity[f[0].text] = f[1].text
+            bitream = self.Bitstream(filename.text, filesize.text, fixity, content.text)
+            return bitream
+        elif request.status_code == 401:
+            self.token = self.__token__()
+            return self.bitstream(url)
+        else:
+            print(f"bitstream failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
+    def generations(self, content_object):
+        headers = {'Preservica-Access-Token': self.token}
+        if not isinstance(content_object, self.ContentObject):
+            return None
+        request = requests.get(f'https://{self.server}/api/entity/content-objects/{content_object.reference}/generations', headers=headers)
+        if request.status_code == 200:
+            xml_response = str(request.content.decode('UTF-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            generations = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Generation')
+            result = set()
+            for g in generations:
+                generation = self.generation(g.text)
+                generation.content_object = content_object
+                result.add(generation)
+            return result
+        elif request.status_code == 401:
+            self.token = self.__token__()
+            return self.generations(content_object)
+        else:
+            print(f"generations failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
+    def representations(self, asset):
+        headers = {'Preservica-Access-Token': self.token}
+        if not isinstance(asset, self.Asset):
+            return None
+        request = requests.get(f'https://{self.server}/api/entity/information-objects/{asset.reference}/representations', headers=headers)
+        if request.status_code == 200:
+            xml_response = str(request.content.decode('UTF-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            representations = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Representation')
+            result = set()
+            for r in representations:
+                representation = self.Representation(asset, r.attrib['type'], r.attrib['name'], r.text)
+                result.add(representation)
+            return result
+        elif request.status_code == 401:
+            self.token = self.__token__()
+            return self.representations(asset)
+        else:
+            print(f"representations failed with error code: {request.status_code}")
             print(request.request.url)
             raise SystemExit
 
