@@ -14,3 +14,15 @@ Why Should I Use This?
 ----------------------
 
 The goal of pyPreservica is to allow people to make use of the Preservica REST API.
+
+
+Features
+--------
+
+
+Installation
+------------
+
+.. code-block:: console
+
+    $ pip install pyPreservica
