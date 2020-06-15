@@ -60,11 +60,10 @@ with open("DublinCore.xml", 'r', encoding="UTF-8") as md:
 client.download(asset, "picture.jpg"))
 client.thumbnail(asset, "thumbnail.jpg", Thumbnail.LARGE)
 
-representations = client.representations(asset):
-for representation in representations:
+for representation in client.representations(asset):
     print(representation.type)
     print(representation.name)
-    for content_object in client.content_objects(r):
+    for content_object in client.content_objects(representation):
         print(content_object.title)
         print(content_object.description)
         for generation in client.generations(content_object):
