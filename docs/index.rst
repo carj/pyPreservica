@@ -141,7 +141,7 @@ The User Guide
 
 
 QuickStart
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 Making a call to the Preservica repository is very simple.
 
@@ -198,6 +198,24 @@ We can update either the title or description attribute for assets, folders and 
     >>> content_object.title = "New Content Object Title"
     >>> content_object.description = "New Content Object Description"
     >>> content_object = client.save(content_object)
+
+
+We can add external identifiers to either assets, folders or content objects. External identifiers have a type and a value.
+External identifiers do not have to be unique in the same way as internal identifiers.::
+
+    asset = client.asset("9bad5acf-e7ce-458a-927d-2d1e7f15974d")
+    client.add_identifier(asset, "ISBN", "978-3-16-148410-0")
+    client.add_identifier(asset, "DOI", "https://doi.org/10.1109/5.771073")
+    client.add_identifier(asset, "URN", "urn:isan:0000-0000-2CEA-0000-1-0000-0000-Y")
+
+Fetching entities back by external identifiers is also available. The call returns a python set of entities.::
+
+    for e in client.identifier("ISBN", "978-3-16-148410-0"):
+        print(e.type, e.reference, e.title)
+
+.. note::
+    Entities within the set only contain the attributes (type, reference and title). If you need the full object you have to request it.
+
 
 
 Example Applications
