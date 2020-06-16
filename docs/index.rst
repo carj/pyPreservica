@@ -64,7 +64,7 @@ Installation
 Example
 ------------
 
-Create the entity client ::
+Create the entity client and request an asset by its identifier ::
     
     >>> from pyPreservica.entityAPI import EntityAPI
     >>> client = EntityAPI()
@@ -113,4 +113,25 @@ Create a properties file called "credentials.properties" in the working director
     >>> client = EntityAPI()
 
 
+The User Guide
+--------------
+
+
+Quickstart
+==========
+
+Making a call to the Preservica repository is very simple.
+
+Begin by importing the pyPreservica module::
+
+    >>> from pyPreservica.entityAPI import EntityAPI
+    
+Now, let's try create the entity class::
+
+    client = EntityAPI()
+    
+and fetch a asset::
+
+    asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    
 
