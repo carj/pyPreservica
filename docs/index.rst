@@ -42,8 +42,49 @@ Example
 
 Create the entity client::
 
-    >>> from pyPreservica.entityAPI import EntityAPI,Thumbnail
+    >>> from pyPreservica.entityAPI import EntityAPI
 
+    >>> client = EntityAPI()
+
+
+Authentication
+-----------------
+
+pyPreservica provides 3 different methods for authentication.
+
+1 **Method Arguments**
+
+
+::
+    >>> from pyPreservica.entityAPI import EntityAPI
+
+    >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
+
+
+2 **Environment Variable**
+
+::
+
+    $ EXPORT PRESERVICA_USERNAME="test@test.com"
+    $ EXPORT PRESERVICA_PASSWORD="123444"
+    $ EXPORT PRESERVICA_TENANT="PREVIEW"
+    $ EXPORT PRESERVICA_SERVER="preview.preservica.com"
+    
+    >>> from pyPreservica.entityAPI import EntityAPI
+    >>> client = EntityAPI()
+    
+3 **Properties File**
+
+Create a properties file called "credentials.properties" in the working directory
+
+::
+    [credentials]
+    username=test@test.com
+    password=123444
+    tenant=PREVIEW
+    server=preview.preservica.com
+    
+    >>> from pyPreservica.entityAPI import EntityAPI
     >>> client = EntityAPI()
 
 
