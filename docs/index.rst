@@ -54,14 +54,16 @@ pyPreservica provides 3 different methods for authentication. The library requir
 
 1 **Method Arguments**
 
-Include the user crendentials as arguments to the Entity Class::
+Include the user crendentials as arguments to the Entity Class ::
+
     >>> from pyPreservica.entityAPI import EntityAPI
     >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
 
 
 2 **Environment Variable**
 
-Export environment variables as part of the sesssion::
+Export environment variables as part of the sesssion ::
+
     $ EXPORT PRESERVICA_USERNAME="test@test.com"
     $ EXPORT PRESERVICA_PASSWORD="123444"
     $ EXPORT PRESERVICA_TENANT="PREVIEW"
@@ -72,7 +74,8 @@ Export environment variables as part of the sesssion::
     
 3 **Properties File**
 
-Create a properties file called "credentials.properties" in the working directory::
+Create a properties file called "credentials.properties" in the working directory ::
+
     [credentials]
     username=test@test.com
     password=123444
