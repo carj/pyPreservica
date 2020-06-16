@@ -130,7 +130,7 @@ Now, let's try create the entity class::
 
     client = EntityAPI()
     
-and fetch a asset::
+and fetch an asset::
 
     asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     
