@@ -40,9 +40,8 @@ Installation
 Example
 ------------
 
-Create the entity client
-
-::
+Create the entity client ::
+    
     >>> from pyPreservica.entityAPI import EntityAPI
     >>> client = EntityAPI()
 
@@ -50,19 +49,19 @@ Create the entity client
 Authentication
 -----------------
 
-pyPreservica provides 3 different methods for authentication.
+pyPreservica provides 3 different methods for authentication. The library requires the username and password of a Preservica user and a Tenant identifier along with the server hostname.
+
 
 1 **Method Arguments**
 
-
-::
+Include the user crendentials as arguments to the Entity Class::
     >>> from pyPreservica.entityAPI import EntityAPI
     >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
 
 
 2 **Environment Variable**
 
-::
+Export environment variables as part of the sesssion::
     $ EXPORT PRESERVICA_USERNAME="test@test.com"
     $ EXPORT PRESERVICA_PASSWORD="123444"
     $ EXPORT PRESERVICA_TENANT="PREVIEW"
@@ -73,9 +72,7 @@ pyPreservica provides 3 different methods for authentication.
     
 3 **Properties File**
 
-Create a properties file called "credentials.properties" in the working directory
-
-::
+Create a properties file called "credentials.properties" in the working directory::
     [credentials]
     username=test@test.com
     password=123444
