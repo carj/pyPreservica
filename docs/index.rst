@@ -57,12 +57,31 @@ Representations are usually associated with a use case such as access or long-te
 
 **Bitstreams** represent the actual computer files as ingested into Preservica, i.e. the TIFF photograph or the PDF document.
 
-Installation
-------------
+PIP Installation
+----------------
+
+To install pyPreservica, simply run this simple command in your terminal of choice:
 
 .. code-block:: console
 
     $ pip install pyPreservica
+
+or you can install in a virtual python environment using:
+
+.. code-block:: console
+
+    $ pipenv install pyPreservica
+
+
+Get the Source Code
+-------------------
+
+pyPreservica is actively developed on GitHub, where the code is
+`always available <https://github.com/carj/pyPreservica>`_.
+
+You can  clone the public repository::
+
+    $ git clone git://github.com/carj/pyPreservica.git
 
 
 Example
@@ -122,7 +141,7 @@ The User Guide
 
 
 QuickStart
-==========
+~~~~~~~~~~~~~~~~~~~~~~
 
 Making a call to the Preservica repository is very simple.
 
@@ -182,10 +201,20 @@ We can update either the title or description attribute for assets, folders and 
 
 
 Example Applications
----------------------
+~~~~~~~~~~~~~~~~~~~~~~
+
+**Adding Metadata from a Spreadsheet**
+
+One common use case which can be solved with pyPreservica is adding descriptive metadata to existing Preservica assets or folders
+using metadata held in a spreadsheet. Normally each column in the spreadsheet contains a metadata attribute and each row represents a
+different asset.
 
 The following is a short python script which uses pyPreservica to update assets within Preservica
 with Dublin Core Metadata held in a spreadsheet.
+
+The spreadsheet should contain a header row. The column name in the header row
+should start with the text "dc:" to be included.
+There should be one column called "assetId" which contains the reference id for the asset to be updated.
 
 The metadata should be saved as a UTF-8 CSV file called dublincore.csv::
 
@@ -220,4 +249,58 @@ The metadata should be saved as a UTF-8 CSV file called dublincore.csv::
                 entity.add_metadata(asset, OAI_DC, xml_request)
         else:
             print("The CSV file should contain a assetId column containing the Preservica identifier for the asset to be updated")
+
+
+
+**Creating Searchable Transcripts from Oral Histories**
+
+The following is an example python script which uses a 3rd party Machine Learning API to automatically generate a text
+transcript from an audio file such as a WAVE file.
+The transcript is then uploaded to Preservica, is stored as metadata attached to an asset and indexed so that the audio or oral history is searchable.
+
+This example uses the AWS https://aws.amazon.com/transcribe/ service, but other AI APIs are also available.
+AWS provides a free tier https://aws.amazon.com/free/ to allow you to try the service for no cost.
+
+This python script does require a set of AWS credentials to use the AWS transcribe service.
+
+The python script downloads a WAV file using its reference, uploads it to AWS S3 and then starts the transcription service,
+when the transcript is available it creates a metadata document containing the text and uploads it to Preservica.::
+
+    import os,time,uuid,xml,boto3,requests
+    from pyPreservica.entityAPI import EntityAPI
+
+    BUCKET = "com.my.transcribe.bucket"
+    AWS_KEY = '.....'
+    AWS_SECRET = '........'
+    REGION = 'eu-west-1'
+    ## download the file to the local machine
+    client = EntityAPI()
+    asset = client.asset('91c73c95-a298-448c-a5a3-2295e5052be3')
+    client.download(asset, f"{asset.reference}.wav")
+    # upload the file to AWS
+    s3_client = boto3.client('s3', region_name=REGION, aws_access_key_id=AWS_KEY, aws_secret_access_key=AWS_SECRET)
+    response = s3_client.upload_file(f"{asset.reference}.wav", BUCKET, f"{asset.reference}")
+    # Start the transcription service
+    transcribe = boto3.client('transcribe', region_name=REGION, aws_access_key_id=KEY, aws_secret_access_key=SECRET)
+    job_name = str(uuid.uuid4())
+    job_uri = f"https://s3-{REGION}.amazonaws.com/{BUCKET}/{asset.reference}"
+    transcribe.start_transcription_job(TranscriptionJobName=job_name,  Media={'MediaFileUri': job_uri}, MediaFormat='wav', LanguageCode='en-US')
+    while True:
+        status = transcribe.get_transcription_job(TranscriptionJobName=job_name)
+        if status['TranscriptionJob']['TranscriptionJobStatus'] in ['COMPLETED', 'FAILED']:
+            break
+        print("Still working on the transcription....")
+        time.sleep(5)
+    # upload the transcript text to Preservica
+    if status['TranscriptionJob']['TranscriptionJobStatus'] == 'COMPLETED':
+        result_url = status['TranscriptionJob']['Transcript']['TranscriptFileUri']
+        json = requests.get(result_url).json()
+        text = json['results']['transcripts'][0]['transcript']
+        xml_object = xml.etree.ElementTree.Element('tns:Transcript', {"xmlns:tns": "https://aws.amazon.com/transcribe/"})
+        xml.etree.ElementTree.SubElement(xml_object, "Transcription").text = text
+        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8', xml_declaration=True).decode('utf-8')
+        client.add_metadata(asset, "https://aws.amazon.com/transcribe/", xml_request)   # add the xml transcript
+        s3_client.delete_object(Bucket=BUCKET, Key=asset.reference)   # delete the temp file from s3
+        os.remove(f"{asset.reference}.wav")    # delete the local copy
+
 
