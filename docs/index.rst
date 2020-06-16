@@ -40,10 +40,10 @@ Installation
 Example
 ------------
 
-Create the entity client::
+Create the entity client
 
+::
     >>> from pyPreservica.entityAPI import EntityAPI
-
     >>> client = EntityAPI()
 
 
@@ -57,14 +57,12 @@ pyPreservica provides 3 different methods for authentication.
 
 ::
     >>> from pyPreservica.entityAPI import EntityAPI
-
     >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
 
 
 2 **Environment Variable**
 
 ::
-
     $ EXPORT PRESERVICA_USERNAME="test@test.com"
     $ EXPORT PRESERVICA_PASSWORD="123444"
     $ EXPORT PRESERVICA_TENANT="PREVIEW"
