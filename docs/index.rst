@@ -5,6 +5,9 @@ pyPreservica is python library for the Preservica API
 
 This library provides a Python class for working with the Preservica Entity Rest API
 
+-------------------
+
+
 https://us.preservica.com/api/entity/documentation.html
 
 .. contents:: Table of Contents
@@ -32,3 +35,16 @@ Installation
 .. code-block:: console
 
     $ pip install pyPreservica
+
+
+Example
+------------
+
+Create the entity client::
+
+    >>> from pyPreservica.entityAPI import EntityAPI,Thumbnail
+
+    >>> client = EntityAPI()
+
+
+
