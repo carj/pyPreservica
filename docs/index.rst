@@ -33,6 +33,8 @@ Backgroud
 
 They key to working with the pyPreservica library is that the services follow the Preservica core data model closely.
 
+.. image:: images/entity-API.jpg
+
 The Preservica data model represents a hierarchy of entities, starting with the **structural objects** which are used to represent aggregations of digital assets. Structural objects define the organisation of the data. In a library context they may be referred to as collections, in an archival context they may be Fonds, Sub-Fonds, Series etc and in a records management context they could be simply a hierarchy of folders or directories.
 
 These structural objects may contain other structural objects in the same way as a computer filesystem may contain folders within folders.
@@ -66,6 +68,9 @@ Create the entity client ::
     
     >>> from pyPreservica.entityAPI import EntityAPI
     >>> client = EntityAPI()
+    >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    >>> print(asset.title)
+    
 
 
 Authentication
