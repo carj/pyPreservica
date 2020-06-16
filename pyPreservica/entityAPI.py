@@ -4,6 +4,7 @@ from enum import Enum
 import requests
 import xml.etree.ElementTree
 from io import IOBase
+import configparser
 
 NS_XIPV6 = "http://preservica.com/XIP/v6.0"
 NS_ENTITY = "http://preservica.com/EntityAPI/v6.0"
@@ -92,11 +93,63 @@ class EntityAPI:
 
         """
 
-    def __init__(self, username, password, tenant, server):
-        self.username = username
-        self.password = password
-        self.tenant = tenant
-        self.server = server
+    def __init__(self, username="", password="", tenant="", server=""):
+
+        config = configparser.ConfigParser()
+        config.read('credentials.properties')
+
+        if not username:
+            username = os.environ.get('PRESERVICA_USERNAME')
+            if username is None:
+                try:
+                    username = config['credentials']['username']
+                except KeyError:
+                    pass
+        if not username:
+            print("No valid username found in method arguments, environment variables or credentials.properties file")
+            raise SystemExit
+        else:
+            self.username = username
+
+        if not password:
+            password = os.environ.get('PRESERVICA_PASSWORD')
+            if password is None:
+                try:
+                    password = config['credentials']['password']
+                except KeyError:
+                    pass
+        if not password:
+            print("No valid password found in method arguments, environment variables or credentials.properties file")
+            raise SystemExit
+        else:
+            self.password = password
+
+        if not tenant:
+            tenant = os.environ.get('PRESERVICA_TENANT')
+            if tenant is None:
+                try:
+                    tenant = config['credentials']['tenant']
+                except KeyError:
+                    pass
+        if not tenant:
+            print("No valid tenant found in method arguments, environment variables or credentials.properties file")
+            raise SystemExit
+        else:
+            self.tenant = tenant
+
+        if not server:
+            server = os.environ.get('PRESERVICA_SERVER')
+            if server is None:
+                try:
+                    server = config['credentials']['server']
+                except KeyError:
+                    pass
+        if not server:
+            print("No valid server found in method arguments, environment variables or credentials.properties file")
+            raise SystemExit
+        else:
+            self.server = server
+
         self.token = self.__token__()
 
     def __token__(self):
@@ -518,9 +571,9 @@ class EntityAPI:
             print(request.request.url)
             raise SystemExit
 
-    def content_object(self, identifier):
+    def content_object(self, reference):
         headers = {'Preservica-Access-Token': self.token}
-        request = requests.get(f'https://{self.server}/api/entity/content-objects/{identifier}', headers=headers)
+        request = requests.get(f'https://{self.server}/api/entity/content-objects/{reference}', headers=headers)
         if request.status_code == 200:
             xml_response = str(request.content.decode('UTF-8'))
             entity = _entity_(xml_response)
@@ -529,7 +582,7 @@ class EntityAPI:
             return c
         elif request.status_code == 401:
             self.token = self.__token__()
-            return self.content_objects(identifier)
+            return self.content_objects(reference)
         else:
             print(f"content_object failed with error code: {request.status_code}")
             print(request.request.url)
