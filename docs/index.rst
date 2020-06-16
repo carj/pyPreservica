@@ -13,11 +13,17 @@ https://us.preservica.com/api/entity/documentation.html
 Why Should I Use This?
 ----------------------
 
-The goal of pyPreservica is to allow people to make use of the Preservica REST API.
+The goal of pyPreservica is to allow people to make use of the Preservica REST API without having to manage the underlying REST HTTPS requests and XML parsing.
 
 
 Features
 --------
+
+-  Fetch and Update Entity Objects (Folders, Assets, Content Objects)
+-  Add and Update External Identifiers
+-  Add and Update Descriptive Metadata fragments
+-  Retrive Representations, Generations & Bistreams
+-  Download digital files
 
 
 Installation
