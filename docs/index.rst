@@ -81,7 +81,7 @@ pyPreservica provides 3 different methods for authentication. The library requir
 
 1 **Method Arguments**
 
-Include the user crendentials as arguments to the Entity Class ::
+Include the user credentials as arguments to the Entity Class ::
 
     >>> from pyPreservica.entityAPI import EntityAPI
     >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
@@ -128,10 +128,16 @@ Begin by importing the pyPreservica module::
     
 Now, let's try create the entity class::
 
-    client = EntityAPI()
+    >>> client = EntityAPI()
     
-and fetch an asset::
+and fetch an asset and print its attributes::
 
-    asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    >>> print(asset.reference)
+    >>> print(asset.title)
+    >>> print(asset.description)
+    >>> print(asset.security_tag)
+    >>> print(asset.parent)
+    >>> print(asset.type)
     
 
