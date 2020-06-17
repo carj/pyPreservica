@@ -193,7 +193,34 @@ To get the parent objects of an asset all the way to the root of the repository 
     >>>     folder = client.folder(folder.parent)
     >>>     print(folder.title)
 
-Folder objects can be created directly in the repository ::
+
+The children of a folder can also be retrieved using the library.
+
+To get a set of all the root folders use ::
+
+    >>> root_folders = client.children(None)
+
+To get a set of children of a particular folder use ::
+
+    >>> entities = client.children(folder.reference)
+
+The set of entities returned may contain both assets and other folders.
+The default maximum size of the result set is 100 items. The size can be configured and for large result sets
+paging is available. ::
+
+    >>> next_page = None
+    >>> while True:
+    >>>     root_folders = entity.children(None, maximum=10, next_page=next_page)
+    >>>     for e in root_folders.results:
+    >>>    print(f'{e.title} :  {e.reference}')
+    >>>    if not root_folders.has_more:
+    >>>        break
+    >>>    else:
+    >>>        next_page = root_folders.next_page
+
+
+Folder objects can be created directly in the repository, the create_folder() function takes 3
+mandatory parameters, folder title, description and security tag. ::
 
     >>> new_folder = client.create_folder("title", "description", "open")
     >>> print(new_folder.reference)
@@ -259,7 +286,7 @@ The descriptive XML metadata document can be returned as a string ::
     >>>     client.metadata(url)
 
 
-Metadata can be attached to entities either by passing as an XML string::
+Metadata can be attached to entities either by passing an XML document as a string::
 
     >>> folder = entity.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
 
