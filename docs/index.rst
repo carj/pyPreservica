@@ -139,21 +139,20 @@ Create a properties file called "credentials.properties" in the working director
 The User Guide
 --------------
 
-
 QuickStart
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
 
 Making a call to the Preservica repository is very simple.
 
-Begin by importing the pyPreservica module::
+Begin by importing the pyPreservica module ::
 
     >>> from pyPreservica.entityAPI import EntityAPI
     
-Now, let's create the entity class::
+Now, let's create the entity class ::
 
     >>> client = EntityAPI()
     
-and fetch an asset and print its attributes::
+and fetch an asset and print its attributes ::
 
     >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> print(asset.reference)
@@ -164,7 +163,7 @@ and fetch an asset and print its attributes::
     >>> print(asset.entity_type)
     
 
-We can also fetch the same attributes for both folders and content objects::
+We can also fetch the same attributes for both folders and content objects ::
 
     >>> folder = client.folder("0b0f0303-6053-4d4e-a638-4f6b81768264")
     >>> print(folder.reference)
@@ -182,30 +181,31 @@ We can also fetch the same attributes for both folders and content objects::
     >>> print(content_object.parent)
     >>> print(content_object.entity_type)
 
-We can fetch any of assets, folders and content objects using the entity type and reference::
+We can fetch any of assets, folders and content objects using the entity type and reference ::
 
     >>> asset = client.entity(asset.entity_type, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
 
-To get the parent objects of an asset all the way to the root of the repository::
+To get the parent objects of an asset all the way to the root of the repository ::
 
+    >>> folder = entity.folder(asset.parent)
     >>> while folder.parent is not None:
-    >>>     folder = entity.folder(folder.parent)
+    >>>     folder = client.folder(folder.parent)
     >>>     print(folder.title)
 
-Folder objects can be created directly in the repository::
+Folder objects can be created directly in the repository ::
 
     >>> new_folder = client.create_folder("title", "description", "open")
     >>> print(new_folder.reference)
 
 This will create a folder at the top level of the repository. You can create child folders by passing the reference of the parent as the
-last argument.::
+last argument. ::
 
     >>> new_folder = client.create_folder("title", "description", "open", folder.parent)
     >>> print(new_folder.reference)
 
 
-We can update either the title or description attribute for assets, folders and content objects using the save() method::
+We can update either the title or description attribute for assets, folders and content objects using the save() method ::
 
     >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> asset.title = "New Asset Title"
@@ -224,14 +224,14 @@ We can update either the title or description attribute for assets, folders and 
 
 
 We can add external identifiers to either assets, folders or content objects. External identifiers have a type and a value.
-External identifiers do not have to be unique in the same way as internal identifiers.::
+External identifiers do not have to be unique in the same way as internal identifiers. ::
 
     >>> asset = client.asset("9bad5acf-e7ce-458a-927d-2d1e7f15974d")
     >>> client.add_identifier(asset, "ISBN", "978-3-16-148410-0")
     >>> client.add_identifier(asset, "DOI", "https://doi.org/10.1109/5.771073")
     >>> client.add_identifier(asset, "URN", "urn:isan:0000-0000-2CEA-0000-1-0000-0000-Y")
 
-Fetching entities back by external identifiers is also available. The call returns a set of entities.::
+Fetching entities back by external identifiers is also available. The call returns a set of entities. ::
 
     >>> for e in client.identifier("ISBN", "978-3-16-148410-0"):
         >>> print(e.type, e.reference, e.title)
@@ -239,7 +239,7 @@ Fetching entities back by external identifiers is also available. The call retur
 .. note::
     Entities within the set only contain the attributes (type, reference and title). If you need the full object you have to request it.
 
-For example::
+For example ::
 
     >>> for e in client.identifier("DOI", "urn:nbn:de:1111-20091210269"):
     >>>     o = client.entity(e.entity_type, e.reference)
@@ -248,15 +248,107 @@ For example::
 
 
 You can query an entity to determine if it has any attached descriptive metadata using the metadata attribute. This returns a dict[] object
-the dictionary key is a url to the metadata and the value is the schema::
+the dictionary key is a url to the metadata and the value is the schema ::
 
     >>> for url, schema in entity.metadata.items():
     >>>     print(url, schema)
 
-The descriptive XML metadata document can be returned as a string::
+The descriptive XML metadata document can be returned as a string ::
 
     >>> for url in entity.metadata:
     >>>     client.metadata(url)
+
+
+Metadata can be attached to entities either by passing as an XML string::
+
+    >>> folder = entity.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
+
+    >>>  xml = "<person:Person  xmlns:person='https://www.person.com/person'>" \
+            "<person:Name>Bob Smith</person:Name>" \
+            "<person:Phone>01234 100 100</person:Phone>" \
+            "<person:Email>test@test.com</person:Email>" \
+            "<person:Address>Abingdon, UK</person:Address>" \
+            "</person:Person>"
+
+    >>> folder = client.add_metadata(folder, "https://www.person.com/person", xml)
+
+or by reading the metadata from a file ::
+
+    >>> with open("DublinCore.xml", 'r', encoding="UTF-8") as md:
+    >>>     asset = client.add_metadata(asset, "http://purl.org/dc/elements/1.1/", md)
+
+
+Descriptive metadata can also be updated to amend values or change the document structure ::
+
+    >>> folder = entity.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")   # call into the API
+    >>>
+    >>> for url, schema in folder.metadata.items():
+    >>>     if schema == "https://www.person.com/person":
+    >>>         xml_string = entity.metadata(url)                    # call into the API
+    >>>         xml_document = ElementTree.fromstring(xml_string)
+    >>>         postcode = ElementTree.Element('{https://www.person.com/person}Postcode')
+    >>>         postcode.text = "OX14 3YS"
+    >>>         xml_document.append(postcode)
+    >>>         xml_string = ElementTree.tostring(xml_document, encoding='UTF-8', xml_declaration=True).decode("utf-8")
+    >>>         entity.update_metadata(folder, schema, xml_string)   # call into the API
+
+
+Each asset in Preservica contains one or more representations, such as Preservation or Access etc.
+
+To get a list of all the representations of an asset ::
+
+    >>> for representation in client.representations(asset):
+    >>>     print(representation.rep_type)
+    >>>     print(representation.name)
+    >>>     print(representation.asset.title)
+
+Each Representation will contain one or more content objects.
+Simple assets contain a single content object whereas more complex objects such as 3D models, books, multi-page documents
+may have several content objects. ::
+
+    >>> for content_object in client.content_objects(representation):
+    >>>     print(content_object.reference)
+    >>>     print(content_object.title)
+    >>>     print(content_object.description)
+    >>>     print(content_object.parent)
+    >>>     print(content_object.metadata)
+    >>>     print(content_object.asset.title)
+
+Each content object will contain a least one generation, migrated content may have multiple generations. ::
+
+    >>> for generation in client.generations(content_object):
+    >>>     print(generation.original)
+    >>>     print(generation.active)
+    >>>     print(generation.content_object)
+    >>>     print(generation.format_group)
+    >>>     print(generation.effective_date)
+    >>>     print(generation.bitstreams)
+
+Each Generation has a list of BitStream ids which can be used to fetch the actual content from the server or
+fetch technical metadata about the bitstream itself::
+
+    >>> for bs in generation.bitstreams:
+    >>>     print(bs.filename)
+    >>>     print(bs.length)
+    >>>     print(bs.length)
+    >>>     for algorithm,value in bs.fixity.items():
+    >>>         print(algorithm,  value)
+
+The actual content files can be download using bitstream_content() ::
+
+    >>> client.bitstream_content(bs, bs.filename)
+
+
+
+Developer Interface
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. module:: pyPreservica
+
+This part of the documentation covers all the interfaces of pyPreservica.
+
+All of Requests' functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
+
 
 
 Example Applications

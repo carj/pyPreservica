@@ -237,6 +237,7 @@ class EntityAPI:
             super().__init__(reference, title, description, security_tag, parent, metadata)
             self.entity_type = EntityAPI.EntityType.CONTENT_OBJECT
             self.representation_type = None
+            self.asset = None
 
     class PagedSet:
         def __init__(self, results, has_more, total, next_page):
@@ -613,6 +614,7 @@ class EntityAPI:
             for co in content_objects:
                 content_object = self.content_object(co.text)
                 content_object.representation_type = representation.rep_type
+                content_object.asset = representation.asset
                 results.append(content_object)
             return results
         elif request.status_code == requests.codes.unauthorized:
@@ -643,7 +645,7 @@ class EntityAPI:
             self.token = self.__token__()
             return self.generation(url)
         else:
-            print(f"generations failed with error code: {request.status_code}")
+            print(f"generation failed with error code: {request.status_code}")
             print(request.request.url)
             raise SystemExit
 
