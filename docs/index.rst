@@ -161,10 +161,10 @@ and fetch an asset and print its attributes::
     >>> print(asset.description)
     >>> print(asset.security_tag)
     >>> print(asset.parent)
-    >>> print(asset.type)
+    >>> print(asset.entity_type)
     
 
-The same code can be used to fetch folders and content objects::
+We can also fetch the same attributes for both folders and content objects::
 
     >>> folder = client.folder("0b0f0303-6053-4d4e-a638-4f6b81768264")
     >>> print(folder.reference)
@@ -172,7 +172,7 @@ The same code can be used to fetch folders and content objects::
     >>> print(folder.description)
     >>> print(folder.security_tag)
     >>> print(folder.parent)
-    >>> print(folder.type)
+    >>> print(folder.entity_type)
 
     >>> content_object = client.content_object("1a2a2101-6053-4d4e-a638-4f6b81768264")
     >>> print(content_object.reference)
@@ -180,7 +180,30 @@ The same code can be used to fetch folders and content objects::
     >>> print(content_object.description)
     >>> print(content_object.security_tag)
     >>> print(content_object.parent)
-    >>> print(content_object.type)
+    >>> print(content_object.entity_type)
+
+We can fetch any of assets, folders and content objects using the entity type and reference::
+
+    >>> asset = client.entity(asset.entity_type, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    >>> asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+
+To get the parent objects of an asset all the way to the root of the repository::
+
+    >>> while folder.parent is not None:
+    >>>     folder = entity.folder(folder.parent)
+    >>>     print(folder.title)
+
+Folder objects can be created directly in the repository::
+
+    >>> new_folder = client.create_folder("title", "description", "open")
+    >>> print(new_folder.reference)
+
+This will create a folder at the top level of the repository. You can create child folders by passing the reference of the parent as the
+last argument.::
+
+    >>> new_folder = client.create_folder("title", "description", "open", folder.parent)
+    >>> print(new_folder.reference)
+
 
 We can update either the title or description attribute for assets, folders and content objects using the save() method::
 
@@ -203,19 +226,37 @@ We can update either the title or description attribute for assets, folders and 
 We can add external identifiers to either assets, folders or content objects. External identifiers have a type and a value.
 External identifiers do not have to be unique in the same way as internal identifiers.::
 
-    asset = client.asset("9bad5acf-e7ce-458a-927d-2d1e7f15974d")
-    client.add_identifier(asset, "ISBN", "978-3-16-148410-0")
-    client.add_identifier(asset, "DOI", "https://doi.org/10.1109/5.771073")
-    client.add_identifier(asset, "URN", "urn:isan:0000-0000-2CEA-0000-1-0000-0000-Y")
+    >>> asset = client.asset("9bad5acf-e7ce-458a-927d-2d1e7f15974d")
+    >>> client.add_identifier(asset, "ISBN", "978-3-16-148410-0")
+    >>> client.add_identifier(asset, "DOI", "https://doi.org/10.1109/5.771073")
+    >>> client.add_identifier(asset, "URN", "urn:isan:0000-0000-2CEA-0000-1-0000-0000-Y")
 
-Fetching entities back by external identifiers is also available. The call returns a python set of entities.::
+Fetching entities back by external identifiers is also available. The call returns a set of entities.::
 
-    for e in client.identifier("ISBN", "978-3-16-148410-0"):
-        print(e.type, e.reference, e.title)
+    >>> for e in client.identifier("ISBN", "978-3-16-148410-0"):
+        >>> print(e.type, e.reference, e.title)
 
 .. note::
     Entities within the set only contain the attributes (type, reference and title). If you need the full object you have to request it.
 
+For example::
+
+    >>> for e in client.identifier("DOI", "urn:nbn:de:1111-20091210269"):
+    >>>     o = client.entity(e.entity_type, e.reference)
+    >>>     print(o.title)
+    >>>     print(o.description)
+
+
+You can query an entity to determine if it has any attached descriptive metadata using the metadata attribute. This returns a dict[] object
+the dictionary key is a url to the metadata and the value is the schema::
+
+    >>> for url, schema in entity.metadata.items():
+    >>>     print(url, schema)
+
+The descriptive XML metadata document can be returned as a string::
+
+    >>> for url in entity.metadata:
+    >>>     client.metadata(url)
 
 
 Example Applications
