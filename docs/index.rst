@@ -418,6 +418,9 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
 .. py:class:: Entity
 
+    Entity is the base class for assets, folders and content objects
+
+
     .. py:attribute:: reference
 
     The unique internal reference for the entity
@@ -429,6 +432,28 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     .. py:attribute:: description
 
     The description of the entity
+
+    .. py:attribute:: security_tag
+
+    The security tag of the entity
+
+    .. py:attribute:: parent
+
+    The unique internal reference for parent object
+    The parent of an Asset is always a Folder
+    The parent of a Folder is always a Folder or None for a folder at the root of the repository
+    The parent of a Content Object is always an Asset
+
+    .. py:attribute:: metadata
+
+    A map of metadata descriptive metadata attached to the entity.
+    The key is the metadata identifier and the value is the schema
+
+    .. py:attribute:: entity_type
+
+    Assets have entity type EntityType.ASSET
+    Folders have entity type EntityType.FOLDER
+    Content Objects have entity type EntityType.CONTENT_OBJECT
 
 
 
