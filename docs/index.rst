@@ -9,6 +9,7 @@ https://us.preservica.com/api/entity/documentation.html
 
 -------------------
 
+.. py:module:: pyPreservica
 
 .. contents:: Table of Contents
     :local:
@@ -392,7 +393,7 @@ You can specify the size of the thumbnail by passing a second argument ::
 
 Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~
-.. py:module:: pyPreservica
+
 
 This part of the documentation covers all the interfaces of pyPreservica.
 
@@ -401,18 +402,18 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
 .. py:class:: EntityAPI
 
-    .. py:method::   asset(reference)
+.. py:method::   EntityAPI.asset(reference)
 
-       Returns an asset object back by its internal reference identifier
+Returns an asset object back by its internal reference identifier
 
-       :param str reference: The unique identifier for the asset usually its uuid
-       :return: The asset object
-       :rtype: Asset
-       :raises SystemExit: if the identifier is incorrect
+:param str reference: The unique identifier for the asset usually its uuid
+:return: The asset object
+:rtype: Asset
+:raises SystemExit: if the identifier is incorrect
 
 
-    .. py:method::   folder(reference)
-    .. py:method::   content_object(reference)
+.. py:method::   EntityAPI.folder(reference)
+.. py:method::   EntityAPI.content_object(reference)
 
 
 
