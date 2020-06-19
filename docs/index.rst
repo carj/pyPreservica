@@ -402,6 +402,15 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 .. py:class:: EntityAPI
 
     .. py:method::   asset(reference)
+
+       Returns an asset object back by its internal reference identifier
+
+       :param str reference: The unique identifier for the asset usually its uuid
+       :return: The asset object
+       :rtype: Asset
+       :raises SystemExit: if the identifier is incorrect
+
+
     .. py:method::   folder(reference)
     .. py:method::   content_object(reference)
 
