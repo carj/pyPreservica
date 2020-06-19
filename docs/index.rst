@@ -280,7 +280,7 @@ the dictionary key is a url to the metadata and the value is the schema ::
     >>> for url, schema in entity.metadata.items():
     >>>     print(url, schema)
 
-The descriptive XML metadata document can be returned as a string ::
+The descriptive XML metadata document can be returned as a string by passing the key of the map to the metadata() method ::
 
     >>> for url in entity.metadata:
     >>>     client.metadata(url)
@@ -381,6 +381,37 @@ All of Requests' functionality can be accessed by these  methods on the :class:`
 Example Applications
 ~~~~~~~~~~~~~~~~~~~~~~
 
+**Updating a descriptive metadata element value**
+
+If you need to bulk update metadata values the following script will check every asset in a folder given by the "folder-uuid"
+and find the matching descriptive metadata document by its namespace "your-xml-namespace".
+It will then find a particular element in the xml document "your-element-name" and update its value. ::
+
+    from xml.etree import ElementTree
+    from pyPreservica.entityAPI import EntityAPI
+    client = EntityAPI()
+    folder = client.folder("folder-uuid")
+    next_page = None
+    while True:
+        children = client.children(folder.reference, maximum=10, next_page=next_page)
+        for entity in children.results:
+            if entity.entity_type is EntityAPI.EntityType.ASSET:
+                asset = client.asset(entity.reference)
+                for url, schema in asset.metadata.items():
+                    if schema == "your-xml-namespace":
+                        xml_document = ElementTree.fromstring(client.metadata(url))
+                        field_with_error = xml_document.find('.//{your-xml-namespace}your-element-name')
+                        if hasattr(field_with_error, 'text'):
+                            if field_with_error.text == "Old Value":
+                                field_with_error.text = "New Value"
+                                asset = client.update_metadata(asset, schema, ElementTree.tostring(xml_document, encoding='UTF-8', xml_declaration=True).decode("utf-8"))
+                                print("Updated asset: " + asset.title)
+        if not children.has_more:
+            break
+        else:
+            next_page = children.next_page
+
+
 **Adding Metadata from a Spreadsheet**
 
 One common use case which can be solved with pyPreservica is adding descriptive metadata to existing Preservica assets or folders
@@ -394,11 +425,11 @@ The spreadsheet should contain a header row. The column name in the header row
 should start with the text "dc:" to be included.
 There should be one column called "assetId" which contains the reference id for the asset to be updated.
 
-The metadata should be saved as a UTF-8 CSV file called dublincore.csv::
+The metadata should be saved as a UTF-8 CSV file called dublincore.csv ::
 
     import xml
     import csv
-    from EntityAPI.entityAPI import EntityAPI
+    from pyPreservica.entityAPI import EntityAPI
 
     OAI_DC = "http://www.openarchives.org/OAI/2.0/oai_dc/"
     DC = "http://purl.org/dc/elements/1.1/"

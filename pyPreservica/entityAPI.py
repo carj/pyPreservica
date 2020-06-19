@@ -530,7 +530,7 @@ class EntityAPI:
             xml_response = str(request.content.decode('UTF-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             content = entity_response.find('.//{http://preservica.com/XIP/v6.0}Content')
-            return xml.etree.ElementTree.tostring(content[0], encoding='utf8', method='xml').decode()
+            return xml.etree.ElementTree.tostring(content[0], encoding='utf8', method='xml').decode('UTF-8')
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.metadata(uri)
