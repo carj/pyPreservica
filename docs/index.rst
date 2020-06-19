@@ -413,13 +413,30 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
 
     .. py:method::  folder(reference)
+
+    Returns a folder object back by its internal reference identifier
+
+    :param str reference: The unique identifier for the asset usually its uuid
+    :return: The folder object
+    :rtype: Folder
+    :raises SystemExit: if the identifier is incorrect
+
+
+
     .. py:method::  content_object(reference)
+
+    Returns a content object back by its internal reference identifier
+
+    :param str reference: The unique identifier for the asset usually its uuid
+    :return: The content object
+    :rtype: ContentObject
+    :raises SystemExit: if the identifier is incorrect
 
 
 .. py:class:: Entity
 
     Entity is the base class for assets, folders and content objects
-
+    They all have the following attributes
 
     .. py:attribute:: reference
 
@@ -440,19 +457,25 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     .. py:attribute:: parent
 
     The unique internal reference for parent object
+
     The parent of an Asset is always a Folder
+
     The parent of a Folder is always a Folder or None for a folder at the root of the repository
+
     The parent of a Content Object is always an Asset
 
     .. py:attribute:: metadata
 
     A map of metadata descriptive metadata attached to the entity.
+
     The key is the metadata identifier and the value is the schema
 
     .. py:attribute:: entity_type
 
     Assets have entity type EntityType.ASSET
+
     Folders have entity type EntityType.FOLDER
+
     Content Objects have entity type EntityType.CONTENT_OBJECT
 
 
