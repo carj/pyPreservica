@@ -370,7 +370,7 @@ content directly without having to request the representations and generations f
 This call is a short-cut to request the bitstream from the latest generation of the first content object in the Access representation
 of an asset. If the asset does not have an access representation then the preservation representation is used.
 
-For very simple assets which comprise a single digital file in a singe representation then this call will probably do what you expect. ::
+For very simple assets which comprise a single digital file in a single representation then this call will probably do what you expect. ::
 
     >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
     >>> filename = client.download(asset, "asset.jpg")
@@ -382,6 +382,7 @@ We also have a function to fetch the thumbnail image for an asset or folder ::
 
     >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
     >>> filename = client.thumbnail(asset)
+
 
  You can specify which size of thumbnail by passing a second argument ::
 
