@@ -393,13 +393,12 @@ You can specify which size of the thumbnail by passing a second argument ::
 Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. module:: pyPreservica
 
 This part of the documentation covers all the interfaces of pyPreservica.
 
-All of Requests' functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
+All of pyPreservica functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
 
-.. autofunction:: EntityAPI
+
 
 Example Applications
 ~~~~~~~~~~~~~~~~~~~~~~
