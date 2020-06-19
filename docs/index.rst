@@ -396,7 +396,7 @@ Developer Interface
 
 This part of the documentation covers all the interfaces of pyPreservica.
 
-All of pyPreservica functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
+All of the pyPreservica functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
 
 
 
