@@ -365,7 +365,30 @@ The actual content files can be download using bitstream_content() ::
 
     >>> client.bitstream_content(bs, bs.filename)
 
+The pyPreservica library also provides a web service call which is part of the content API which allows downloading of digital
+content directly without having to request the representations and generations first.
+This call is a short-cut to request the bitstream from the latest generation of the first content object in the Access representation
+of an asset. If the asset does not have an access representation then the preservation representation is used.
 
+For very simple assets which comprise a single digital file in a singe representation then this call will probably do what you expect. ::
+
+    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>> filename = client.download(asset, "asset.jpg")
+
+For complex multi-part assets which have been through preservation actions it may be better to use the data model and the bitstream_content() function
+to fetch the exact bitstream you need.
+
+We also have a function to fetch the thumbnail image for an asset or folder ::
+
+    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>> filename = client.thumbnail(asset)
+
+ You can specify which size of thumbnail by passing a second argument ::
+
+    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>> filename = client.thumbnail(asset, Thumbnail.LARGE)     ## 400×400   pixels
+    >>> filename = client.thumbnail(asset, Thumbnail.MEDIUM)    ## 150×150   pixels
+    >>> filename = client.thumbnail(asset, Thumbnail.SMALL)     ## 64×64     pixels
 
 Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~
