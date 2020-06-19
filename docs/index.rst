@@ -383,7 +383,7 @@ We also have a function to fetch the thumbnail image for an asset or folder ::
     >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
     >>> filename = client.thumbnail(asset)
 
-You can specify which size of thumbnail by passing a second argument ::
+You can specify which size of the thumbnail by passing a second argument ::
 
     >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
     >>> filename = client.thumbnail(asset, Thumbnail.LARGE)     ## 400×400   pixels
@@ -399,7 +399,7 @@ This part of the documentation covers all the interfaces of pyPreservica.
 
 All of Requests' functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
 
-
+.. autofunction:: EntityAPI
 
 Example Applications
 ~~~~~~~~~~~~~~~~~~~~~~
