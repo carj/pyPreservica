@@ -383,12 +383,12 @@ class EntityAPI:
             print(request.request.url)
             raise SystemExit
 
-    def update_metadata(self, entity, namespace, data):
+    def update_metadata(self, entity, schema, data):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         for url in entity.metadata:
-            if namespace == entity.metadata[url]:
+            if schema == entity.metadata[url]:
                 mref = url[url.rfind(f"{entity.reference}/metadata/") + len(f"{entity.reference}/metadata/"):]
-                xml_object = xml.etree.ElementTree.Element('MetadataContainer', {"schemaUri": namespace,
+                xml_object = xml.etree.ElementTree.Element('MetadataContainer', {"schemaUri": schema,
                                                                                  "xmlns": "http://preservica.com/XIP/v6.0"})
                 xml.etree.ElementTree.SubElement(xml_object, "Ref").text = mref
                 xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
@@ -405,16 +405,16 @@ class EntityAPI:
                     return self.entity(entity.entity_type, entity.reference)
                 elif request.status_code == requests.codes.unauthorized:
                     self.token = self.__token__()
-                    return self.update_metadata(entity, namespace, data)
+                    return self.update_metadata(entity, schema, data)
                 else:
                     print(f"update_metadata failed with error code: {request.status_code}")
                     print(request.request.url)
                     raise SystemExit
 
-    def add_metadata(self, entity, namespace, data):
+    def add_metadata(self, entity, schema, data):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         xml_object = xml.etree.ElementTree.Element('MetadataContainer',
-                                                   {"schemaUri": namespace, "xmlns": "http://preservica.com/XIP/v6.0"})
+                                                   {"schemaUri": schema, "xmlns": "http://preservica.com/XIP/v6.0"})
         xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
         content = xml.etree.ElementTree.SubElement(xml_object, "Content")
         if isinstance(data, str):
@@ -443,7 +443,7 @@ class EntityAPI:
                 return self.content_object(entity.reference)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.add_metadata(entity, namespace, data)
+            return self.add_metadata(entity, schema, data)
         else:
             print(f"add_metadata failed with error code: {request.status_code}")
             print(request.request.url)
@@ -524,6 +524,12 @@ class EntityAPI:
             print(f"create_folder failed with error code: {request.status_code}")
             print(request.request.url)
             raise SystemExit
+
+    def metadata_for_entity(self, entity, schema):
+        for u, s in entity.metadata.items():
+            if schema == s:
+                return self.metadata(u)
+        return None
 
     def metadata(self, uri):
         headers = {'Preservica-Access-Token': self.token}

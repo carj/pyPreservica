@@ -488,7 +488,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
    .. py:method::  bitstream_content(bitstream, filename)
 
-    Return a list of Generation objects for a content object
+    Downloads the bitstream object to a local file
 
     :param Bitstream bitstream: The content object
     :param str filename: The name of the file the bytes are written to
@@ -503,6 +503,55 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :param str identifier_value: The identifier value
     :return: Set of entity objects which have a reference and title attribute
     :rtype: set(Entity)
+
+   .. py:method::  add_identifier(entity, identifier_type, identifier_value)
+
+    Add a new external identifier to an Entity object
+
+    :param Entity entity: The entity the identifier is added to
+    :param str identifier_type: The identifier type
+    :param str identifier_value: The identifier value
+    :return: An internal id for this external identifier
+    :rtype: str
+
+   .. py:method::  metadata(uri)
+
+    Fetch the metadata document by its identifier, this is the key from the entity metadata map
+
+    :param str uri: The metadata identifier
+    :return: A XML document as a string
+    :rtype: str
+
+   .. py:method::  metadata_for_entity(entity, schema)
+
+    Fetch the metadata document by its schema from an entity
+
+    :param Entity entity: The entity containing the metadata
+    :param str schema: The metadata schema URI
+    :return: The first XML on the entity document matching the schema URI
+    :rtype: str
+
+   .. py:method::  add_metadata(entity, schema, data)
+
+    Add a new descriptive XML document to an entity
+
+    :param Entity entity: The entity to add the metadata to
+    :param str schema: The metadata schema URI
+    :param data data: The XML document as a string or as a file bytes
+    :return: The updated Entity
+    :rtype: Entity
+
+
+   .. py:method::  update_metadata(entity, schema, data)
+
+    Update an existing descriptive XML document on an entity
+
+    :param Entity entity: The entity to add the metadata to
+    :param str schema: The metadata schema URI
+    :param data data: The XML document as a string or as a file bytes
+    :return: The updated Entity
+    :rtype: Entity
+
 
 .. py:class:: Generation
 
