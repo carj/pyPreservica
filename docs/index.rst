@@ -432,6 +432,25 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :rtype: ContentObject
     :raises SystemExit: if the identifier is incorrect
 
+    .. py:method:: save(entity)
+
+    Updates the title and description of an entity
+    The security tag and parent are not saved via this method call
+
+    :param Entity entity: The entity (asset, folder, content_object) to be updated
+    :return: The updated entity
+    :rtype: Entity
+
+    .. py:method::    create_folder(title, description, security_tag, parent=None)
+
+    Create a new folder in the repository
+
+   :param str title: The title of the new folder
+   :param str description: The description of the new folder
+   :param str security_tag: The security tag of the new folder
+   :param str parent: The identifier for the parent folder
+   :return: The new folder object
+   :rtype: Folder
 
 .. py:class:: Entity
 
@@ -456,7 +475,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
     .. py:attribute:: parent
 
-    The unique internal reference for parent object
+    The unique internal reference for this entity's parent object
 
     The parent of an Asset is always a Folder
 
@@ -466,9 +485,10 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
     .. py:attribute:: metadata
 
-    A map of metadata descriptive metadata attached to the entity.
+    A map of descriptive metadata attached to the entity.
 
-    The key is the metadata identifier and the value is the schema
+    The key of the map is the metadata identifier used to retrive the metadata document
+    and the value is the schema URI
 
     .. py:attribute:: entity_type
 
