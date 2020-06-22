@@ -462,6 +462,39 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :return: The new folder object
     :rtype: Folder
 
+
+   .. py:method::  representations(asset)
+
+    Return a set of representations for the asset
+
+    :param Asset asset: The asset containing the required representations
+    :return: Set of Representation objects
+    :rtype: set()
+
+   .. py:method::  content_objects(representation)
+
+    Return a list of representation objects for a representation
+
+    :param Representation representation: The representation
+    :return: List of content objects
+    :rtype: list()
+
+.. py:class:: Representation
+
+    Representations are used to define how the information object are composed in terms of technology and structure.
+
+    .. py:attribute:: rep_type
+
+    The type of representation
+
+    .. py:attribute:: name
+
+    The name of representation
+
+    .. py:attribute:: name
+
+    The name of representation
+
 .. py:class:: Entity
 
     Entity is the base class for assets, folders and content objects
@@ -558,7 +591,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
     .. py:attribute:: description
 
-    The folder of the asset
+    The description of the folder
 
     .. py:attribute:: security_tag
 
@@ -578,6 +611,43 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     .. py:attribute:: entity_type
 
     Assets have entity type EntityType.FOLDER
+
+
+.. py:class:: ContentObject
+
+    ContentObject represents the internal structure of an asset.
+
+    .. py:attribute:: reference
+
+    The unique internal reference for the content object
+
+    .. py:attribute:: title
+
+    The title of the content object
+
+    .. py:attribute:: description
+
+    The description of the content object
+
+    .. py:attribute:: security_tag
+
+    The security tag of the content object
+
+    .. py:attribute:: parent
+
+    The unique internal reference for this content object parent asset
+
+    .. py:attribute:: metadata
+
+    A map of descriptive metadata attached to the content object.
+
+    The key of the map is the metadata identifier used to retrieve the metadata document
+    and the value is the schema URI
+
+    .. py:attribute:: entity_type
+
+    Assets have entity type EntityType.CONTENT_OBJECT
+
 
 
 Example Applications
