@@ -432,6 +432,16 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :rtype: ContentObject
     :raises SystemExit: if the identifier is incorrect
 
+   .. py:method:: entity(entity_type, reference)
+
+    Returns an generic entity based on its reference identifier
+
+    :param entity_type entity_type: The type of entity
+    :param str reference: The unique identifier for the enity
+    :return: The entity
+    :rtype: Entity
+    :raises SystemExit: if the identifier is incorrect
+
    .. py:method:: save(entity)
 
     Updates the title and description of an entity
@@ -487,7 +497,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
     A map of descriptive metadata attached to the entity.
 
-    The key of the map is the metadata identifier used to retrive the metadata document
+    The key of the map is the metadata identifier used to retrieve the metadata document
     and the value is the schema URI
 
     .. py:attribute:: entity_type
@@ -498,6 +508,76 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
     Content Objects have entity type EntityType.CONTENT_OBJECT
 
+.. py:class:: Asset
+
+    Asset represents the information object or intellectual unit of information within the repository.
+
+    .. py:attribute:: reference
+
+    The unique internal reference for the asset
+
+    .. py:attribute:: title
+
+    The title of the asset
+
+    .. py:attribute:: description
+
+    The description of the asset
+
+    .. py:attribute:: security_tag
+
+    The security tag of the asset
+
+    .. py:attribute:: parent
+
+    The unique internal reference for this asset's parent folder
+
+    .. py:attribute:: metadata
+
+    A map of descriptive metadata attached to the asset.
+
+    The key of the map is the metadata identifier used to retrieve the metadata document
+    and the value is the schema URI
+
+    .. py:attribute:: entity_type
+
+    Assets have entity type EntityType.ASSET
+
+
+.. py:class:: Folder
+
+    Folder represents the structure of the repository and contains both Assets and Folder objects.
+
+    .. py:attribute:: reference
+
+    The unique internal reference for the folder
+
+    .. py:attribute:: title
+
+    The title of the folder
+
+    .. py:attribute:: description
+
+    The folder of the asset
+
+    .. py:attribute:: security_tag
+
+    The security tag of the folder
+
+    .. py:attribute:: parent
+
+    The unique internal reference for this folder's parent folder
+
+    .. py:attribute:: metadata
+
+    A map of descriptive metadata attached to the folder.
+
+    The key of the map is the metadata identifier used to retrieve the metadata document
+    and the value is the schema URI
+
+    .. py:attribute:: entity_type
+
+    Assets have entity type EntityType.FOLDER
 
 
 Example Applications
