@@ -77,7 +77,7 @@ or you can install in a virtual python environment using:
 Get the Source Code
 -------------------
 
-pyPreservica is actively developed on GitHub, where the code is
+pyPreservica is developed on GitHub, where the code is
 `always available <https://github.com/carj/pyPreservica>`_.
 
 You can  clone the public repository::
@@ -411,7 +411,6 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :rtype: Asset
     :raises SystemExit: if the identifier is incorrect
 
-
     .. py:method::  folder(reference)
 
     Returns a folder object back by its internal reference identifier
@@ -420,8 +419,6 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :return: The folder object
     :rtype: Folder
     :raises SystemExit: if the identifier is incorrect
-
-
 
     .. py:method::  content_object(reference)
 
@@ -437,9 +434,10 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     Updates the title and description of an entity
     The security tag and parent are not saved via this method call
 
-    :param Entity entity: The entity (asset, folder, content_object) to be updated
-    :return: The updated entity
-    :rtype: Entity
+   :param Entity entity: The entity (asset, folder, content_object) to be updated
+   :return: The updated entity
+   :rtype: Entity
+
 
     .. py:method::    create_folder(title, description, security_tag, parent=None)
 
