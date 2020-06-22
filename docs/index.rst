@@ -462,22 +462,76 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :return: The new folder object
     :rtype: Folder
 
-
    .. py:method::  representations(asset)
 
     Return a set of representations for the asset
 
     :param Asset asset: The asset containing the required representations
     :return: Set of Representation objects
-    :rtype: set()
+    :rtype: set(Representation)
 
    .. py:method::  content_objects(representation)
 
-    Return a list of representation objects for a representation
+    Return a list of content objects for a representation
 
     :param Representation representation: The representation
     :return: List of content objects
-    :rtype: list()
+    :rtype: list(ContentObject)
+
+   .. py:method::  generations(content_object)
+
+    Return a list of Generation objects for a content object
+
+    :param ContentObject content_object: The content object
+    :return: list of generations
+    :rtype: list(Generation)
+
+
+
+
+
+.. py:class:: Generation
+
+    Generations represent changes to content objects over time, as formats become obsolete new
+    generations may need to be created to make the information accessible.
+
+    .. py:attribute:: original
+
+    original  generation  (True or False)
+
+    .. py:attribute:: active
+
+    active  generation  (True or False)
+
+    .. py:attribute:: format_group
+
+    format for this generation
+
+    .. py:attribute:: effective_date
+
+    effective date generation
+
+    .. py:attribute:: bitstreams
+
+    list of Bitstream objects
+
+
+.. py:class:: Bitstream
+
+    Bitstreams represent the actual computer files as ingested into Preservica, i.e.
+    the TIFF photograph or the PDF document
+
+    .. py:attribute:: filename
+
+    The filename of the original bitstream
+
+    .. py:attribute:: length
+
+    The file size in bytes of the original Bitstream
+
+    .. py:attribute:: fixity
+
+    Map of fixity values for this bitstream, the key is the algorithm name and the value is the fixity value
 
 .. py:class:: Representation
 
@@ -491,9 +545,9 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
     The name of representation
 
-    .. py:attribute:: name
+    .. py:attribute:: asset
 
-    The name of representation
+    The asset the representation belongs to
 
 .. py:class:: Entity
 

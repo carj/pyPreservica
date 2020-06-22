@@ -681,11 +681,11 @@ class EntityAPI:
             xml_response = str(request.content.decode('UTF-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             generations = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Generation')
-            result = set()
+            result = list()
             for g in generations:
                 generation = self.generation(g.text)
                 generation.content_object = content_object
-                result.add(generation)
+                result.append(generation)
             return result
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
