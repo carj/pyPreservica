@@ -264,7 +264,9 @@ class EntityAPI:
                         file.flush()
                 file.close()
                 if os.path.getsize(filename) == bitstream.length:
-                    return filename
+                    return bitstream.length
+                else:
+                    return None
             else:
                 print(f"bitstream_content failed with error code: {req.status_code}")
                 print(req.request.url)

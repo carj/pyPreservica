@@ -486,9 +486,23 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :return: list of generations
     :rtype: list(Generation)
 
+   .. py:method::  bitstream_content(bitstream, filename)
 
+    Return a list of Generation objects for a content object
 
+    :param Bitstream bitstream: The content object
+    :param str filename: The name of the file the bytes are written to
+    :return: the number of bytes written
+    :rtype: int
 
+   .. py:method::  identifier(identifier_type, identifier_value)
+
+    Return a set of entities with external identifiers which match the type and value
+
+    :param str identifier_type: The identifier type
+    :param str identifier_value: The identifier value
+    :return: Set of entity objects which have a reference and title attribute
+    :rtype: set(Entity)
 
 .. py:class:: Generation
 
