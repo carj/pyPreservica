@@ -9,7 +9,9 @@ https://us.preservica.com/api/entity/documentation.html
 
 -------------------
 
+.. default-domain:: py
 .. py:module:: pyPreservica
+
 
 .. contents:: Table of Contents
     :local:
@@ -399,6 +401,26 @@ This part of the documentation covers all the interfaces of pyPreservica.
 
 All of the pyPreservica functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
 
+
+.. py:class:: EntityAPI
+
+   .. py:method:: asset(reference)
+
+    Returns an asset object back by its internal reference identifier
+
+    :param str reference: The unique identifier for the asset usually its uuid
+    :return: The asset object
+    :rtype: Asset
+    :raises SystemExit: if the identifier is incorrect
+
+    .. py:method:: asset(reference)
+
+       Returns an asset object back by its internal reference identifier
+
+    :param str reference: The unique identifier for the asset usually its uuid
+    :return: The asset object
+    :rtype: Asset
+    :raises SystemExit: if the identifier is incorrect
 
 .. py:class:: EntityAPI
 
