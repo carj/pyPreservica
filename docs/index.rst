@@ -413,27 +413,8 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :rtype: Asset
     :raises SystemExit: if the identifier is incorrect
 
-    .. py:method:: asset(reference)
 
-       Returns an asset object back by its internal reference identifier
-
-    :param str reference: The unique identifier for the asset usually its uuid
-    :return: The asset object
-    :rtype: Asset
-    :raises SystemExit: if the identifier is incorrect
-
-.. py:class:: EntityAPI
-
-    .. py:method:: asset(reference)
-
-    Returns an asset object back by its internal reference identifier
-
-    :param str reference: The unique identifier for the asset usually its uuid
-    :return: The asset object
-    :rtype: Asset
-    :raises SystemExit: if the identifier is incorrect
-
-    .. py:method::  folder(reference)
+   .. py:method::  folder(reference)
 
     Returns a folder object back by its internal reference identifier
 
@@ -442,7 +423,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :rtype: Folder
     :raises SystemExit: if the identifier is incorrect
 
-    .. py:method::  content_object(reference)
+   .. py:method:: content_object(reference)
 
     Returns a content object back by its internal reference identifier
 
@@ -451,26 +432,25 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :rtype: ContentObject
     :raises SystemExit: if the identifier is incorrect
 
-    .. py:method:: save(entity)
+   .. py:method:: save(entity)
 
-        Updates the title and description of an entity
+    Updates the title and description of an entity
     The security tag and parent are not saved via this method call
 
-   :param Entity entity: The entity (asset, folder, content_object) to be updated
-   :return: The updated entity
-   :rtype: Entity
+    :param Entity entity: The entity (asset, folder, content_object) to be updated
+    :return: The updated entity
+    :rtype: Entity
 
-
-    .. py:method::    create_folder(title, description, security_tag, parent=None)
+   .. py:method::  create_folder(title, description, security_tag, parent=None)
 
     Create a new folder in the repository
 
-   :param str title: The title of the new folder
-   :param str description: The description of the new folder
-   :param str security_tag: The security tag of the new folder
-   :param str parent: The identifier for the parent folder
-   :return: The new folder object
-   :rtype: Folder
+    :param str title: The title of the new folder
+    :param str description: The description of the new folder
+    :param str security_tag: The security tag of the new folder
+    :param str parent: The identifier for the parent folder
+    :return: The new folder object
+    :rtype: Folder
 
 .. py:class:: Entity
 
