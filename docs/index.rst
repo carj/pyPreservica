@@ -404,21 +404,21 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
     .. py:method:: asset(reference)
 
-    Returns an asset object back by its internal reference identifier
+        Returns an asset object back by its internal reference identifier
 
-    :param str reference: The unique identifier for the asset usually its uuid
-    :return: The asset object
-    :rtype: Asset
-    :raises SystemExit: if the identifier is incorrect
+        :param str reference: The unique identifier for the asset usually its uuid
+        :return: The asset object
+        :rtype: Asset
+        :raises SystemExit: if the identifier is incorrect
 
     .. py:method::  folder(reference)
 
-    Returns a folder object back by its internal reference identifier
+        Returns a folder object back by its internal reference identifier
 
-    :param str reference: The unique identifier for the asset usually its uuid
-    :return: The folder object
-    :rtype: Folder
-    :raises SystemExit: if the identifier is incorrect
+        :param str reference: The unique identifier for the asset usually its uuid
+        :return: The folder object
+        :rtype: Folder
+        :raises SystemExit: if the identifier is incorrect
 
     .. py:method::  content_object(reference)
 
@@ -431,7 +431,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
     .. py:method:: save(entity)
 
-    Updates the title and description of an entity
+        Updates the title and description of an entity
     The security tag and parent are not saved via this method call
 
    :param Entity entity: The entity (asset, folder, content_object) to be updated
