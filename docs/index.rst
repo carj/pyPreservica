@@ -92,7 +92,7 @@ Example
 
 Create the entity client and request an asset by its identifier ::
     
-    >>> from pyPreservica.entityAPI import EntityAPI
+    >>> from pyPreservica import *
     >>> client = EntityAPI()
     >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> print(asset.title)
@@ -109,7 +109,7 @@ pyPreservica provides 3 different methods for authentication. The library requir
 
 Include the user credentials as arguments to the Entity Class ::
 
-    >>> from pyPreservica.entityAPI import EntityAPI
+    >>> from pyPreservica import *
     >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
 
 
@@ -149,7 +149,7 @@ Making a call to the Preservica repository is very simple.
 
 Begin by importing the pyPreservica module ::
 
-    >>> from pyPreservica.entityAPI import EntityAPI
+    >>> from pyPreservica import *
     
 Now, let's create the entity class ::
 
@@ -832,7 +832,7 @@ and find the matching descriptive metadata document by its namespace "your-xml-n
 It will then find a particular element in the xml document "your-element-name" and update its value. ::
 
     from xml.etree import ElementTree
-    from pyPreservica.entityAPI import EntityAPI
+    from pyPreservica import *
     client = EntityAPI()
     folder = client.folder("folder-uuid")
     next_page = None
@@ -873,7 +873,7 @@ The metadata should be saved as a UTF-8 CSV file called dublincore.csv ::
 
     import xml
     import csv
-    from pyPreservica.entityAPI import EntityAPI
+    from pyPreservica import *
 
     OAI_DC = "http://www.openarchives.org/OAI/2.0/oai_dc/"
     DC = "http://purl.org/dc/elements/1.1/"
@@ -920,7 +920,7 @@ The python script downloads a WAV file using its reference, uploads it to AWS S3
 when the transcript is available it creates a metadata document containing the text and uploads it to Preservica.::
 
     import os,time,uuid,xml,boto3,requests
-    from pyPreservica.entityAPI import EntityAPI
+    from pyPreservica import *
 
     BUCKET = "com.my.transcribe.bucket"
     AWS_KEY = '.....'
