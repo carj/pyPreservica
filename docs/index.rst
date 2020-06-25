@@ -276,6 +276,20 @@ For example ::
     >>>     print(o.title)
     >>>     print(o.description)
 
+To delete identifiers attached to an entity ::
+
+    >>> client.delete_identifiers(entity)
+
+Will delete all identifiers on the entity ::
+
+    >>> client.delete_identifiers(entity, identifier_type="ISBN")
+
+Will delete all identifiers which have type "ISBN" ::
+
+     >>> client.delete_identifiers(entity, identifier_type="ISBN", identifier_value="122334")
+
+Will only delete identifiers which match the type and value
+
 
 You can query an entity to determine if it has any attached descriptive metadata using the metadata attribute. This returns a dict[] object
 the dictionary key is a url to the metadata and the value is the schema ::
@@ -514,6 +528,17 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :return: An internal id for this external identifier
     :rtype: str
 
+   .. py:method::  delete_identifiers(entity, identifier_type=None, identifier_value=None)
+
+    Delete identifiers on an Entity object
+
+    :param Entity entity: The entity the identifiers are deleted from
+    :param str identifier_type: The identifier type
+    :param str identifier_value: The identifier value
+    :return: entity
+    :rtype: Entity
+
+
    .. py:method::  metadata(uri)
 
     Fetch the metadata document by its identifier, this is the key from the entity metadata map
@@ -552,6 +577,36 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :return: The updated Entity
     :rtype: Entity
 
+   .. py:method::  children(folder_reference, maximum=100, next_page=None)
+
+    Find all the child entities of a folder
+
+    :param str folder_reference: The parent folder reference, None for the children of root folders
+    :param int maximum: The size of the result set
+    :param str next_page: A URL for the next page of results
+    :return: A set of entity objects
+    :rtype: set(Entity)
+
+
+   .. py:method::  thumbnail(entity, filename, size=Thumbnail.LARGE)
+
+    Get the thumbnail image for an asset or folder
+
+    :param Entity entity: The entity
+    :param str filename: The file the image is written to
+    :param Thumbnail size: The size of the thumbnail image
+    :return: The filename
+    :rtype: str
+
+   .. py:method::  download(entity, filename)
+
+    Download the first generation of the access representation of an asset
+
+    :param Entity entity: The entity
+    :param str filename: The file the image is written to
+    :param Thumbnail size: The size of the thumbnail image
+    :return: The filename
+    :rtype: str
 
 .. py:class:: Generation
 

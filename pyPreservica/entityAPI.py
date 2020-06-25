@@ -1,55 +1,17 @@
 import os
 import uuid
-from enum import Enum
+from time import sleep
 import requests
 import xml.etree.ElementTree
 from io import IOBase
-import configparser
-
-NS_XIPV6 = "http://preservica.com/XIP/v6.0"
-NS_ENTITY = "http://preservica.com/EntityAPI/v6.0"
-CHUNK_SIZE = 1024 * 2
+from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, EntityType, entityfromstring
 
 
-def _entity_(xml_data):
-    entity_response = xml.etree.ElementTree.fromstring(xml_data)
-    reference = entity_response.find('.//{http://preservica.com/XIP/v6.0}Ref')
-    title = entity_response.find('.//{http://preservica.com/XIP/v6.0}Title')
-    security_tag = entity_response.find('.//{http://preservica.com/XIP/v6.0}SecurityTag')
-    description = entity_response.find('.//{http://preservica.com/XIP/v6.0}Description')
-    parent = entity_response.find('.//{http://preservica.com/XIP/v6.0}Parent')
-    if hasattr(parent, 'text'):
-        parent = parent.text
-    else:
-        parent = None
-
-    fragments = entity_response.findall(
-        './/{http://preservica.com/EntityAPI/v6.0}Metadata/{http://preservica.com/EntityAPI/v6.0}Fragment')
-    metadata = {}
-    for fragment in fragments:
-        metadata[fragment.text] = fragment.attrib['schema']
-
-    return {'reference': reference.text, 'title': title.text if hasattr(title, 'text') else "",
-            'description': description.text if hasattr(description, 'text') else "",
-            'security_tag': security_tag.text, 'parent': parent, 'metadata': metadata}
-
-
-class EntityAPI:
+class EntityAPI(AuthenticatedAPI):
     """
         A client library for the Preservica Repository web services Entity API
         https://us.preservica.com/api/entity/documentation.html
 
-
-        Attributes
-        ----------
-        username : str
-            Preservica account username, usually an email address
-        password : str
-            Preservica account password
-        tenant : str
-            Tenant name for the Preservica account
-        server : str
-            The URL of the Preservica instance
 
         Methods
         -------
@@ -84,84 +46,6 @@ class EntityAPI:
             Update the descriptive metadata attached to an entity
 
         """
-
-    class Thumbnail(Enum):
-        SMALL = "small"
-        MEDIUM = "medium"
-        LARGE = "large"
-
-    class EntityType(Enum):
-        ASSET = "IO"
-        FOLDER = "SO"
-        CONTENT_OBJECT = "CO"
-
-    def __init__(self, username="", password="", tenant="", server=""):
-        config = configparser.ConfigParser()
-        config.read('credentials.properties')
-
-        if not username:
-            username = os.environ.get('PRESERVICA_USERNAME')
-            if username is None:
-                try:
-                    username = config['credentials']['username']
-                except KeyError:
-                    pass
-        if not username:
-            print("No valid username found in method arguments, environment variables or credentials.properties file")
-            raise SystemExit
-        else:
-            self.username = username
-
-        if not password:
-            password = os.environ.get('PRESERVICA_PASSWORD')
-            if password is None:
-                try:
-                    password = config['credentials']['password']
-                except KeyError:
-                    pass
-        if not password:
-            print("No valid password found in method arguments, environment variables or credentials.properties file")
-            raise SystemExit
-        else:
-            self.password = password
-
-        if not tenant:
-            tenant = os.environ.get('PRESERVICA_TENANT')
-            if tenant is None:
-                try:
-                    tenant = config['credentials']['tenant']
-                except KeyError:
-                    pass
-        if not tenant:
-            print("No valid tenant found in method arguments, environment variables or credentials.properties file")
-            raise SystemExit
-        else:
-            self.tenant = tenant
-
-        if not server:
-            server = os.environ.get('PRESERVICA_SERVER')
-            if server is None:
-                try:
-                    server = config['credentials']['server']
-                except KeyError:
-                    pass
-        if not server:
-            print("No valid server found in method arguments, environment variables or credentials.properties file")
-            raise SystemExit
-        else:
-            self.server = server
-
-        self.token = self.__token__()
-
-    def __token__(self):
-        response = requests.post(
-            f'https://{self.server}/api/accesstoken/login?username={self.username}&password={self.password}&tenant={self.tenant}')
-        if response.status_code == requests.codes.ok:
-            return response.json()['token']
-        else:
-            print(f"new_token failed with error code: {response.status_code}")
-            print(response.request.url)
-            raise SystemExit
 
     class Representation:
         def __init__(self, asset, rep_type, name, url):
@@ -225,17 +109,17 @@ class EntityAPI:
     class Folder(Entity):
         def __init__(self, reference, title, description, security_tag, parent, metadata):
             super().__init__(reference, title, description, security_tag, parent, metadata)
-            self.entity_type = EntityAPI.EntityType.FOLDER
+            self.entity_type = EntityType.FOLDER
 
     class Asset(Entity):
         def __init__(self, reference, title, description, security_tag, parent, metadata):
             super().__init__(reference, title, description, security_tag, parent, metadata)
-            self.entity_type = EntityAPI.EntityType.ASSET
+            self.entity_type = EntityType.ASSET
 
     class ContentObject(Entity):
         def __init__(self, reference, title, description, security_tag, parent, metadata):
             super().__init__(reference, title, description, security_tag, parent, metadata)
-            self.entity_type = EntityAPI.EntityType.CONTENT_OBJECT
+            self.entity_type = EntityType.CONTENT_OBJECT
             self.representation_type = None
             self.asset = None
 
@@ -322,6 +206,47 @@ class EntityAPI:
                 print(req.request.url)
                 raise SystemExit
 
+    def delete_identifiers(self, entity, identifier_type=None, identifier_value=None):
+        headers = {'Preservica-Access-Token': self.token}
+        if isinstance(entity, self.Asset):
+            path = "information-objects"
+        elif isinstance(entity, self.Folder):
+            path = "structural-objects"
+        request = requests.get(f'https://{self.server}/api/entity/{path}/{entity.reference}/identifiers', headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('UTF-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            identifier_list = entity_response.findall('.//{http://preservica.com/XIP/v6.0}Identifier')
+            for identifier_element in identifier_list:
+                _ref = _type = _value = _aipid = None
+                for identifier in identifier_element:
+                    if identifier.tag == "{http://preservica.com/XIP/v6.0}Entity":
+                        _ref = identifier.text
+                    if identifier.tag == "{http://preservica.com/XIP/v6.0}Type" and identifier_type is not None:
+                        _type = identifier.text
+                    if identifier.tag == "{http://preservica.com/XIP/v6.0}Value" and identifier_value is not None:
+                        _value = identifier.text
+                    if identifier.tag == "{http://preservica.com/XIP/v6.0}ApiId":
+                        _aipid = identifier.text
+                if _ref == entity.reference and _type == identifier_type and _value == identifier_value:
+                    del_req = requests.delete(
+                        f'https://{self.server}/api/entity/{path}/{entity.reference}/identifiers/{_aipid}', headers=headers)
+                    if del_req.status_code == requests.codes.unauthorized:
+                        self.token = self.__token__()
+                        return self.delete_identifier(entity, identifier_type, identifier_value)
+                    if del_req.status_code == requests.codes.no_content:
+                        pass
+                    else:
+                        return None
+            return entity
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.delete_identifier(entity, identifier_type, identifier_value)
+        else:
+            print(f"delete_identifier failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
     def identifier(self, identifier_type, identifier_value):
         headers = {'Preservica-Access-Token': self.token}
         payload = {'type': identifier_type, 'value': identifier_value}
@@ -332,13 +257,13 @@ class EntityAPI:
             entity_list = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Entity')
             result = set()
             for entity in entity_list:
-                if entity.attrib['type'] == self.EntityType.FOLDER.value:
+                if entity.attrib['type'] == EntityType.FOLDER.value:
                     f = self.Folder(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                     result.add(f)
-                elif entity.attrib['type'] == self.EntityType.ASSET.value:
+                elif entity.attrib['type'] == EntityType.ASSET.value:
                     a = self.Asset(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                     result.add(a)
-                elif entity.attrib['type'] == self.EntityType.CONTENT_OBJECT.value:
+                elif entity.attrib['type'] == EntityType.CONTENT_OBJECT.value:
                     c = self.ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                     result.add(c)
             return result
@@ -475,7 +400,7 @@ class EntityAPI:
                                headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
-            response = _entity_(xml_response)
+            response = entityfromstring(xml_response)
             if isinstance(entity, self.Asset):
                 return self.Asset(response['reference'], response['title'], response['description'],
                                   response['security_tag'],
@@ -512,7 +437,7 @@ class EntityAPI:
                                 headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
-            entity = _entity_(xml_response)
+            entity = entityfromstring(xml_response)
             f = self.Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'],
                             entity['parent'],
                             entity['metadata'])
@@ -531,6 +456,59 @@ class EntityAPI:
                 return self.metadata(u)
         return None
 
+    def security_tag_sync(self, entity, new_tag):
+        self.token = self.__token__()
+        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'text/plain'}
+        if isinstance(entity, self.Asset):
+            end_point = f"/information-objects/{entity.reference}/security-descriptor"
+        elif isinstance(entity, self.Folder):
+            end_point = f"/structural-objects/{entity.reference}/security-descriptor"
+        else:
+            print("Unknown entity type")
+            raise SystemExit
+        request = requests.put(f'https://{self.server}/api/entity{end_point}?includeDescendants=true', data=new_tag, headers=headers)
+        if request.status_code == requests.codes.accepted:
+            sleep_sec = 2
+            while True:
+                req = requests.get(f"https://{self.server}/api/entity/progress/{request.content.decode()}", headers=headers)
+                if req.status_code == requests.codes.ok:
+                    entity_response = xml.etree.ElementTree.fromstring(req.content.decode("utf-8"))
+                    status = entity_response.find(".//{http://status.preservica.com}Status")
+                    if hasattr(status, 'text'):
+                        if status.text != "ACTIVE":
+                            return self.entity(entity.entity_type, entity.reference)
+                sleep(sleep_sec)
+                sleep_sec = sleep_sec + 2
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.security_tag(entity, new_tag)
+        else:
+            print(f"security_tag failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
+    def security_tag_async(self, entity, new_tag):
+        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'text/plain'}
+        if isinstance(entity, self.Asset):
+            end_point = f"/information-objects/{entity.reference}/security-descriptor"
+        elif isinstance(entity, self.Folder):
+            end_point = f"/structural-objects/{entity.reference}/security-descriptor"
+        else:
+            print("Unknown entity type")
+            raise SystemExit
+
+        data = new_tag
+        request = requests.put(f'https://{self.server}/api/entity{end_point}?includeDescendants=true', data=data, headers=headers)
+        if request.status_code == requests.codes.accepted:
+            return request.content.decode()
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.security_tag(entity, new_tag)
+        else:
+            print(f"security_tag failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
     def metadata(self, uri):
         headers = {'Preservica-Access-Token': self.token}
         request = requests.get(uri, headers=headers)
@@ -548,11 +526,11 @@ class EntityAPI:
             raise SystemExit
 
     def entity(self, entity_type, reference):
-        if entity_type is self.EntityType.CONTENT_OBJECT:
+        if entity_type is EntityType.CONTENT_OBJECT:
             return self.content_object(reference)
-        elif entity_type is self.EntityType.FOLDER:
+        elif entity_type is EntityType.FOLDER:
             return self.folder(reference)
-        elif entity_type is self.EntityType.ASSET:
+        elif entity_type is EntityType.ASSET:
             return self.asset(reference)
         else:
             return None
@@ -562,13 +540,15 @@ class EntityAPI:
         request = requests.get(f'https://{self.server}/api/entity/information-objects/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
-            entity = _entity_(xml_response)
+            entity = entityfromstring(xml_response)
             a = self.Asset(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
                            entity['metadata'])
             return a
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.asset(reference)
+        elif request.status_code == requests.codes.not_found:
+            raise RuntimeError(reference, "The requested reference is not found in the repository")
         else:
             print(f"asset failed with error code: {request.status_code}")
             print(request.request.url)
@@ -579,7 +559,7 @@ class EntityAPI:
         request = requests.get(f'https://{self.server}/api/entity/structural-objects/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
-            entity = _entity_(xml_response)
+            entity = entityfromstring(xml_response)
             f = self.Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'],
                             entity['parent'],
                             entity['metadata'])
@@ -587,6 +567,8 @@ class EntityAPI:
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.folder(reference)
+        elif request.status_code == requests.codes.not_found:
+            raise RuntimeError(reference, "The requested reference is not found in the repository")
         else:
             print(f"folder failed with error code: {request.status_code}")
             print(request.request.url)
@@ -597,13 +579,15 @@ class EntityAPI:
         request = requests.get(f'https://{self.server}/api/entity/content-objects/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
-            entity = _entity_(xml_response)
+            entity = entityfromstring(xml_response)
             c = self.ContentObject(entity['reference'], entity['title'], entity['description'], entity['security_tag'],
                                    entity['parent'], entity['metadata'])
             return c
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.content_objects(reference)
+        elif request.status_code == requests.codes.not_found:
+            raise RuntimeError(reference, "The requested reference is not found in the repository")
         else:
             print(f"content_object failed with error code: {request.status_code}")
             print(request.request.url)
@@ -725,14 +709,15 @@ class EntityAPI:
             print(request.request.url)
             raise SystemExit
 
-    def children(self, reference, maximum=100, next_page=None):
+    def children(self, folder_reference, maximum=100, next_page=None):
         headers = {'Preservica-Access-Token': self.token}
         if next_page is None:
-            if reference is None:
+            if folder_reference is None:
                 request = requests.get(f'https://{self.server}/api/entity/root/children?start={0}&max={maximum}', headers=headers)
             else:
-                request = requests.get(f'https://{self.server}/api/entity/structural-objects/{reference}/children?start={0}&max={maximum}',
-                                       headers=headers)
+                request = requests.get(
+                    f'https://{self.server}/api/entity/structural-objects/{folder_reference}/children?start={0}&max={maximum}',
+                    headers=headers)
         else:
             request = requests.get(next_page, headers=headers)
         if request.status_code == requests.codes.ok:
@@ -743,11 +728,11 @@ class EntityAPI:
             next_url = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}Next')
             total_hits = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}TotalResults')
             for c in children:
-                if c.attrib['type'] == self.EntityType.FOLDER.value:
-                    f = self.Folder(c.attrib['ref'], c.attrib['title'], None, None, reference, None)
+                if c.attrib['type'] == EntityType.FOLDER.value:
+                    f = self.Folder(c.attrib['ref'], c.attrib['title'], None, None, folder_reference, None)
                     result.add(f)
                 else:
-                    a = self.Asset(c.attrib['ref'], c.attrib['title'], None, None, reference, None)
+                    a = self.Asset(c.attrib['ref'], c.attrib['title'], None, None, folder_reference, None)
                     result.add(a)
             has_more = True
             url = None
@@ -759,7 +744,7 @@ class EntityAPI:
             return ps
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.children(reference, maximum=maximum, next_page=next_page)
+            return self.children(folder_reference, maximum=maximum, next_page=next_page)
         else:
             print(f"children failed with error code: {request.status_code}")
             print(request.request.url)
