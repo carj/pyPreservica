@@ -33,8 +33,9 @@ Features
 
 -  Fetch and Update Entity Objects (Folders, Assets, Content Objects)
 -  Add, Delete and Update External Identifiers
--  Add and Update Descriptive Metadata fragments
+-  Add, Delete and Update Descriptive Metadata fragments
 -  Change Security tags on Folders and Assets
+-  Move Assets and Folders
 -  Retrieve Representations, Generations & Bitstreams
 -  Download digital files
 
@@ -123,7 +124,7 @@ Export environment variables as part of the session ::
     $ EXPORT PRESERVICA_TENANT="PREVIEW"
     $ EXPORT PRESERVICA_SERVER="preview.preservica.com"
     
-    >>> from pyPreservica.entityAPI import EntityAPI
+    >>> from pyPreservica import *
     >>> client = EntityAPI()
     
 3 **Properties File**
@@ -136,7 +137,7 @@ Create a properties file called "credentials.properties" in the working director
     tenant=PREVIEW
     server=preview.preservica.com
     
-    >>> from pyPreservica.entityAPI import EntityAPI
+    >>> from pyPreservica import *
     >>> client = EntityAPI()
 
 
