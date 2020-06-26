@@ -212,6 +212,8 @@ class EntityAPI(AuthenticatedAPI):
             path = "information-objects"
         elif isinstance(entity, self.Folder):
             path = "structural-objects"
+        else:
+            path = "content-objects"
         request = requests.get(f'https://{self.server}/api/entity/{path}/{entity.reference}/identifiers', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
@@ -233,7 +235,7 @@ class EntityAPI(AuthenticatedAPI):
                         f'https://{self.server}/api/entity/{path}/{entity.reference}/identifiers/{_aipid}', headers=headers)
                     if del_req.status_code == requests.codes.unauthorized:
                         self.token = self.__token__()
-                        return self.delete_identifier(entity, identifier_type, identifier_value)
+                        return self.delete_identifiers(entity, identifier_type, identifier_value)
                     if del_req.status_code == requests.codes.no_content:
                         pass
                     else:
@@ -241,7 +243,7 @@ class EntityAPI(AuthenticatedAPI):
             return entity
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.delete_identifier(entity, identifier_type, identifier_value)
+            return self.delete_identifiers(entity, identifier_type, identifier_value)
         else:
             print(f"delete_identifier failed with error code: {request.status_code}")
             print(request.request.url)
@@ -307,6 +309,28 @@ class EntityAPI(AuthenticatedAPI):
             print(f"add_identifier failed with error code: {request.status_code}")
             print(request.request.url)
             raise SystemExit
+
+    def delete_metadata(self, entity, schema):
+        headers = {'Preservica-Access-Token': self.token}
+        for url in entity.metadata:
+            if schema == entity.metadata[url]:
+                mref = url[url.rfind(f"{entity.reference}/metadata/") + len(f"{entity.reference}/metadata/"):]
+                if isinstance(entity, self.Asset):
+                    path = f"information-objects/{entity.reference}/metadata/{mref}"
+                else:
+                    path = f"structural-objects/{entity.reference}/metadata/{mref}"
+                request = requests.delete(f'https://{self.server}/api/entity/{path}', headers=headers)
+                if request.status_code == requests.codes.no_content:
+                    pass
+                elif request.status_code == requests.codes.unauthorized:
+                    self.token = self.__token__()
+                    return self.delete_metadata(entity, schema)
+                else:
+                    print(f"delete_metadata failed with error code: {request.status_code}")
+                    print(request.request.url)
+                    raise SystemExit
+
+        return self.entity(entity.entity_type, entity.reference)
 
     def update_metadata(self, entity, schema, data):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -421,6 +445,32 @@ class EntityAPI(AuthenticatedAPI):
             print(request.request.url)
             raise SystemExit
 
+    def move(self, entity, dest_folder):
+        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'text/plain'}
+        if isinstance(entity, self.Asset) and dest_folder is None:
+            raise RuntimeError(entity.reference, "Only folders can be moved to the root of the repository")
+        if isinstance(entity, self.Asset):
+            path = f"/information-objects/{entity.reference}/parent-ref"
+        elif isinstance(entity, self.Folder):
+            path = f"/structural-objects/{entity.reference}/parent-ref"
+        else:
+            print("Unknown entity type")
+            raise SystemExit
+        if dest_folder is not None:
+            data = dest_folder.reference
+        else:
+            data = "@root@"
+        request = requests.put(f'https://{self.server}/api/entity{path}', data=data, headers=headers)
+        if request.status_code == requests.codes.accepted:
+            return self.entity(entity.entity_type, entity.reference)
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.move(entity, dest_folder)
+        else:
+            print(f"move failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
     def create_folder(self, title, description, security_tag, parent=None):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         structuralobject = xml.etree.ElementTree.Element('StructuralObject',
@@ -481,7 +531,7 @@ class EntityAPI(AuthenticatedAPI):
                 sleep_sec = sleep_sec + 2
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.security_tag(entity, new_tag)
+            return self.security_tag_sync(entity, new_tag)
         else:
             print(f"security_tag failed with error code: {request.status_code}")
             print(request.request.url)
@@ -496,14 +546,13 @@ class EntityAPI(AuthenticatedAPI):
         else:
             print("Unknown entity type")
             raise SystemExit
-
         data = new_tag
         request = requests.put(f'https://{self.server}/api/entity{end_point}?includeDescendants=true', data=data, headers=headers)
         if request.status_code == requests.codes.accepted:
             return request.content.decode()
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.security_tag(entity, new_tag)
+            return self.security_tag_async(entity, new_tag)
         else:
             print(f"security_tag failed with error code: {request.status_code}")
             print(request.request.url)
@@ -541,9 +590,8 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
             entity = entityfromstring(xml_response)
-            a = self.Asset(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
-                           entity['metadata'])
-            return a
+            return self.Asset(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
+                              entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.asset(reference)
@@ -560,10 +608,8 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
             entity = entityfromstring(xml_response)
-            f = self.Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'],
-                            entity['parent'],
-                            entity['metadata'])
-            return f
+            return self.Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
+                               entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.folder(reference)
@@ -580,9 +626,8 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
             entity = entityfromstring(xml_response)
-            c = self.ContentObject(entity['reference'], entity['title'], entity['description'], entity['security_tag'],
-                                   entity['parent'], entity['metadata'])
-            return c
+            return self.ContentObject(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
+                                      entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.content_objects(reference)

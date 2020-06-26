@@ -32,9 +32,10 @@ Features
 --------
 
 -  Fetch and Update Entity Objects (Folders, Assets, Content Objects)
--  Add and Update External Identifiers
+-  Add, Delete and Update External Identifiers
 -  Add and Update Descriptive Metadata fragments
--  Retrieve Representations, Generations & Bistreams
+-  Change Security tags on Folders and Assets
+-  Retrieve Representations, Generations & Bitstreams
 -  Download digital files
 
 Background
@@ -115,7 +116,7 @@ Include the user credentials as arguments to the Entity Class ::
 
 2 **Environment Variable**
 
-Export environment variables as part of the sesssion ::
+Export environment variables as part of the session ::
 
     $ EXPORT PRESERVICA_USERNAME="test@test.com"
     $ EXPORT PRESERVICA_PASSWORD="123444"
@@ -252,6 +253,17 @@ We can update either the title or description attribute for assets, folders and 
     >>> content_object.description = "New Content Object Description"
     >>> content_object = client.save(content_object)
 
+To change the security tag on an Asset or Folder we have a separate api. Since this may be a long running process for folders containing
+many assets you can choose either a asynchronous (non-blocking) or synchronous (blocking call)
+
+This is the asynchronous call which returns immediately returning a process id ::
+
+    >>> pid = client.security_tag_async(entity, new_tag)
+
+The synchronous version will block until the security tag has been updated on all entities. ::
+
+    >>> entity = client.security_tag_sync(entity, new_tag)
+
 
 We can add external identifiers to either assets, folders or content objects. External identifiers have a type and a value.
 External identifiers do not have to be unique in the same way as internal identifiers. ::
@@ -300,7 +312,13 @@ the dictionary key is a url to the metadata and the value is the schema ::
 The descriptive XML metadata document can be returned as a string by passing the key of the map to the metadata() method ::
 
     >>> for url in entity.metadata:
-    >>>     client.metadata(url)
+    >>>     xml_document = client.metadata(url)
+
+An alternative is to call the metadata_for_entity method directly ::
+
+    >>> xml_document = client.metadata_for_entity(entity, "https://www.person.com/person")
+
+to fetch the first matching metadata on the entity
 
 
 Metadata can be attached to entities either by passing an XML document as a string::
@@ -382,6 +400,14 @@ The actual content files can be download using bitstream_content() ::
 
     >>> client.bitstream_content(bs, bs.filename)
 
+We can move entities between folders using the move call ::
+
+    >>> client.move(entity, dest_folder)
+
+Where entity is the object to move either an asset or folder and the second argument is destination folder where the entity is moved to
+
+
+
 The pyPreservica library also provides a web service call which is part of the content API which allows downloading of digital
 content directly without having to request the representations and generations first.
 This call is a short-cut to request the bitstream from the latest generation of the first content object in the Access representation
@@ -462,6 +488,28 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     The security tag and parent are not saved via this method call
 
     :param Entity entity: The entity (asset, folder, content_object) to be updated
+    :return: The updated entity
+    :rtype: Entity
+
+   .. py:method:: security_tag_async(entity, new_tag)
+
+    Change the security tag of an asset or folder
+    All the children of the folder will have their tag updated.
+    This is a non blocking call which returns immediately.
+
+    :param Entity entity: The entity (asset, folder) to be updated
+    :param str new_tag: The new security tag to be set on the entity
+    :return: A process ID
+    :rtype: str
+
+   .. py:method:: security_tag_sync(entity, new_tag)
+
+    Change the security tag of an asset or folder
+    All the children of the folder will have their tag updated.
+    This is a blocking call which returns after all entities have been updated.
+
+    :param Entity entity: The entity (asset, folder) to be updated
+    :param str new_tag: The new security tag to be set on the entity
     :return: The updated entity
     :rtype: Entity
 
@@ -576,6 +624,28 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :param data data: The XML document as a string or as a file bytes
     :return: The updated Entity
     :rtype: Entity
+
+   .. py:method::  delete_metadata(entity, entity, schema)
+
+    Delete an existing descriptive XML document on an entity by its schema
+    This call will delete all fragments with the same schema
+
+    :param Entity entity: The entity to add the metadata to
+    :param str schema: The metadata schema URI
+    :return: The updated Entity
+    :rtype: Entity
+
+
+   .. py:method::  move(entity, dest_folder)
+
+    Move an entity (asset or folder) to a new folder
+
+    :param Entity entity: The entity to move either asset or folder
+    :param Entity dest_folder: The new destination folder. This can be None to move a folder to the root of the repository
+    :return: The updated entity
+    :rtype: Entity
+
+
 
    .. py:method::  children(folder_reference, maximum=100, next_page=None)
 
