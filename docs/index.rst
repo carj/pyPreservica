@@ -254,7 +254,7 @@ We can update either the title or description attribute for assets, folders and 
     >>> content_object.description = "New Content Object Description"
     >>> content_object = client.save(content_object)
 
-To change the security tag on an Asset or Folder we have a separate api. Since this may be a long running process for folders containing
+To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running process for folders containing
 many assets you can choose either a asynchronous (non-blocking) or synchronous (blocking call)
 
 This is the asynchronous call which returns immediately returning a process id ::
@@ -274,7 +274,14 @@ External identifiers do not have to be unique in the same way as internal identi
     >>> client.add_identifier(asset, "DOI", "https://doi.org/10.1109/5.771073")
     >>> client.add_identifier(asset, "URN", "urn:isan:0000-0000-2CEA-0000-1-0000-0000-Y")
 
-Fetching entities back by external identifiers is also available. The call returns a set of entities. ::
+Fetch external identifiers on an entity. This call returns a set of tuples (identifier_type, identifier_value) ::
+
+    >>> identifiers = client.identifiers_for_entity(folder)
+    >>> for identifier in identifiers:
+    >>>     identifier_type = identifier[0]
+    >>>     identifier_value = identifier[1]
+
+Finding entities back by external identifiers is also available. The call returns a set of entities. ::
 
     >>> for e in client.identifier("ISBN", "978-3-16-148410-0"):
         >>> print(e.type, e.reference, e.title)
@@ -452,7 +459,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :param str reference: The unique identifier for the asset usually its uuid
     :return: The asset object
     :rtype: Asset
-    :raises SystemExit: if the identifier is incorrect
+    :raises RuntimeError: if the identifier is incorrect
 
 
    .. py:method::  folder(reference)
@@ -462,7 +469,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :param str reference: The unique identifier for the asset usually its uuid
     :return: The folder object
     :rtype: Folder
-    :raises SystemExit: if the identifier is incorrect
+    :raises RuntimeError: if the identifier is incorrect
 
    .. py:method:: content_object(reference)
 
@@ -471,7 +478,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :param str reference: The unique identifier for the asset usually its uuid
     :return: The content object
     :rtype: ContentObject
-    :raises SystemExit: if the identifier is incorrect
+    :raises RuntimeError: if the identifier is incorrect
 
    .. py:method:: entity(entity_type, reference)
 
@@ -557,6 +564,16 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :param str filename: The name of the file the bytes are written to
     :return: the number of bytes written
     :rtype: int
+
+
+   .. py:method::  identifiers_for_entity(entity)
+
+    Return a set of identifiers which belong to the entity
+
+    :param Entity entity: The entity
+    :return: Set of identifiers as tuples
+    :rtype: set(Tuple)
+
 
    .. py:method::  identifier(identifier_type, identifier_value)
 

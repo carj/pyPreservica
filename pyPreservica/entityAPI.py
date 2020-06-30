@@ -249,6 +249,40 @@ class EntityAPI(AuthenticatedAPI):
             print(request.request.url)
             raise SystemExit
 
+    def identifiers_for_entity(self, entity):
+        headers = {'Preservica-Access-Token': self.token}
+        if isinstance(entity, self.Asset):
+            end_point = f"/information-objects/{entity.reference}/identifiers"
+        elif isinstance(entity, self.Folder):
+            end_point = f"/structural-objects/{entity.reference}/identifiers"
+        elif isinstance(entity, self.ContentObject):
+            end_point = f"/content-objects/{entity.reference}/identifiers"
+        else:
+            print("Unknown entity type")
+            raise SystemExit
+        request = requests.get(f'https://{self.server}/api/entity/{end_point}', headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('UTF-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            identifier_list = entity_response.findall('.//{http://preservica.com/XIP/v6.0}Identifier')
+            result = set()
+            for identifier in identifier_list:
+                identifier_value = identifier_type = ""
+                for child in identifier:
+                    if child.tag == "{http://preservica.com/XIP/v6.0}Type":
+                        identifier_type = child.text
+                    if child.tag == "{http://preservica.com/XIP/v6.0}Value":
+                        identifier_value = child.text
+                result.add(tuple((identifier_type, identifier_value)))
+            return result
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.identifiers_for_entity(entity)
+        else:
+            print(f"identifiers_for_entity failed with error code: {request.status_code}")
+            print(request.request.url)
+            raise SystemExit
+
     def identifier(self, identifier_type, identifier_value):
         headers = {'Preservica-Access-Token': self.token}
         payload = {'type': identifier_type, 'value': identifier_value}

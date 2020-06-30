@@ -4,4 +4,4 @@ from .common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, EntityType
 from .entityAPI import EntityAPI
 
 # Version of the Preservica API package
-__version__ = "0.3.2"
+__version__ = "0.3.3"

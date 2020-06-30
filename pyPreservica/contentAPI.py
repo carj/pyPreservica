@@ -17,7 +17,7 @@ class ContentAPI(AuthenticatedAPI):
         elif entity_type == EntityType.FOLDER:
             params = {'id': f'sdb:SO|{reference}'}
         else:
-            print(f"entity must be a folder or asset")
+            print(f"entity_type must be a folder or asset")
             raise SystemExit
         request = requests.get(f'https://{self.server}/api/content/object-details', params=params, headers=headers)
         if request.status_code == requests.codes.ok:
@@ -35,9 +35,9 @@ class ContentAPI(AuthenticatedAPI):
     def download(self, entity_type, reference, filename):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/octet-stream'}
         if entity_type == "IO":
-            params = {'id': f'sdb:IO|{reference}', 'size': f'{size.value}'}
+            params = {'id': f'sdb:IO|{reference}'}
         elif entity_type == "SO":
-            params = {'id': f'sdb:SO|{reference}', 'size': f'{size.value}'}
+            params = {'id': f'sdb:SO|{reference}'}
         else:
             print(f"entity must be a folder or asset")
             raise SystemExit
@@ -86,19 +86,15 @@ class ContentAPI(AuthenticatedAPI):
                 print(req.request.url)
                 raise SystemExit
 
-    class SearchTerm:
-        def __init__(self):
-            self.fields = dict()
-            self.query = "%"
-
-        def add_field(self, field_name, field_value):
-            self.fields[field_name] = field_value
-
     def indexed_fields(self):
         headers = {'Preservica-Access-Token': self.token}
         results = requests.get(f'https://{self.server}/api/content/indexed-fields', headers=headers)
         if results.status_code == requests.codes.ok:
-            return results.json()["value"]
+            fields = list()
+            for ob in results.json()["value"]:
+                field = f'{ob["shortName"]}.{ob["index"]}'
+                fields.append(field)
+            return fields
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.indexed_fields()
@@ -107,31 +103,30 @@ class ContentAPI(AuthenticatedAPI):
             print(results.request.url)
             raise SystemExit
 
-    def search(self, search_term):
-
-        start_from = "0"
-        PAGE_SIZE = "10"
-
+    def simple_search(self, query, start_index=0, page_size=10, *args):
+        start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Preservica-Access-Token': self.token}
-        queryterm = ('{ "q":  "%s" }' % search_term.query)
-
-        metadata_fields = ""
-        for f in search_term.fields:
-            metadata_fields = metadata_fields + f + ","
-
-        payload = {'start': start_from, 'max': PAGE_SIZE, 'metadata': metadata_fields[:-1], 'q': queryterm}
+        queryterm = ('{ "q":  "%s" }' % query)
+        metadata_fields = ','.join(*args)
+        payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': queryterm}
         results = requests.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
-        results_set = list()
+        results_list = list()
         if results.status_code == requests.codes.ok:
-            for row in results.json()["value"]["metadata"]:
+            json = results.json()
+            metadata = json['value']['metadata']
+            refs = list(json['value']['objectIds'])
+            hits = int(json['value']['totalHits'])
+            for row in metadata:
                 results_map = dict()
                 for li in row:
                     results_map[li['name']] = li['value']
-                results_set.append(results_map)
-            return results_set
+                results_list.append(results_map)
+            next_start = start_index + page_size
+            cls = type('SearchResult', (object,), {'metadata': metadata, 'refs': refs, 'hits': hits, 'results_list': results_list, 'next_start': next_start})
+            return cls
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.search(search_term)
+            return self.simple_search(query, start_index, page_size, *args)
         else:
             print(f"search failed with error code: {results.status_code}")
             print(results.request.url)
