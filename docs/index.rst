@@ -19,8 +19,10 @@ https://us.preservica.com/api/entity/documentation.html
 Why Should I Use This?
 ----------------------
 
-The goal of pyPreservica is to allow people to make use of the Preservica Entity API for reading and writing objects within a Preservica repository without having to manage the underlying REST HTTPS requests and XML parsing.
-The library provides a level of abstraction which reflects the underlying data model.
+The goal of pyPreservica is to allow you to make use of the Preservica Entity API for reading and writing objects within
+a Preservica repository without having to manage the underlying REST HTTPS requests and XML parsing.
+The library provides a level of abstraction which reflects the underlying data model, such as structural and
+information objects.
 
 .. hint::
     Access to the Preservica API's for the cloud hosted system does depend on which Preservica Edition has been
@@ -92,7 +94,7 @@ You can  clone the public repository::
 Example
 ------------
 
-Create the entity client and request an asset by its identifier ::
+Create the entity API client object and request an asset (information object) by its unique identifier ::
     
     >>> from pyPreservica import *
     >>> client = EntityAPI()
@@ -119,10 +121,10 @@ Include the user credentials as arguments to the Entity Class ::
 
 Export environment variables as part of the session ::
 
-    $ EXPORT PRESERVICA_USERNAME="test@test.com"
-    $ EXPORT PRESERVICA_PASSWORD="123444"
-    $ EXPORT PRESERVICA_TENANT="PREVIEW"
-    $ EXPORT PRESERVICA_SERVER="preview.preservica.com"
+    $ export PRESERVICA_USERNAME="test@test.com"
+    $ export PRESERVICA_PASSWORD="123444"
+    $ export PRESERVICA_TENANT="PREVIEW"
+    $ export PRESERVICA_SERVER="preview.preservica.com"
     
     >>> from pyPreservica import *
     >>> client = EntityAPI()
@@ -153,7 +155,7 @@ Begin by importing the pyPreservica module ::
 
     >>> from pyPreservica import *
     
-Now, let's create the entity class ::
+Now, let's create the EntityAPI class ::
 
     >>> client = EntityAPI()
     
@@ -188,12 +190,12 @@ We can also fetch the same attributes for both folders and content objects ::
 
 We can fetch any of assets, folders and content objects using the entity type and reference ::
 
-    >>> asset = client.entity(asset.entity_type, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    >>> folder = client.entity(EntityType.FOLDER, asset.parent)
 
 To get the parent objects of an asset all the way to the root of the repository ::
 
-    >>> folder = entity.folder(asset.parent)
+    >>> folder = client.folder(asset.parent)
     >>> while folder.parent is not None:
     >>>     folder = client.folder(folder.parent)
     >>>     print(folder.title)
@@ -217,11 +219,11 @@ paging is available. ::
     >>> while True:
     >>>     root_folders = entity.children(None, maximum=10, next_page=next_page)
     >>>     for e in root_folders.results:
-    >>>    print(f'{e.title} :  {e.reference}')
-    >>>    if not root_folders.has_more:
-    >>>        break
-    >>>    else:
-    >>>        next_page = root_folders.next_page
+    >>>     print(f'{e.title} :  {e.reference}')
+    >>>     if not root_folders.has_more:
+    >>>         break
+    >>>     else:
+    >>>         next_page = root_folders.next_page
 
 
 Folder objects can be created directly in the repository, the create_folder() function takes 3

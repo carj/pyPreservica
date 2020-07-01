@@ -10,11 +10,11 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="pyPreservica",
-    version="0.3.3",
+    version="0.3.4",
     description="Python library for the Preservica Rest API",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/carj/pyPreservica",
+    url="https://pypreservica.readthedocs.io/",
     author="James Carr",
     author_email="james.carr@preservica.com",
     license="Apache License 2.0",

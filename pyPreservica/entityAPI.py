@@ -154,7 +154,7 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 print(f"bitstream_content failed with error code: {req.status_code}")
                 print(req.request.url)
-                raise SystemExit
+                raise RuntimeError(req.status_code, "bitstream_content failed")
 
     def download(self, entity, filename):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/octet-stream'}
@@ -164,7 +164,7 @@ class EntityAPI(AuthenticatedAPI):
             params = {'id': f'sdb:SO|{entity.reference}'}
         else:
             print(f"entity must be a folder or asset")
-            raise SystemExit
+            raise RuntimeError("entity must be a folder or asset")
         with requests.get(f'https://{self.server}/api/content/download', params=params, headers=headers, stream=True) as req:
             if req.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
@@ -179,7 +179,7 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 print(f"download failed with error code: {req.status_code}")
                 print(req.request.url)
-                raise SystemExit
+                raise RuntimeError(req.status_code, "download failed")
 
     def thumbnail(self, entity, filename, size=Thumbnail.LARGE):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/octet-stream'}
@@ -189,7 +189,7 @@ class EntityAPI(AuthenticatedAPI):
             params = {'id': f'sdb:SO|{entity.reference}', 'size': f'{size.value}'}
         else:
             print(f"entity must be a folder or asset")
-            raise SystemExit
+            raise RuntimeError("entity must be a folder or asset")
         with requests.get(f'https://{self.server}/api/content/thumbnail', params=params, headers=headers) as req:
             if req.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
@@ -204,7 +204,7 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 print(f"thumbnail failed with error code: {req.status_code}")
                 print(req.request.url)
-                raise SystemExit
+                raise RuntimeError(req.status_code, "thumbnail failed")
 
     def delete_identifiers(self, entity, identifier_type=None, identifier_value=None):
         headers = {'Preservica-Access-Token': self.token}
@@ -247,7 +247,7 @@ class EntityAPI(AuthenticatedAPI):
         else:
             print(f"delete_identifier failed with error code: {request.status_code}")
             print(request.request.url)
-            raise SystemExit
+            raise RuntimeError(request.status_code, "delete_identifier failed")
 
     def identifiers_for_entity(self, entity):
         headers = {'Preservica-Access-Token': self.token}
@@ -259,7 +259,7 @@ class EntityAPI(AuthenticatedAPI):
             end_point = f"/content-objects/{entity.reference}/identifiers"
         else:
             print("Unknown entity type")
-            raise SystemExit
+            raise RuntimeError("Unknown entity type")
         request = requests.get(f'https://{self.server}/api/entity/{end_point}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
@@ -281,7 +281,7 @@ class EntityAPI(AuthenticatedAPI):
         else:
             print(f"identifiers_for_entity failed with error code: {request.status_code}")
             print(request.request.url)
-            raise SystemExit
+            raise RuntimeError(request.status_code, "identifiers_for_entity failed")
 
     def identifier(self, identifier_type, identifier_value):
         headers = {'Preservica-Access-Token': self.token}
@@ -309,7 +309,7 @@ class EntityAPI(AuthenticatedAPI):
         else:
             print(f"identifier failed with error code: {request.status_code}")
             print(request.request.url)
-            raise SystemExit
+            raise RuntimeError(request.status_code, "identifier failed")
 
     def add_identifier(self, entity, identifier_type, identifier_value):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -325,7 +325,7 @@ class EntityAPI(AuthenticatedAPI):
             end_point = f"/content-objects/{entity.reference}/identifiers"
         else:
             print("Unknown entity type")
-            raise SystemExit
+            raise RuntimeError("Unknown entity type")
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='UTF-8', xml_declaration=True)
         request = requests.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
@@ -342,7 +342,7 @@ class EntityAPI(AuthenticatedAPI):
         else:
             print(f"add_identifier failed with error code: {request.status_code}")
             print(request.request.url)
-            raise SystemExit
+            raise RuntimeError(request.status_code, "add_identifier failed with error code")
 
     def delete_metadata(self, entity, schema):
         headers = {'Preservica-Access-Token': self.token}
