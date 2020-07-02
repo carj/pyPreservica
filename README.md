@@ -1,7 +1,9 @@
 # pyPreservica
-Python language binding for the Preservica API
+Python language binding for the Preservica Entity API
 
-This library provides a Python class for working with the Preservica Entity Rest API v6.1
+https://preservica.com/
+
+This library provides a Python class for working with the Entity API v6.1
 
 https://us.preservica.com/api/entity/documentation.html
 

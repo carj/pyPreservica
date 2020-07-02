@@ -9,6 +9,7 @@ CHUNK_SIZE = 1024 * 2
 NS_XIPV6 = "http://preservica.com/XIP/v6.0"
 NS_ENTITY = "http://preservica.com/EntityAPI/v6.0"
 namespace = {'xip': NS_XIPV6, 'v6': NS_ENTITY}
+HEADER_TOKEN = "Preservica-Access-Token"
 
 
 def entityfromstring(xml_data):

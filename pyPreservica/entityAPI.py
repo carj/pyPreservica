@@ -1,10 +1,8 @@
-import os
 import uuid
 from time import sleep
-import requests
 import xml.etree.ElementTree
 from io import IOBase
-from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, EntityType, entityfromstring
+from pyPreservica.common import *
 
 
 class EntityAPI(AuthenticatedAPI):
@@ -134,10 +132,9 @@ class EntityAPI(AuthenticatedAPI):
             return self.results.__str__()
 
     def bitstream_content(self, bitstream, filename):
-        headers = {'Preservica-Access-Token': self.token}
         if not isinstance(bitstream, self.Bitstream):
-            return None
-        with requests.get(bitstream.content_url, headers=headers, stream=True) as req:
+            raise RuntimeError("bitstream is not a Bitstream object")
+        with requests.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as req:
             if req.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.bitstream_content(bitstream, filename)
@@ -157,7 +154,7 @@ class EntityAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, "bitstream_content failed")
 
     def download(self, entity, filename):
-        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/octet-stream'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         if isinstance(entity, self.Asset):
             params = {'id': f'sdb:IO|{entity.reference}'}
         elif isinstance(entity, self.Folder):
@@ -182,7 +179,7 @@ class EntityAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, "download failed")
 
     def thumbnail(self, entity, filename, size=Thumbnail.LARGE):
-        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/octet-stream'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         if isinstance(entity, self.Asset):
             params = {'id': f'sdb:IO|{entity.reference}', 'size': f'{size.value}'}
         elif isinstance(entity, self.Folder):
@@ -207,7 +204,7 @@ class EntityAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, "thumbnail failed")
 
     def delete_identifiers(self, entity, identifier_type=None, identifier_value=None):
-        headers = {'Preservica-Access-Token': self.token}
+        headers = {HEADER_TOKEN: self.token}
         if isinstance(entity, self.Asset):
             path = "information-objects"
         elif isinstance(entity, self.Folder):
@@ -250,7 +247,7 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "delete_identifier failed")
 
     def identifiers_for_entity(self, entity):
-        headers = {'Preservica-Access-Token': self.token}
+        headers = {HEADER_TOKEN: self.token}
         if isinstance(entity, self.Asset):
             end_point = f"/information-objects/{entity.reference}/identifiers"
         elif isinstance(entity, self.Folder):
@@ -284,7 +281,7 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "identifiers_for_entity failed")
 
     def identifier(self, identifier_type, identifier_value):
-        headers = {'Preservica-Access-Token': self.token}
+        headers = {HEADER_TOKEN: self.token}
         payload = {'type': identifier_type, 'value': identifier_value}
         request = requests.get(f'https://{self.server}/api/entity/entities/by-identifier', params=payload, headers=headers)
         if request.status_code == requests.codes.ok:
@@ -312,7 +309,7 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "identifier failed")
 
     def add_identifier(self, entity, identifier_type, identifier_value):
-        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         xml_object = xml.etree.ElementTree.Element('Identifier', {"xmlns": "http://preservica.com/XIP/v6.0"})
         xml.etree.ElementTree.SubElement(xml_object, "Type").text = identifier_type
         xml.etree.ElementTree.SubElement(xml_object, "Value").text = identifier_value
@@ -345,7 +342,7 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "add_identifier failed with error code")
 
     def delete_metadata(self, entity, schema):
-        headers = {'Preservica-Access-Token': self.token}
+        headers = {HEADER_TOKEN: self.token}
         for url in entity.metadata:
             if schema == entity.metadata[url]:
                 mref = url[url.rfind(f"{entity.reference}/metadata/") + len(f"{entity.reference}/metadata/"):]
@@ -362,12 +359,11 @@ class EntityAPI(AuthenticatedAPI):
                 else:
                     print(f"delete_metadata failed with error code: {request.status_code}")
                     print(request.request.url)
-                    raise SystemExit
-
+                    raise RuntimeError(request.status_code, "delete_metadata failed with error code")
         return self.entity(entity.entity_type, entity.reference)
 
     def update_metadata(self, entity, schema, data):
-        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         for url in entity.metadata:
             if schema == entity.metadata[url]:
                 mref = url[url.rfind(f"{entity.reference}/metadata/") + len(f"{entity.reference}/metadata/"):]
@@ -379,9 +375,11 @@ class EntityAPI(AuthenticatedAPI):
                 if isinstance(data, str):
                     ob = xml.etree.ElementTree.fromstring(data)
                     content.append(ob)
-                if isinstance(data, IOBase):
+                elif isinstance(data, IOBase):
                     tree = xml.etree.ElementTree.parse(data)
                     content.append(tree.getroot())
+                else:
+                    raise RuntimeError("Unknown data type")
                 xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='UTF-8', xml_declaration=True)
                 request = requests.put(f'{url}', data=xml_request, headers=headers)
                 if request.status_code == requests.codes.ok:
@@ -392,10 +390,10 @@ class EntityAPI(AuthenticatedAPI):
                 else:
                     print(f"update_metadata failed with error code: {request.status_code}")
                     print(request.request.url)
-                    raise SystemExit
+                    raise RuntimeError(request.status_code, "update_metadata failed with error code")
 
     def add_metadata(self, entity, schema, data):
-        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         xml_object = xml.etree.ElementTree.Element('MetadataContainer',
                                                    {"schemaUri": schema, "xmlns": "http://preservica.com/XIP/v6.0"})
         xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
@@ -403,9 +401,11 @@ class EntityAPI(AuthenticatedAPI):
         if isinstance(data, str):
             ob = xml.etree.ElementTree.fromstring(data)
             content.append(ob)
-        if isinstance(data, IOBase):
+        elif isinstance(data, IOBase):
             tree = xml.etree.ElementTree.parse(data)
             content.append(tree.getroot())
+        else:
+            raise RuntimeError("Unknown data type")
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='UTF-8', xml_declaration=True)
         if isinstance(entity, self.Asset):
             end_point = f"/information-objects/{entity.reference}/metadata"
@@ -414,8 +414,7 @@ class EntityAPI(AuthenticatedAPI):
         elif isinstance(entity, self.ContentObject):
             end_point = f"/content-objects/{entity.reference}/metadata"
         else:
-            print("Unknown entity type")
-            raise SystemExit
+            raise RuntimeError("Unknown entity type")
         request = requests.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
             if isinstance(entity, self.Asset):
@@ -430,10 +429,10 @@ class EntityAPI(AuthenticatedAPI):
         else:
             print(f"add_metadata failed with error code: {request.status_code}")
             print(request.request.url)
-            raise SystemExit
+            raise RuntimeError(request.status_code, "add_metadata failed with error code")
 
     def save(self, entity):
-        headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         if isinstance(entity, self.Asset):
             end_point = "/information-objects"
             xml_object = xml.etree.ElementTree.Element('InformationObject', {"xmlns": "http://preservica.com/XIP/v6.0"})
@@ -444,8 +443,7 @@ class EntityAPI(AuthenticatedAPI):
             end_point = "/content-objects"
             xml_object = xml.etree.ElementTree.Element('ContentObject', {"xmlns": "http://preservica.com/XIP/v6.0"})
         else:
-            print("Unknown entity type")
-            raise SystemExit
+            raise RuntimeError("Unknown entity type")
         xml.etree.ElementTree.SubElement(xml_object, "Ref").text = entity.reference
         xml.etree.ElementTree.SubElement(xml_object, "Title").text = entity.title
         xml.etree.ElementTree.SubElement(xml_object, "Description").text = entity.description
@@ -507,8 +505,7 @@ class EntityAPI(AuthenticatedAPI):
 
     def create_folder(self, title, description, security_tag, parent=None):
         headers = {'Preservica-Access-Token': self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        structuralobject = xml.etree.ElementTree.Element('StructuralObject',
-                                                         {"xmlns": "http://preservica.com/XIP/v6.0"})
+        structuralobject = xml.etree.ElementTree.Element('StructuralObject',  {"xmlns": NS_XIPV6})
         xml.etree.ElementTree.SubElement(structuralobject, "Ref").text = str(uuid.uuid4())
         xml.etree.ElementTree.SubElement(structuralobject, "Title").text = title
         xml.etree.ElementTree.SubElement(structuralobject, "Description").text = description
