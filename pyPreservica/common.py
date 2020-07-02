@@ -11,6 +11,10 @@ NS_ENTITY = "http://preservica.com/EntityAPI/v6.0"
 namespace = {'xip': NS_XIPV6, 'v6': NS_ENTITY}
 HEADER_TOKEN = "Preservica-Access-Token"
 
+IO_PATH = "information-objects"
+SO_PATH = "structural-objects"
+CO_PATH = "content-objects"
+
 
 def entityfromstring(xml_data):
     entity_response = xml.etree.ElementTree.fromstring(xml_data)
@@ -46,7 +50,7 @@ class EntityType(Enum):
     CONTENT_OBJECT = "CO"
 
 
-class AuthenticatedAPI:
+class AuthenticatedAPI(object):
 
     def __token__(self):
         data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
