@@ -1,6 +1,6 @@
 import requests
 
-from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, EntityType, HEADER_TOKEN
+from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, EntityType, HEADER_TOKEN, content_api_identifier_to_type
 
 
 class ContentAPI(AuthenticatedAPI):
@@ -9,6 +9,14 @@ class ContentAPI(AuthenticatedAPI):
          https://us.preservica.com/api/content/documentation.html
 
     """
+
+    class SearchResult:
+        def __init__(self, metadata, refs, hits, results_list, next_start):
+            self.metadata = metadata
+            self.refs = refs
+            self.hits = int(hits)
+            self.results_list = results_list
+            self.next_start = next_start
 
     def object_details(self, entity_type, reference):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
@@ -91,11 +99,14 @@ class ContentAPI(AuthenticatedAPI):
             print(results.request.url)
             raise SystemExit
 
-    def simple_search(self, query, start_index=0, page_size=10, *args):
+    def simple_search(self, *args, query: str = "%", start_index: int = 0, page_size: int = 10):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
         queryterm = ('{ "q":  "%s" }' % query)
-        metadata_fields = ','.join(*args)
+        if len(args) == 0:
+            metadata_fields = "xip.title"
+        else:
+            metadata_fields = ','.join(*args)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': queryterm}
         results = requests.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = list()
@@ -103,6 +114,7 @@ class ContentAPI(AuthenticatedAPI):
             json = results.json()
             metadata = json['value']['metadata']
             refs = list(json['value']['objectIds'])
+            refs = list(map(lambda x: content_api_identifier_to_type(x), refs))
             hits = int(json['value']['totalHits'])
             for row in metadata:
                 results_map = dict()
@@ -110,9 +122,8 @@ class ContentAPI(AuthenticatedAPI):
                     results_map[li['name']] = li['value']
                 results_list.append(results_map)
             next_start = start_index + page_size
-            cls = type('SearchResult', (object,), {'metadata': metadata, 'refs': refs, 'hits': hits, 'results_list': results_list,
-                                                   'next_start': next_start})
-            return cls
+            search_results = self.SearchResult(metadata, refs, hits, results_list, next_start)
+            return search_results
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.simple_search(query, start_index, page_size, *args)

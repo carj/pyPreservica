@@ -16,6 +16,13 @@ SO_PATH = "structural-objects"
 CO_PATH = "content-objects"
 
 
+def content_api_identifier_to_type(ref):
+    ref = ref.replace('sdb:', '')
+    parts = ref.split("|")
+    parts[0].split(":")
+    return tuple((EntityType(parts[0]), parts[1]))
+
+
 def entityfromstring(xml_data):
     entity_response = xml.etree.ElementTree.fromstring(xml_data)
     reference = entity_response.find('.//xip:Ref', namespaces=namespace)
@@ -51,6 +58,12 @@ class EntityType(Enum):
 
 
 class AuthenticatedAPI(object):
+
+    def save_config(self):
+        config = configparser.ConfigParser()
+        config['credentials'] = {'username': self.username, 'password': self.password, 'tenant': self.tenant, 'server': self.server}
+        with open('credentials.properties', 'wt') as configfile:
+            config.write(configfile)
 
     def __token__(self):
         data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
