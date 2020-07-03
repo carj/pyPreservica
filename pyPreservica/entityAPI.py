@@ -160,6 +160,7 @@ class EntityAPI(AuthenticatedAPI):
             self.metadata = metadata
             self.entity_type = None
             self._path = None
+            self._tag = None
 
         def __str__(self):
             return f"Ref:\t\t\t{self.reference}\n" \
@@ -176,12 +177,14 @@ class EntityAPI(AuthenticatedAPI):
             super().__init__(reference, title, description, security_tag, parent, metadata)
             self.entity_type = EntityType.FOLDER
             self._path = SO_PATH
+            self._tag = "StructuralObject"
 
     class Asset(Entity):
         def __init__(self, reference, title, description, security_tag, parent, metadata):
             super().__init__(reference, title, description, security_tag, parent, metadata)
             self.entity_type = EntityType.ASSET
             self._path = IO_PATH
+            self._tag = "InformationObject"
 
     class ContentObject(Entity):
         def __init__(self, reference, title, description, security_tag, parent, metadata):
@@ -190,6 +193,7 @@ class EntityAPI(AuthenticatedAPI):
             self.representation_type = None
             self.asset = None
             self._path = CO_PATH
+            self._tag = "ContentObject"
 
     class PagedSet:
         def __init__(self, results, has_more, total, next_page):
@@ -434,15 +438,7 @@ class EntityAPI(AuthenticatedAPI):
 
     def save(self, entity):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        if isinstance(entity, self.Asset):
-            tag = 'InformationObject'
-        elif isinstance(entity, self.Folder):
-            tag = 'StructuralObject'
-        elif isinstance(entity, self.ContentObject):
-            tag = 'ContentObject'
-        else:
-            raise RuntimeError("Unknown entity type")
-        xml_object = xml.etree.ElementTree.Element(tag, {"xmlns": NS_XIPV6})
+        xml_object = xml.etree.ElementTree.Element(entity._tag, {"xmlns": NS_XIPV6})
         xml.etree.ElementTree.SubElement(xml_object, "Ref").text = entity.reference
         xml.etree.ElementTree.SubElement(xml_object, "Title").text = entity.title
         xml.etree.ElementTree.SubElement(xml_object, "Description").text = entity.description
