@@ -15,30 +15,24 @@ class EntityAPI(AuthenticatedAPI):
         -------
         asset(reference):
             Fetches the main XIP attributes for an asset by its reference
-            Tests - Yes
 
         folder(reference):
             Fetches the main XIP attributes for a folder by its reference
-            Tests - Yes
 
         content_object(reference):
             Fetches the main XIP attributes for a content_object by its reference
-            Tests - Yes
 
         entity(entity_type, reference):
             Get an entity by its type and reference
-            Tests - Yes
 
         metadata(uri):
             Return the descriptive metadata attached to an entity.
 
         metadata_for_entity(entity, schema):
             Return the metadata fragment for the entity by schema
-            Tests - Yes
 
         save(entity):
             Updates the title and description of an asset or folder
-            Tests - Yes
 
         create_folder(title, description, security_tag, parent=None):
             creates a new structural object in the repository
@@ -66,21 +60,19 @@ class EntityAPI(AuthenticatedAPI):
 
         delete_metadata(entity, schema):
             Delete all the metadata fragments on an entity with the schema
+            Tests - Yes
 
         download(entity, filename):
             Download the first content object of the access representation to the file given by filename
-            Tests - Yes
 
         thumbnail(entity, filename, size=Thumbnail.LARGE):
             Download the thumbnail image for an entity
-            Tests - Yes
 
         move(entity, dest_folder):
             Move an entity into the folder given by dest_folder
 
         bitstream_content(bitstream, filename):
             Download a bitstream and save to filename
-            Tests - Yes
 
         security_tag_async(entity, new_tag):
             Non-blocking call to change security tag
@@ -90,15 +82,12 @@ class EntityAPI(AuthenticatedAPI):
 
         representations(asset):
             Return a set of representations for the asset
-            Tests - Yes
 
         content_objects(representation):
             Returns an ordered list of content objects in the representation
-            Tests - Yes
 
         generations(content_object)
             Returns a list of generations for the content object
-            Tests - Yes
 
         """
 
@@ -198,8 +187,8 @@ class EntityAPI(AuthenticatedAPI):
     class PagedSet:
         def __init__(self, results, has_more, total, next_page):
             self.results = results
-            self.has_more = has_more
-            self.total = total
+            self.has_more = bool(has_more)
+            self.total = int(total)
             self.next_page = next_page
 
         def __str__(self):

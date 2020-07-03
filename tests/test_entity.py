@@ -7,13 +7,6 @@ FOLDER_ID = "ebd977f6-bebd-4ecf-99be-e054989f9af4"
 ASSET_ID = "683f9db7-ff81-4859-9c03-f68cfa5d9c3d"
 CO_ID = "0f2997f7-728c-4e55-9f92-381ed1260d70"
 
-XML_DOCUMENT = "<person:Person  xmlns:person='https://www.person.com/person'>" \
-               "<person:Name>Name</person:Name>" \
-               "<person:Phone>01234 100 100</person:Phone>" \
-               "<person:Email>test@test.com</person:Email>" \
-               "<person:Address>Abingdon, UK</person:Address>" \
-               "</person:Person>"
-
 
 def test_get_folder():
     client = EntityAPI()
@@ -113,41 +106,6 @@ def test_get_co_as_entity():
     assert content_object.description is None
     assert content_object.entity_type is EntityType.CONTENT_OBJECT
     assert content_object.parent == ASSET_ID
-
-
-def test_get_folder_metadata():
-    client = EntityAPI()
-    entity = client.entity(EntityType.FOLDER, FOLDER_ID)
-    xml_string = client.metadata_for_entity(entity, "http://purl.org/dc/elements/1.1/")
-    assert xml_string is not None
-    document = xml.etree.ElementTree.fromstring(xml_string)
-    identifier = document.find(".//{http://purl.org/dc/elements/1.1/}identifier")
-    assert identifier.text == "LC-USZ62-43601"
-
-
-def test_get_asset_metadata():
-    client = EntityAPI()
-    entity = client.entity(EntityType.ASSET, ASSET_ID)
-    xml_string = client.metadata_for_entity(entity, "http://purl.org/dc/elements/1.1/")
-    assert xml_string is not None
-    document = xml.etree.ElementTree.fromstring(xml_string)
-    filename = document.find(".//{http://purl.org/dc/elements/1.1/}filename")
-    assert filename.text == "LC-USZ62-20901.tiff"
-
-
-def test_get_co_metadata():
-    client = EntityAPI()
-    entity = client.entity(EntityType.CONTENT_OBJECT, CO_ID)
-    xml_string = client.metadata_for_entity(entity, "https://www.person.com/person")
-    assert xml_string is None
-    co = client.add_metadata(entity, "https://www.person.com/person", XML_DOCUMENT)
-    xml_string = client.metadata_for_entity(co, "https://www.person.com/person")
-    document = xml.etree.ElementTree.fromstring(xml_string)
-    name = document.find(".//{https://www.person.com/person}Name")
-    assert name.text == "Name"
-    e = client.delete_metadata(co, "https://www.person.com/person")
-    xml_string = client.metadata_for_entity(e, "https://www.person.com/person")
-    assert xml_string is None
 
 
 def test_save_folder_name():
