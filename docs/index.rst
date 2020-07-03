@@ -37,9 +37,11 @@ Features
 -  Add, Delete and Update External Identifiers
 -  Add, Delete and Update Descriptive Metadata fragments
 -  Change Security tags on Folders and Assets
+-  Create new Folder entities
+-  Fetch Folders and Assets belonging to parent Folders
 -  Move Assets and Folders
--  Retrieve Representations, Generations & Bitstreams
--  Download digital files
+-  Retrieve Representations, Generations & Bitstreams from Assets
+-  Download digital files and thumbnails
 
 Background
 -----------
@@ -67,6 +69,10 @@ Representations are usually associated with a use case such as access or long-te
 PIP Installation
 ----------------
 
+pyPreservica is available from the Python Package Index (PyPI)
+
+https://pypi.org/project/pyPreservica/
+
 To install pyPreservica, simply run this simple command in your terminal of choice:
 
 .. code-block:: console
@@ -86,7 +92,7 @@ Get the Source Code
 pyPreservica is developed on GitHub, where the code is
 `always available <https://github.com/carj/pyPreservica>`_.
 
-You can  clone the public repository::
+You can clone the public repository::
 
     $ git clone git://github.com/carj/pyPreservica.git
 
@@ -111,27 +117,32 @@ pyPreservica provides 3 different methods for authentication. The library requir
 
 1 **Method Arguments**
 
-Include the user credentials as arguments to the Entity Class ::
+Include the user credentials as arguments to the EntityAPI Class ::
 
     >>> from pyPreservica import *
     >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
 
 
+If you don't want to include your Preservica credentials within your python script then the following two methods should
+be used.
+
 2 **Environment Variable**
 
-Export environment variables as part of the session ::
+Export the credentials as environment variables as part of the session ::
 
     $ export PRESERVICA_USERNAME="test@test.com"
     $ export PRESERVICA_PASSWORD="123444"
     $ export PRESERVICA_TENANT="PREVIEW"
     $ export PRESERVICA_SERVER="preview.preservica.com"
-    
+
+    $ python3
+
     >>> from pyPreservica import *
     >>> client = EntityAPI()
     
 3 **Properties File**
 
-Create a properties file called "credentials.properties" in the working directory ::
+Create a properties file called "credentials.properties" and save to the working directory ::
 
     [credentials]
     username=test@test.com
@@ -170,7 +181,7 @@ and fetch an asset and print its attributes ::
     >>> print(asset.entity_type)
     
 
-We can also fetch the same attributes for both folders and content objects ::
+We can also fetch the same attributes for both folders  ::
 
     >>> folder = client.folder("0b0f0303-6053-4d4e-a638-4f6b81768264")
     >>> print(folder.reference)
@@ -180,6 +191,8 @@ We can also fetch the same attributes for both folders and content objects ::
     >>> print(folder.parent)
     >>> print(folder.entity_type)
 
+and content objects ::
+
     >>> content_object = client.content_object("1a2a2101-6053-4d4e-a638-4f6b81768264")
     >>> print(content_object.reference)
     >>> print(content_object.title)
@@ -188,7 +201,7 @@ We can also fetch the same attributes for both folders and content objects ::
     >>> print(content_object.parent)
     >>> print(content_object.entity_type)
 
-We can fetch any of assets, folders and content objects using the entity type and reference ::
+We can fetch any of assets, folders and content objects using the entity type and the unique reference ::
 
     >>> asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> folder = client.entity(EntityType.FOLDER, asset.parent)
