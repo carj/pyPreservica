@@ -99,3 +99,33 @@ def test_delete_identifier_asset():
     client.delete_identifiers(asset, "ARK", "1234567890")
     entity_set = client.identifier("ARK", "1234567890")
     assert len(entity_set) == 0
+
+
+def test_delete_identifier_co():
+    client = EntityAPI()
+    content_object = client.content_object(CO_ID)
+    entity_set = client.identifier("CO", "12333")
+    assert len(entity_set) == 1
+    entity = entity_set.pop()
+    assert entity.reference == content_object.reference
+    client.delete_identifiers(content_object, "CO", "12333")
+    entity_set = client.identifier("CO", "12333")
+    assert len(entity_set) == 0
+
+
+def test_add_same_id_to_asset_folder():
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    folder = client.folder(FOLDER_ID)
+    client.add_identifier(asset, "DOI", "123456:98776")
+    asset_set = client.identifiers_for_entity(asset)
+    assert len(asset_set) == 1
+    client.add_identifier(folder, "DOI", "123456:98776")
+    folder_set = client.identifiers_for_entity(folder)
+    assert len(folder_set) == 2
+    entity_set = client.identifier("DOI", "123456:98776")
+    assert len(entity_set) == 2
+    client.delete_identifiers(asset, "DOI", "123456:98776")
+    client.delete_identifiers(folder, "DOI", "123456:98776")
+    entity_set = client.identifier("DOI", "123456:98776")
+    assert len(entity_set) == 0

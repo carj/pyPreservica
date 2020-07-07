@@ -20,6 +20,18 @@ def test_get_root_folders():
     assert len(objs) == paged_set.total
 
 
+def test_get_root_folder1():
+    client = EntityAPI()
+    paged_set = client.children()
+    assert paged_set.total > 0
+    objs = set()
+    for f in paged_set.results:
+        assert f.entity_type == EntityType.FOLDER
+        assert f.parent is None
+        objs.add(f)
+    assert len(objs) == paged_set.total
+
+
 def test_get_root_folders_paged():
     client = EntityAPI()
     objs = set()

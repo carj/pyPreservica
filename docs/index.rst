@@ -24,6 +24,9 @@ a Preservica repository without having to manage the underlying REST HTTPS reque
 The library provides a level of abstraction which reflects the underlying data model, such as structural and
 information objects.
 
+The pyPreservica allows Preservica users to build applications which interact with the repository such as metadata
+synchronisation with 3rd party systems etc.
+
 .. hint::
     Access to the Preservica API's for the cloud hosted system does depend on which Preservica Edition has been
     licensed.  See https://preservica.com/digital-archive-software/products-editions for details.
@@ -85,6 +88,11 @@ or you can install in a virtual python environment using:
 
     $ pipenv install pyPreservica
 
+pyPreservica is under active development and the latest version is installed using
+
+.. code-block:: console
+
+    $ pip install --upgrade pyPreservica
 
 Get the Source Code
 -------------------
@@ -154,6 +162,14 @@ Create a properties file called "credentials.properties" and save to the working
     >>> client = EntityAPI()
 
 
+You can create a new credentials.properties file automatically using the save_config() method ::
+
+   >>> from pyPreservica import *
+   >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
+   >>> client.save_config()
+
+
+
 The User Guide
 --------------
 
@@ -220,6 +236,12 @@ To get a set of all the root folders use ::
 
     >>> root_folders = client.children(None)
 
+or ::
+
+    >>> root_folders = client.children()
+
+
+
 To get a set of children of a particular folder use ::
 
     >>> entities = client.children(folder.reference)
@@ -232,7 +254,7 @@ paging is available. ::
     >>> while True:
     >>>     root_folders = entity.children(None, maximum=10, next_page=next_page)
     >>>     for e in root_folders.results:
-    >>>     print(f'{e.title} :  {e.reference}')
+    >>>     print(f'{e.title} : {e.reference} : {e.entity_type}')
     >>>     if not root_folders.has_more:
     >>>         break
     >>>     else:
@@ -296,10 +318,11 @@ Fetch external identifiers on an entity. This call returns a set of tuples (iden
     >>>     identifier_type = identifier[0]
     >>>     identifier_value = identifier[1]
 
-Finding entities back by external identifiers is also available. The call returns a set of entities. ::
+You can search the repository for entities with matching external identifiers. The call returns a set of objects
+which may include any type of entity. ::
 
     >>> for e in client.identifier("ISBN", "978-3-16-148410-0"):
-        >>> print(e.type, e.reference, e.title)
+    >>>     print(e.entity_type, e.reference, e.title)
 
 .. note::
     Entities within the set only contain the attributes (type, reference and title). If you need the full object you have to request it.
@@ -341,7 +364,7 @@ An alternative is to call the metadata_for_entity method directly ::
 
     >>> xml_document = client.metadata_for_entity(entity, "https://www.person.com/person")
 
-to fetch the first matching metadata on the entity
+to fetch the first metadata template which matches the schema argument on the entity
 
 
 Metadata can be attached to entities either by passing an XML document as a string::
@@ -447,14 +470,14 @@ to fetch the exact bitstream you need.
 We also have a function to fetch the thumbnail image for an asset or folder ::
 
     >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> filename = client.thumbnail(asset)
+    >>> filename = client.thumbnail(asset, "thumbnail.jpg")
 
 You can specify the size of the thumbnail by passing a second argument ::
 
     >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> filename = client.thumbnail(asset, Thumbnail.LARGE)     ## 400×400   pixels
-    >>> filename = client.thumbnail(asset, Thumbnail.MEDIUM)    ## 150×150   pixels
-    >>> filename = client.thumbnail(asset, Thumbnail.SMALL)     ## 64×64     pixels
+    >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.LARGE)     ## 400×400   pixels
+    >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.MEDIUM)    ## 150×150   pixels
+    >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.SMALL)     ## 64×64     pixels
 
 Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~

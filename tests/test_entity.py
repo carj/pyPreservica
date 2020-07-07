@@ -38,7 +38,7 @@ def test_get_co():
     assert content_object is not None
     assert content_object.reference == CO_ID
     assert content_object.title == "LC-USZ62-20901"
-    assert content_object.description is None
+    assert content_object.description == "LC-USZ62-20901"
     assert content_object.entity_type is EntityType.CONTENT_OBJECT
     assert content_object.parent == ASSET_ID
 
@@ -103,7 +103,7 @@ def test_get_co_as_entity():
     assert content_object is not None
     assert content_object.reference == CO_ID
     assert content_object.title == "LC-USZ62-20901"
-    assert content_object.description is None
+    assert content_object.description == "LC-USZ62-20901"
     assert content_object.entity_type is EntityType.CONTENT_OBJECT
     assert content_object.parent == ASSET_ID
 
@@ -182,12 +182,12 @@ def test_save_co_description():
     client = EntityAPI()
     content_object = client.content_object(CO_ID)
     assert content_object is not None
-    assert content_object.description is None
+    assert content_object.description == "LC-USZ62-20901"
     content_object.description = "NEW TITLE"
     a = client.save(content_object)
     assert a.description == "NEW TITLE"
     content_object = client.content_object(CO_ID)
     assert content_object.description == "NEW TITLE"
-    content_object.description = None
+    content_object.description = "LC-USZ62-20901"
     content_object = client.save(content_object)
-    assert content_object.description is None
+    assert content_object.description == "LC-USZ62-20901"

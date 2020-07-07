@@ -1,7 +1,10 @@
 import uuid
+from datetime import datetime, timedelta, timezone
 from time import sleep
 import xml.etree.ElementTree
 from io import IOBase
+from typing import Optional
+
 from pyPreservica.common import *
 
 
@@ -91,111 +94,10 @@ class EntityAPI(AuthenticatedAPI):
 
         """
 
-    class Representation:
-        def __init__(self, asset, rep_type, name, url):
-            self.asset = asset
-            self.rep_type = rep_type
-            self.name = name
-            self.url = url
 
-        def __str__(self):
-            return f"Type:\t\t\t{self.rep_type}\n" \
-                   f"Name:\t\t\t{self.name}\n" \
-                   f"URL:\t{self.url}"
-
-        def __repr__(self):
-            self.__str__()
-
-    class Bitstream:
-        def __init__(self, filename, length, fixity, content_url):
-            self.filename = filename
-            self.length = int(length)
-            self.fixity = fixity
-            self.content_url = content_url
-
-        def __str__(self):
-            return f"Filename:\t\t\t{self.filename}\n" \
-                   f"FileSize:\t\t\t{self.length}\n" \
-                   f"Content:\t{self.content_url}\n" \
-                   f"Fixity:\t{self.fixity}"
-
-        def __repr__(self):
-            return self.__str__()
-
-    class Generation:
-        def __init__(self, original, active, format_group, effective_date, bitstreams):
-            self.original = original
-            self.active = active
-            self.content_object = None
-            self.format_group = format_group
-            self.effective_date = effective_date
-            self.bitstreams = bitstreams
-
-        def __str__(self):
-            return f"Active:\t\t\t{self.active}\n" \
-                   f"Original:\t\t\t{self.original}\n" \
-                   f"Format_group:\t{self.format_group}"
-
-        def __repr__(self):
-            return self.__str__()
-
-    class Entity:
-        def __init__(self, reference, title, description, security_tag, parent, metadata):
-            self.reference = reference
-            self.title = title
-            self.description = description
-            self.security_tag = security_tag
-            self.parent = parent
-            self.metadata = metadata
-            self.entity_type = None
-            self._path = None
-            self._tag = None
-
-        def __str__(self):
-            return f"Ref:\t\t\t{self.reference}\n" \
-                   f"Title:\t\t\t{self.title}\n" \
-                   f"Description:\t{self.description}\n" \
-                   f"Security Tag:\t{self.security_tag}\n" \
-                   f"Parent:\t\t\t{self.parent}\n\n"
-
-        def __repr__(self):
-            return self.__str__()
-
-    class Folder(Entity):
-        def __init__(self, reference, title, description, security_tag, parent, metadata):
-            super().__init__(reference, title, description, security_tag, parent, metadata)
-            self.entity_type = EntityType.FOLDER
-            self._path = SO_PATH
-            self._tag = "StructuralObject"
-
-    class Asset(Entity):
-        def __init__(self, reference, title, description, security_tag, parent, metadata):
-            super().__init__(reference, title, description, security_tag, parent, metadata)
-            self.entity_type = EntityType.ASSET
-            self._path = IO_PATH
-            self._tag = "InformationObject"
-
-    class ContentObject(Entity):
-        def __init__(self, reference, title, description, security_tag, parent, metadata):
-            super().__init__(reference, title, description, security_tag, parent, metadata)
-            self.entity_type = EntityType.CONTENT_OBJECT
-            self.representation_type = None
-            self.asset = None
-            self._path = CO_PATH
-            self._tag = "ContentObject"
-
-    class PagedSet:
-        def __init__(self, results, has_more, total, next_page):
-            self.results = results
-            self.has_more = bool(has_more)
-            self.total = int(total)
-            self.next_page = next_page
-
-        def __str__(self):
-            return self.results.__str__()
 
     def bitstream_content(self, bitstream: Bitstream, filename: str):
-        if not isinstance(bitstream, self.Bitstream):
+        if not isinstance(bitstream, Bitstream):
             raise RuntimeError("bitstream argument is not a Bitstream object")
         with requests.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as req:
             if req.status_code == requests.codes.unauthorized:
@@ -317,13 +219,13 @@ class EntityAPI(AuthenticatedAPI):
             result = set()
             for entity in entity_list:
                 if entity.attrib['type'] == EntityType.FOLDER.value:
-                    f = self.Folder(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                    f = Folder(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                     result.add(f)
                 elif entity.attrib['type'] == EntityType.ASSET.value:
-                    a = self.Asset(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                    a = Asset(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                     result.add(a)
                 elif entity.attrib['type'] == EntityType.CONTENT_OBJECT.value:
-                    c = self.ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                    c = ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                     result.add(c)
             return result
         elif request.status_code == requests.codes.unauthorized:
@@ -413,11 +315,11 @@ class EntityAPI(AuthenticatedAPI):
         end_point = f"/{entity._path}/{entity.reference}/metadata"
         request = requests.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
-            if isinstance(entity, self.Asset):
+            if isinstance(entity, Asset):
                 return self.asset(entity.reference)
-            elif isinstance(entity, self.Folder):
+            elif isinstance(entity, Folder):
                 return self.folder(entity.reference)
-            elif isinstance(entity, self.ContentObject):
+            elif isinstance(entity, ContentObject):
                 return self.content_object(entity.reference)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -439,19 +341,19 @@ class EntityAPI(AuthenticatedAPI):
         request = requests.put(f'https://{self.server}/api/entity/{entity._path}/{entity.reference}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
-            response = entityfromstring(xml_response)
-            if isinstance(entity, self.Asset):
-                return self.Asset(response['reference'], response['title'], response['description'],
-                                  response['security_tag'],
-                                  response['parent'], response['metadata'])
-            elif isinstance(entity, self.Folder):
-                return self.Folder(response['reference'], response['title'], response['description'],
-                                   response['security_tag'],
-                                   response['parent'], response['metadata'])
-            elif isinstance(entity, self.ContentObject):
-                return self.ContentObject(response['reference'], response['title'], response['description'],
-                                          response['security_tag'],
-                                          response['parent'], response['metadata'])
+            response = entity_from_string(xml_response)
+            if isinstance(entity, Asset):
+                return Asset(response['reference'], response['title'], response['description'],
+                             response['security_tag'],
+                             response['parent'], response['metadata'])
+            elif isinstance(entity, Folder):
+                return Folder(response['reference'], response['title'], response['description'],
+                              response['security_tag'],
+                              response['parent'], response['metadata'])
+            elif isinstance(entity, ContentObject):
+                return ContentObject(response['reference'], response['title'], response['description'],
+                                     response['security_tag'],
+                                     response['parent'], response['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.save(entity)
@@ -460,7 +362,7 @@ class EntityAPI(AuthenticatedAPI):
 
     def move(self, entity: Entity, dest_folder: Folder):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
-        if isinstance(entity, self.Asset) and dest_folder is None:
+        if isinstance(entity, Asset) and dest_folder is None:
             raise RuntimeError(entity.reference, "Only folders can be moved to the root of the repository")
         if dest_folder is not None:
             data = dest_folder.reference
@@ -490,10 +392,10 @@ class EntityAPI(AuthenticatedAPI):
                                 headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
-            entity = entityfromstring(xml_response)
-            f = self.Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'],
-                            entity['parent'],
-                            entity['metadata'])
+            entity = entity_from_string(xml_response)
+            f = Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'],
+                       entity['parent'],
+                       entity['metadata'])
             return f
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -501,7 +403,7 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "create_folder failed")
 
-    def metadata_for_entity(self, entity: Entity, schema: str) -> str:
+    def metadata_for_entity(self, entity: Entity, schema: str) -> Optional[str]:
         for u, s in entity.metadata.items():
             if schema == s:
                 return self.metadata(u)
@@ -532,9 +434,9 @@ class EntityAPI(AuthenticatedAPI):
 
     def security_tag_async(self, entity: Entity, new_tag: str):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
-        if isinstance(entity, self.Asset):
+        if isinstance(entity, Asset):
             end_point = f"/information-objects/{entity.reference}/security-descriptor"
-        elif isinstance(entity, self.Folder):
+        elif isinstance(entity, Folder):
             end_point = f"/structural-objects/{entity.reference}/security-descriptor"
         else:
             print("Unknown entity type")
@@ -575,9 +477,9 @@ class EntityAPI(AuthenticatedAPI):
         request = requests.get(f'https://{self.server}/api/entity/{IO_PATH}/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
-            entity = entityfromstring(xml_response)
-            return self.Asset(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
-                              entity['metadata'])
+            entity = entity_from_string(xml_response)
+            return Asset(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
+                         entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.asset(reference)
@@ -591,9 +493,9 @@ class EntityAPI(AuthenticatedAPI):
         request = requests.get(f'https://{self.server}/api/entity/{SO_PATH}/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
-            entity = entityfromstring(xml_response)
-            return self.Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
-                               entity['metadata'])
+            entity = entity_from_string(xml_response)
+            return Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
+                          entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.folder(reference)
@@ -607,9 +509,9 @@ class EntityAPI(AuthenticatedAPI):
         request = requests.get(f'https://{self.server}/api/entity/{CO_PATH}/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
-            entity = entityfromstring(xml_response)
-            return self.ContentObject(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
-                                      entity['metadata'])
+            entity = entity_from_string(xml_response)
+            return ContentObject(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
+                                 entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.content_object(reference)
@@ -620,7 +522,7 @@ class EntityAPI(AuthenticatedAPI):
 
     def content_objects(self, representation: Representation):
         headers = {HEADER_TOKEN: self.token}
-        if not isinstance(representation, self.Representation):
+        if not isinstance(representation, Representation):
             return None
         request = requests.get(f'{representation.url}', headers=headers)
         if request.status_code == requests.codes.ok:
@@ -654,10 +556,10 @@ class EntityAPI(AuthenticatedAPI):
             for bit in bitstreams:
                 bitstream_list.append(self.bitstream(bit.text))
 
-            generation = self.Generation(bool(ge.attrib['original']), bool(ge.attrib['active']),
-                                         format_group.text if hasattr(format_group, 'text') else None,
-                                         effective_date.text if hasattr(effective_date, 'text') else None,
-                                         bitstream_list)
+            generation = Generation(bool(ge.attrib['original']), bool(ge.attrib['active']),
+                                    format_group.text if hasattr(format_group, 'text') else None,
+                                    effective_date.text if hasattr(effective_date, 'text') else None,
+                                    bitstream_list)
             return generation
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -678,9 +580,9 @@ class EntityAPI(AuthenticatedAPI):
             fixity = dict()
             for f in fixity_values:
                 fixity[f[0].text] = f[1].text
-            bitstream = self.Bitstream(filename.text if hasattr(filename, 'text') else None,
-                                       filesize.text if hasattr(filesize, 'text') else None, fixity,
-                                       content.text if hasattr(content, 'text') else None)
+            bitstream = Bitstream(filename.text if hasattr(filename, 'text') else None,
+                                  filesize.text if hasattr(filesize, 'text') else None, fixity,
+                                  content.text if hasattr(content, 'text') else None)
             return bitstream
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -712,7 +614,7 @@ class EntityAPI(AuthenticatedAPI):
 
     def representations(self, asset: Asset):
         headers = {HEADER_TOKEN: self.token}
-        if not isinstance(asset, self.Asset):
+        if not isinstance(asset, Asset):
             return None
         request = requests.get(f'https://{self.server}/api/entity/{asset._path}/{asset.reference}/representations', headers=headers)
         if request.status_code == requests.codes.ok:
@@ -721,7 +623,7 @@ class EntityAPI(AuthenticatedAPI):
             representations = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Representation')
             result = set()
             for r in representations:
-                representation = self.Representation(asset, r.attrib['type'], r.attrib['name'], r.text)
+                representation = Representation(asset, r.attrib['type'], r.attrib['name'], r.text)
                 result.add(representation)
             return result
         elif request.status_code == requests.codes.unauthorized:
@@ -730,7 +632,7 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "representations failed")
 
-    def children(self, folder_reference: str, maximum=100, next_page=None):
+    def children(self, folder_reference: str = None, maximum: int = 100, next_page: str = None):
         headers = {HEADER_TOKEN: self.token}
         if next_page is None:
             if folder_reference is None:
@@ -750,10 +652,10 @@ class EntityAPI(AuthenticatedAPI):
             total_hits = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}TotalResults')
             for c in children:
                 if c.attrib['type'] == EntityType.FOLDER.value:
-                    f = self.Folder(c.attrib['ref'], c.attrib['title'], None, None, folder_reference, None)
+                    f = Folder(c.attrib['ref'], c.attrib['title'], None, None, folder_reference, None)
                     result.add(f)
                 else:
-                    a = self.Asset(c.attrib['ref'], c.attrib['title'], None, None, folder_reference, None)
+                    a = Asset(c.attrib['ref'], c.attrib['title'], None, None, folder_reference, None)
                     result.add(a)
             has_more = True
             url = None
@@ -761,10 +663,49 @@ class EntityAPI(AuthenticatedAPI):
                 has_more = False
             else:
                 url = next_url.text
-            ps = self.PagedSet(result, has_more, total_hits.text, url)
+            ps = PagedSet(result, has_more, total_hits.text, url)
             return ps
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.children(folder_reference, maximum=maximum, next_page=next_page)
         else:
             raise RuntimeError(request.status_code, "children failed")
+
+    def updated_entities(self, previous_days: int = 1, maximum: int = 100, next_page: str = None):
+        headers = {HEADER_TOKEN: self.token}
+        x = datetime.utcnow() - timedelta(days=previous_days)
+        today = x.replace(tzinfo=timezone.utc).isoformat()
+        if next_page is None:
+            params = {'date': today, 'start': '0', 'max': str(maximum)}
+            request = requests.get(f'https://{self.server}/api/entity/entities/updated-since', headers=headers, params=params)
+        else:
+            request = requests.get(next_page, headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            entities = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Entity')
+            result = list()
+            for e in entities:
+                if e.attrib['type'] == EntityType.FOLDER.value:
+                    f = Folder(e.attrib['ref'], e.attrib['title'], None, None, None, None)
+                    result.append(f)
+                elif e.attrib['type'] == EntityType.ASSET.value:
+                    a = Asset(e.attrib['ref'], e.attrib['title'], None, None, None, None)
+                    result.append(a)
+                elif e.attrib['type'] == EntityType.CONTENT_OBJECT.value:
+                    c = ContentObject(e.attrib['ref'], e.attrib['title'], None, None, None, None)
+                    result.append(c)
+            next_url = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}Next')
+            total_hits = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}TotalResults')
+            has_more = True
+            url = None
+            if next_url is None:
+                has_more = False
+            else:
+                url = next_url.text
+            return PagedSet(result, has_more, total_hits.text, url)
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.updated_entities(previous_days=previous_days, maximum=maximum, next_page=next_page)
+        else:
+            raise RuntimeError(request.status_code, "updated_entities failed")

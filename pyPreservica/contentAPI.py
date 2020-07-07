@@ -104,7 +104,7 @@ class ContentAPI(AuthenticatedAPI):
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
         queryterm = ('{ "q":  "%s" }' % query)
         if len(args) == 0:
-            metadata_fields = "xip.title"
+            metadata_fields = "xip.title,xip.description,xip.document_type,xip.parent_ref,xip.security_descriptor"
         else:
             metadata_fields = ','.join(*args)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': queryterm}
@@ -126,7 +126,7 @@ class ContentAPI(AuthenticatedAPI):
             return search_results
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.simple_search(query, start_index, page_size, *args)
+            return self.simple_search(*args, query, start_index, page_size)
         else:
             print(f"search failed with error code: {results.status_code}")
             print(results.request.url)
