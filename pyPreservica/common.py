@@ -16,6 +16,14 @@ SO_PATH = "structural-objects"
 CO_PATH = "content-objects"
 
 
+def only_assets(e):
+    return True if e.entity_type is EntityType.ASSET else False
+
+
+def only_folders(e):
+    return True if e.entity_type is EntityType.FOLDER else False
+
+
 class PagedSet:
     def __init__(self, results, has_more, total, next_page):
         self.results = results

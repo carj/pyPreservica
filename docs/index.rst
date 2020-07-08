@@ -246,19 +246,55 @@ To get a set of children of a particular folder use ::
 
     >>> entities = client.children(folder.reference)
 
+To get the siblings of an asset you can use ::
+
+    >>> entities = client.children(asset.parent)
+
 The set of entities returned may contain both assets and other folders.
-The default maximum size of the result set is 100 items. The size can be configured and for large result sets
+The default maximum size of the result set is 50 items. The size can be configured and for large result sets
 paging is available. ::
 
     >>> next_page = None
     >>> while True:
-    >>>     root_folders = entity.children(None, maximum=10, next_page=next_page)
+    >>>     root_folders = client.children(None, maximum=10, next_page=next_page)
     >>>     for e in root_folders.results:
     >>>     print(f'{e.title} : {e.reference} : {e.entity_type}')
     >>>     if not root_folders.has_more:
     >>>         break
     >>>     else:
     >>>         next_page = root_folders.next_page
+
+
+A version of this method is also available as a generator function which does not require paging.
+This version returns a lazy iterator which does the paging internally. It will default to 25 items between server requests ::
+
+    >>> for entity in client.children_items():
+    >>>     print(entity.title)
+    >>>
+
+You can still specify the page size to optimise the frequency of calls to the server. ::
+
+    >>> for entity in client.children_items(folder_reference=None, maximum=10):
+    >>>     print(entity.title)
+    >>>
+
+
+The children_items() method has a alias named descendants() to distinguish the generator versions. ::
+
+    >>> for entity in client.descendants():
+    >>>     print(entity.title)
+
+This is the preferred way to get children of folders as the paging is automatic.
+
+If you only need folders or assets from a parent you can filter the results using a pre-defined filter ::
+
+    >>> for sibling in filter(only_assets, client.descendants(asset.parent)):
+    >>>     print(sibling.title)
+
+or ::
+
+    >>> for folders in filter(only_folders, client.descendants(asset.parent)):
+    >>>     print(folders.title)
 
 
 Folder objects can be created directly in the repository, the create_folder() function takes 3
@@ -452,7 +488,12 @@ We can move entities between folders using the move call ::
 
 Where entity is the object to move either an asset or folder and the second argument is destination folder where the entity is moved to
 
+We can query Preservica for entities which have changed using ::
 
+    >>> for e in client.updated_entities(previous_days=30):
+    >>>     print(e)
+
+The argument is the number of previous days to check for changes.
 
 The pyPreservica library also provides a web service call which is part of the content API which allows downloading of digital
 content directly without having to request the representations and generations first.

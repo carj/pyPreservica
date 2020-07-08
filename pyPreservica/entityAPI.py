@@ -1,3 +1,4 @@
+import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 from time import sleep
@@ -93,8 +94,6 @@ class EntityAPI(AuthenticatedAPI):
             Returns a list of generations for the content object
 
         """
-
-
 
     def bitstream_content(self, bitstream: Bitstream, filename: str):
         if not isinstance(bitstream, Bitstream):
@@ -632,7 +631,25 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "representations failed")
 
-    def children(self, folder_reference: str = None, maximum: int = 100, next_page: str = None):
+    def descendants(self, folder_reference: str = None, maximum: int = 25):
+        return self.children_items(folder_reference=folder_reference, maximum=maximum)
+
+    def children_items(self, folder_reference: str = None, maximum: int = 25):
+        paged_set = self.children(folder_reference, maximum=maximum, next_page=None)
+        for entity in paged_set.results:
+            try:
+                yield entity
+            finally:
+                pass
+        while paged_set.has_more:
+            paged_set = self.children(folder_reference, maximum=maximum, next_page=paged_set.next_page)
+            for entity in paged_set.results:
+                try:
+                    yield entity
+                finally:
+                    pass
+
+    def children(self, folder_reference: str = None, maximum: int = 50, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
         if next_page is None:
             if folder_reference is None:
@@ -663,15 +680,29 @@ class EntityAPI(AuthenticatedAPI):
                 has_more = False
             else:
                 url = next_url.text
-            ps = PagedSet(result, has_more, total_hits.text, url)
-            return ps
+            return PagedSet(result, has_more, total_hits.text, url)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.children(folder_reference, maximum=maximum, next_page=next_page)
         else:
             raise RuntimeError(request.status_code, "children failed")
 
-    def updated_entities(self, previous_days: int = 1, maximum: int = 100, next_page: str = None):
+    def updated_entities(self, previous_days: int = 1, maximum: int = 50):
+        paged_set = self._updated_entities_page(previous_days=previous_days, maximum=maximum, next_page=None)
+        for entity in paged_set.results:
+            try:
+                yield entity
+            finally:
+                pass
+        while paged_set.has_more:
+            paged_set = self._updated_entities_page(previous_days=previous_days, maximum=maximum, next_page=paged_set.next_page)
+            for entity in paged_set.results:
+                try:
+                    yield entity
+                finally:
+                    pass
+
+    def _updated_entities_page(self, previous_days: int = 1, maximum: int = 50, next_page: str = None):
         headers = {HEADER_TOKEN: self.token}
         x = datetime.utcnow() - timedelta(days=previous_days)
         today = x.replace(tzinfo=timezone.utc).isoformat()
@@ -686,15 +717,16 @@ class EntityAPI(AuthenticatedAPI):
             entities = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Entity')
             result = list()
             for e in entities:
-                if e.attrib['type'] == EntityType.FOLDER.value:
-                    f = Folder(e.attrib['ref'], e.attrib['title'], None, None, None, None)
-                    result.append(f)
-                elif e.attrib['type'] == EntityType.ASSET.value:
-                    a = Asset(e.attrib['ref'], e.attrib['title'], None, None, None, None)
-                    result.append(a)
-                elif e.attrib['type'] == EntityType.CONTENT_OBJECT.value:
-                    c = ContentObject(e.attrib['ref'], e.attrib['title'], None, None, None, None)
-                    result.append(c)
+                if 'type' in e.attrib:
+                    if e.attrib['type'] == EntityType.FOLDER.value:
+                        f = Folder(e.attrib['ref'], e.attrib['title'], None, None, None, None)
+                        result.append(f)
+                    elif e.attrib['type'] == EntityType.ASSET.value:
+                        a = Asset(e.attrib['ref'], e.attrib['title'], None, None, None, None)
+                        result.append(a)
+                    elif e.attrib['type'] == EntityType.CONTENT_OBJECT.value:
+                        c = ContentObject(e.attrib['ref'], e.attrib['title'], None, None, None, None)
+                        result.append(c)
             next_url = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}Next')
             total_hits = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}TotalResults')
             has_more = True
@@ -706,6 +738,6 @@ class EntityAPI(AuthenticatedAPI):
             return PagedSet(result, has_more, total_hits.text, url)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.updated_entities(previous_days=previous_days, maximum=maximum, next_page=next_page)
+            return self._updated_entities(previous_days=previous_days, maximum=maximum, next_page=next_page)
         else:
             raise RuntimeError(request.status_code, "updated_entities failed")
