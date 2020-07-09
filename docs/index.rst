@@ -704,11 +704,11 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
    .. py:method::  metadata_for_entity(entity, schema)
 
-    Fetch the metadata document by its schema from an entity
+    Fetch the first metadata document which matches the schema URI from an entity
 
     :param Entity entity: The entity containing the metadata
     :param str schema: The metadata schema URI
-    :return: The first XML on the entity document matching the schema URI
+    :return: The first XML document on the entity document matching the schema URI
     :rtype: str
 
    .. py:method::  add_metadata(entity, schema, data)
@@ -775,7 +775,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
   .. py:method::  all_descendants(folder_reference)
 
-    Return the all child entities recursively of a folder or repository down to the assets using a lazy iterator.
+    Return all child entities recursively of a folder or repository down to the assets using a lazy iterator.
     The paging is done internally using a default page
     size of 50 elements. Callers can iterate over the result to get all children with a single call.
 
