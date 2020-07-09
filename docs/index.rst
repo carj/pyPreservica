@@ -42,9 +42,10 @@ Features
 -  Change Security tags on Folders and Assets
 -  Create new Folder entities
 -  Fetch Folders and Assets belonging to parent Folders
--  Move Assets and Folders
+-  Move Assets and Folders within the repository
 -  Retrieve Representations, Generations & Bitstreams from Assets
 -  Download digital files and thumbnails
+-  Fetch lists of changed entities over the last n days.
 
 Background
 -----------
@@ -748,13 +749,12 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :return: A set of entity objects
     :rtype: set(Entity)
 
-   .. py:method::  descendants(folder_reference, maximum=25)
+   .. py:method::  descendants(folder_reference)
 
-    Return the child entities of a folder using a lazy iterator. The paging is done internally using a page
-    size specified by the second argument. Callers can iterate over the result to get all children with a single call.
+    Return the child entities of a folder using a lazy iterator. The paging is done internally using a default page
+    size of 25 elements. Callers can iterate over the result to get all children with a single call.
 
     :param str folder_reference: The parent folder reference, None for the children of root folders
-    :param int maximum: The maximum size of the result set between calls to the server
     :return: A set of entity objects
     :rtype: set(Entity)
 
@@ -1037,20 +1037,20 @@ It will then find a particular element in the xml document "your-element-name" a
             next_page = children.next_page
 
 
-The following version does the same thing but uses the function descendants() rather than children().
-descendants() does the paging of results internally and combined with
-a filter on the lazy iterator provides a version which does not need the additional while loop or if statement ::
+The following script does the same thing as above but uses the function descendants() rather than children().
+The difference is that descendants() does the paging of results internally and combined with
+a filter() on the lazy iterator provides a version which does not need the additional while loop or if statement! ::
 
     client = EntityAPI()
     folder = client.folder("folder-uuid")
     for child_asset in filter(only_assets, client.descendants(folder.reference)):
         asset = client.asset(child_asset.reference)
-        xml_document = ElementTree.fromstring(client.metadata_for_entity(asset, "your-xml-namespace"))
-        field_with_error = xml_document.find('.//{your-xml-namespace}your-element-name')
+        document = ElementTree.fromstring(client.metadata_for_entity(asset, "your-xml-namespace"))
+        field_with_error = document.find('.//{your-xml-namespace}your-element-name')
         if hasattr(field_with_error, 'text'):
             if field_with_error.text == "Old Value":
                 field_with_error.text = "New Value"
-                new_xml = ElementTree.tostring(xml_document, encoding='UTF-8', xml_declaration=True).decode("utf-8")
+                new_xml = ElementTree.tostring(document, encoding='UTF-8', xml_declaration=True).decode("utf-8")
                 asset = client.update_metadata(asset, "your-xml-namespace", new_xml)
                 print("Updated asset: " + asset.title)
 
