@@ -230,7 +230,7 @@ To get the parent objects of an asset all the way to the root of the repository 
     >>>     print(folder.title)
 
 
-The children of a folder can also be retrieved using the library.
+The immediate children of a folder can also be retrieved using the library.
 
 To get a set of all the root folders use ::
 
@@ -265,31 +265,25 @@ paging is available. ::
     >>>         next_page = root_folders.next_page
 
 
-A version of this method is also available as a generator function which does not require paging.
-This version returns a lazy iterator which does the paging internally. It will default to 25 items between server requests ::
-
-    >>> for entity in client.children_items():
-    >>>     print(entity.title)
-    >>>
-
-You can still specify the page size to optimise the frequency of calls to the server. ::
-
-    >>> for entity in client.children_items(folder_reference=None, maximum=10):
-    >>>     print(entity.title)
-    >>>
-
-
-The children_items() method has a alias named descendants() to distinguish the generator versions. ::
+A version of this method is also available as a generator function which does not require explicit paging.
+This version returns a lazy iterator which does the paging internally.
+It will default to 50 items between server requests ::
 
     >>> for entity in client.descendants():
     >>>     print(entity.title)
+    >>>
 
-This is the preferred way to get children of folders as the paging is automatic.
+You can pass a parent reference to get the children of any folder in the same way as the explict paging version ::
 
-If you only need folders or assets from a parent you can filter the results using a pre-defined filter ::
+    >>> for entity in client.descendants(folder.parent):
+    >>>     print(entity.title)
 
-    >>> for sibling in filter(only_assets, client.descendants(asset.parent)):
-    >>>     print(sibling.title)
+This is the preferred way to get children of folders as the paging is managed automatically.
+
+If you only need the folders or assets from a parent you can filter the results using a pre-defined filter ::
+
+    >>> for asset in filter(only_assets, client.descendants(asset.parent)):
+    >>>     print(asset.title)
 
 or ::
 
@@ -488,12 +482,12 @@ We can move entities between folders using the move call ::
 
 Where entity is the object to move either an asset or folder and the second argument is destination folder where the entity is moved to
 
-We can query Preservica for entities which have changed using ::
+We can query Preservica for entities which have changed over the last n days using ::
 
     >>> for e in client.updated_entities(previous_days=30):
     >>>     print(e)
 
-The argument is the number of previous days to check for changes.
+The argument is the number of previous days to check for changes. This call does paging internally.
 
 The pyPreservica library also provides a web service call which is part of the content API which allows downloading of digital
 content directly without having to request the representations and generations first.
@@ -743,17 +737,26 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :rtype: Entity
 
 
+   .. py:method::  children(folder_reference, maximum=50, next_page=None)
 
-   .. py:method::  children(folder_reference, maximum=100, next_page=None)
-
-    Find all the child entities of a folder
+    Return the child entities of a folder one page at a time. The caller is responsible for
+    requesting the next page of results.
 
     :param str folder_reference: The parent folder reference, None for the children of root folders
-    :param int maximum: The size of the result set
+    :param int maximum: The maximum size of the result set in each page
     :param str next_page: A URL for the next page of results
     :return: A set of entity objects
     :rtype: set(Entity)
 
+   .. py:method::  descendants(folder_reference, maximum=25)
+
+    Return the child entities of a folder using a lazy iterator. The paging is done internally using a page
+    size specified by the second argument. Callers can iterate over the result to get all children with a single call.
+
+    :param str folder_reference: The parent folder reference, None for the children of root folders
+    :param int maximum: The maximum size of the result set between calls to the server
+    :return: A set of entity objects
+    :rtype: set(Entity)
 
    .. py:method::  thumbnail(entity, filename, size=Thumbnail.LARGE)
 
@@ -774,6 +777,17 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :param Thumbnail size: The size of the thumbnail image
     :return: The filename
     :rtype: str
+
+   .. py:method::  updated_entities(previous_days: int = 1)
+
+    Fetch a list of entities which have changed (been updated) over the previous n days.
+
+    This method uses a generator function to make repeated calls to the server for every page of results.
+
+    :param int previous_days: The number of days to check for changes.
+    :return: A list of entities
+    :rtype: list
+
 
 .. py:class:: Generation
 
@@ -1022,6 +1036,23 @@ It will then find a particular element in the xml document "your-element-name" a
         else:
             next_page = children.next_page
 
+
+The following version does the same thing but uses the function descendants() rather than children().
+descendants() does the paging of results internally and combined with
+a filter on the lazy iterator provides a version which does not need the additional while loop or if statement ::
+
+    client = EntityAPI()
+    folder = client.folder("folder-uuid")
+    for child_asset in filter(only_assets, client.descendants(folder.reference)):
+        asset = client.asset(child_asset.reference)
+        xml_document = ElementTree.fromstring(client.metadata_for_entity(asset, "your-xml-namespace"))
+        field_with_error = xml_document.find('.//{your-xml-namespace}your-element-name')
+        if hasattr(field_with_error, 'text'):
+            if field_with_error.text == "Old Value":
+                field_with_error.text = "New Value"
+                new_xml = ElementTree.tostring(xml_document, encoding='UTF-8', xml_declaration=True).decode("utf-8")
+                asset = client.update_metadata(asset, "your-xml-namespace", new_xml)
+                print("Updated asset: " + asset.title)
 
 **Adding Metadata from a Spreadsheet**
 

@@ -1,4 +1,5 @@
 import requests
+import csv
 
 from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, EntityType, HEADER_TOKEN, content_api_identifier_to_type
 
@@ -99,14 +100,39 @@ class ContentAPI(AuthenticatedAPI):
             print(results.request.url)
             raise SystemExit
 
-    def simple_search(self, *args, query: str = "%", start_index: int = 0, page_size: int = 10):
+    def simple_search_csv(self, query: str = "%", csv_file="search.csv", *args):
+        page_size = 50
+        if len(args) == 0:
+            metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type", "xip.parent_ref",
+                               "xip.security_descriptor"]
+        else:
+            metadata_fields = list(args)
+        if "xip.reference" not in metadata_fields:
+            metadata_fields.insert(0, "xip.reference")
+        with open(csv_file, newline='', mode="wt", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=metadata_fields)
+            writer.writeheader()
+            writer.writerows(self.simple_search(query, page_size, *args))
+
+    def simple_search(self, query: str = "%", page_size: int = 10, *args):
+        search_result = self.__simple_search(query, 0, page_size, *args)
+        for e in search_result.results_list:
+            yield e
+        found = len(search_result.results_list)
+        while search_result.hits > found:
+            search_result = self.__simple_search(query, found, page_size, *args)
+            for e in search_result.results_list:
+                yield e
+            found = found + len(search_result.results_list)
+
+    def __simple_search(self, query: str = "%", start_index: int = 0, page_size: int = 10, *args):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
         queryterm = ('{ "q":  "%s" }' % query)
         if len(args) == 0:
             metadata_fields = "xip.title,xip.description,xip.document_type,xip.parent_ref,xip.security_descriptor"
         else:
-            metadata_fields = ','.join(*args)
+            metadata_fields = ','.join(args)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': queryterm}
         results = requests.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = list()
@@ -116,9 +142,10 @@ class ContentAPI(AuthenticatedAPI):
             refs = list(json['value']['objectIds'])
             refs = list(map(lambda x: content_api_identifier_to_type(x), refs))
             hits = int(json['value']['totalHits'])
-            for row in metadata:
+            for m_row, r_row in zip(metadata, refs):
                 results_map = dict()
-                for li in row:
+                results_map['xip.reference'] = r_row[1]
+                for li in m_row:
                     results_map[li['name']] = li['value']
                 results_list.append(results_map)
             next_start = start_index + page_size
@@ -126,7 +153,7 @@ class ContentAPI(AuthenticatedAPI):
             return search_results
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.simple_search(*args, query, start_index, page_size)
+            return self.__simple_search(query, start_index, page_size, *args)
         else:
             print(f"search failed with error code: {results.status_code}")
             print(results.request.url)

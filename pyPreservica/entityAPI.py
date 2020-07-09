@@ -631,23 +631,15 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "representations failed")
 
-    def descendants(self, folder_reference: str = None, maximum: int = 25):
-        return self.children_items(folder_reference=folder_reference, maximum=maximum)
-
-    def children_items(self, folder_reference: str = None, maximum: int = 25):
+    def descendants(self, folder_reference: str = None):
+        maximum = 50
         paged_set = self.children(folder_reference, maximum=maximum, next_page=None)
         for entity in paged_set.results:
-            try:
-                yield entity
-            finally:
-                pass
+            yield entity
         while paged_set.has_more:
             paged_set = self.children(folder_reference, maximum=maximum, next_page=paged_set.next_page)
             for entity in paged_set.results:
-                try:
-                    yield entity
-                finally:
-                    pass
+                yield entity
 
     def children(self, folder_reference: str = None, maximum: int = 50, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
@@ -687,7 +679,8 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "children failed")
 
-    def updated_entities(self, previous_days: int = 1, maximum: int = 50):
+    def updated_entities(self, previous_days: int = 1):
+        maximum = 50
         paged_set = self._updated_entities_page(previous_days=previous_days, maximum=maximum, next_page=None)
         for entity in paged_set.results:
             try:
