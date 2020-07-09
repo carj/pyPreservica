@@ -259,11 +259,11 @@ paging is available. ::
     >>> while True:
     >>>     root_folders = client.children(None, maximum=10, next_page=next_page)
     >>>     for e in root_folders.results:
-    >>>     print(f'{e.title} : {e.reference} : {e.entity_type}')
-    >>>     if not root_folders.has_more:
-    >>>         break
-    >>>     else:
-    >>>         next_page = root_folders.next_page
+    >>>         print(f'{e.title} : {e.reference} : {e.entity_type}')
+    >>>         if not root_folders.has_more:
+    >>>             break
+    >>>         else:
+    >>>             next_page = root_folders.next_page
 
 
 A version of this method is also available as a generator function which does not require explicit paging.
@@ -290,6 +290,21 @@ or ::
 
     >>> for folders in filter(only_folders, client.descendants(asset.parent)):
     >>>     print(folders.title)
+
+
+If you want **all** the entities below a point in the hierarchy, i.e a recursive list of all folders and assets the you can
+call all_descendants() this is a generator function which returns a lazy iterator will which make repeated calls to the server
+for each page of results.
+
+The following will give return all entities within the repository from the root folders down ::
+
+    >>> for e in client.all_descendants()
+    >>>     print(e.title)
+
+again if you only need a list of every asset in the system you can filter using ::
+
+    >>> for asset in filter(only_assets, client.all_descendants()):
+    >>>     print(asset.title)
 
 
 Folder objects can be created directly in the repository, the create_folder() function takes 3
@@ -751,11 +766,21 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
    .. py:method::  descendants(folder_reference)
 
-    Return the child entities of a folder using a lazy iterator. The paging is done internally using a default page
-    size of 25 elements. Callers can iterate over the result to get all children with a single call.
+    Return the immediate child entities of a folder using a lazy iterator. The paging is done internally using a default page
+    size of 50 elements. Callers can iterate over the result to get all children with a single call.
 
     :param str folder_reference: The parent folder reference, None for the children of root folders
-    :return: A set of entity objects
+    :return: A set of entity objects (Folders and Assets)
+    :rtype: set(Entity)
+
+  .. py:method::  all_descendants(folder_reference)
+
+    Return the all child entities recursively of a folder or repository down to the assets using a lazy iterator.
+    The paging is done internally using a default page
+    size of 50 elements. Callers can iterate over the result to get all children with a single call.
+
+    :param str folder_reference: The parent folder reference, None for the children of root folders
+    :return: A set of entity objects (Folders and Assets)
     :rtype: set(Entity)
 
    .. py:method::  thumbnail(entity, filename, size=Thumbnail.LARGE)

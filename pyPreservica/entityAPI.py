@@ -631,6 +631,12 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "representations failed")
 
+    def all_descendants(self, folder_reference: str = None):
+        for e in self.descendants(folder_reference=folder_reference):
+            yield e
+            if e.entity_type == EntityType.FOLDER:
+                yield from self.all_descendants(folder_reference=e.reference)
+
     def descendants(self, folder_reference: str = None):
         maximum = 50
         paged_set = self.children(folder_reference, maximum=maximum, next_page=None)
