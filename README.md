@@ -1,7 +1,7 @@
-<span align="center">
+<span>
 <pre>
     <a href="https://pypreservica.readthedocs.io/">
-    <img src="https://github.com/carj/pyPreservica/blob/master/docs/images/logo1.JPG" align="center" /></a>
+    <img src="https://github.com/carj/pyPreservica/blob/master/docs/images/logo1.JPG" align="left" /></a>
 </pre>
 </span>
 
