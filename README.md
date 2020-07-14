@@ -1,3 +1,10 @@
+<span align="center">
+<pre>
+    <a href="https://pypreservica.readthedocs.io/">
+    <img src="https://github.com/carj/pyPreservica/blob/master/docs/images/logo1.JPG" align="center" /></a>
+</pre>
+</span>
+
 # pyPreservica
 Python language binding for the Preservica Entity API
 
@@ -9,3 +16,13 @@ https://us.preservica.com/api/entity/documentation.html
 
 
 The full documentation is available at: https://pypreservica.readthedocs.io/
+
+Wiki with example scripts https://github.com/carj/pyPreservica/wiki
+
+## Contributing
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/carj/pyPreservica
+
+## License
+
+The package is available as open source under the terms of the Apache License 2.0
