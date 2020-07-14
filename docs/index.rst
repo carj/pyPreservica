@@ -252,7 +252,7 @@ To get the siblings of an asset you can use ::
     >>> entities = client.children(asset.parent)
 
 The set of entities returned may contain both assets and other folders.
-The default maximum size of the result set is 50 items. The size can be configured and for large result sets
+The default size of the result set is 50 items. The size can be configured and for large result sets
 paging is available. ::
 
     >>> next_page = None
@@ -296,12 +296,12 @@ If you want **all** the entities below a point in the hierarchy, i.e a recursive
 call all_descendants() this is a generator function which returns a lazy iterator will which make repeated calls to the server
 for each page of results.
 
-The following will give return all entities within the repository from the root folders down ::
+The following will return all entities within the repository from the root folders down ::
 
     >>> for e in client.all_descendants()
     >>>     print(e.title)
 
-again if you only need a list of every asset in the system you can filter using ::
+again if you need a list of every asset in the system you can filter using ::
 
     >>> for asset in filter(only_assets, client.all_descendants()):
     >>>     print(asset.title)

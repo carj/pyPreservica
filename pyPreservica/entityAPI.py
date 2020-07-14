@@ -1,4 +1,3 @@
-import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 from time import sleep
@@ -10,95 +9,107 @@ from pyPreservica.common import *
 
 
 class EntityAPI(AuthenticatedAPI):
+    # noinspection SpellCheckingInspection
     """
-        A client library for the Preservica Repository web services Entity API
-        https://us.preservica.com/api/entity/documentation.html
+            A client library for the Preservica Repository web services Entity API
+            https://us.preservica.com/api/entity/documentation.html
 
 
-        Methods
-        -------
-        asset(reference):
-            Fetches the main XIP attributes for an asset by its reference
+            Methods
+            -------
+            asset(reference):
+                Fetches the main XIP attributes for an asset by its reference
 
-        folder(reference):
-            Fetches the main XIP attributes for a folder by its reference
+            folder(reference):
+                Fetches the main XIP attributes for a folder by its reference
 
-        content_object(reference):
-            Fetches the main XIP attributes for a content_object by its reference
+            content_object(reference):
+                Fetches the main XIP attributes for a content_object by its reference
 
-        entity(entity_type, reference):
-            Get an entity by its type and reference
+            entity(entity_type, reference):
+                Get an entity by its type and reference
 
-        metadata(uri):
-            Return the descriptive metadata attached to an entity.
+            metadata(uri):
+                Return the descriptive metadata attached to an entity.
 
-        metadata_for_entity(entity, schema):
-            Return the metadata fragment for the entity by schema
+            metadata_for_entity(entity, schema):
+                Return the metadata fragment for the entity by schema
 
-        save(entity):
-            Updates the title and description of an asset or folder
+            save(entity):
+                Updates the title and description of an asset or folder
 
-        create_folder(title, description, security_tag, parent=None):
-            creates a new structural object in the repository
+            create_folder(title, description, security_tag, parent=None):
+                creates a new structural object in the repository
 
-        children(reference, maximum=100, next_page=None):
-            returns a list of children from the folder
+            children(reference, maximum=100, next_page=None):
+                returns a list of children from the folder
 
-        identifier(identifier_type, identifier_value):
-            returns an asset or folder based on external identifiers
+            identifier(identifier_type, identifier_value):
+                returns an asset or folder based on external identifiers
 
-        identifiers_for_entity(entity):
-            returns a set of identifiers on the entity
+            identifiers_for_entity(entity):
+                returns a set of identifiers on the entity
 
-        add_identifier(entity, identifier_type, identifier_value):
-            adds a new external identifier to an entity
+            add_identifier(entity, identifier_type, identifier_value):
+                adds a new external identifier to an entity
 
-        delete_identifier(entity, identifier_type=None, identifier_value=None):
-            deletes identifiers which belong to an entity
+            delete_identifier(entity, identifier_type=None, identifier_value=None):
+                deletes identifiers which belong to an entity
 
-        add_metadata(entity, namespace, data):
-            Add new descriptive metadata to an entity
+            add_metadata(entity, namespace, data):
+                Add new descriptive metadata to an entity
 
-        update_metadata(entity, namespace, data):
-            Update the descriptive metadata attached to an entity
+            update_metadata(entity, namespace, data):
+                Update the descriptive metadata attached to an entity
 
-        delete_metadata(entity, schema):
-            Delete all the metadata fragments on an entity with the schema
-            Tests - Yes
+            delete_metadata(entity, schema):
+                Delete all the metadata fragments on an entity with the schema
+                Tests - Yes
 
-        download(entity, filename):
-            Download the first content object of the access representation to the file given by filename
+            download(entity, filename):
+                Download the first content object of the access representation to the file given by filename
 
-        thumbnail(entity, filename, size=Thumbnail.LARGE):
-            Download the thumbnail image for an entity
+            thumbnail(entity, filename, size=Thumbnail.LARGE):
+                Download the thumbnail image for an entity
 
-        move(entity, dest_folder):
-            Move an entity into the folder given by dest_folder
+            move(entity, dest_folder):
+                Move an entity into the folder given by dest_folder
 
-        bitstream_content(bitstream, filename):
-            Download a bitstream and save to filename
+            bitstream_content(bitstream, filename):
+                Download a bitstream and save to filename
 
-        security_tag_async(entity, new_tag):
-            Non-blocking call to change security tag
+            security_tag_async(entity, new_tag):
+                Non-blocking call to change security tag
 
-        security_tag_sync(self, entity, new_tag):
-            Blocking call to change security tag
+            security_tag_sync(self, entity, new_tag):
+                Blocking call to change security tag
 
-        representations(asset):
-            Return a set of representations for the asset
+            representations(asset):
+                Return a set of representations for the asset
 
-        content_objects(representation):
-            Returns an ordered list of content objects in the representation
+            content_objects(representation):
+                Returns an ordered list of content objects in the representation
 
-        generations(content_object)
-            Returns a list of generations for the content object
+            generations(content_object)
+                Returns a list of generations for the content object
 
-        """
+            """
 
     def bitstream_content(self, bitstream: Bitstream, filename: str):
+        """
+        Download a file represented as a Bitstream to a local filename
+
+        Returns the number of bytes written to the file
+        Returns None if the file does not contain the correct number of bytes
+
+        :param bitstream: A Bitstream object
+        :param filename: The filename to write the bytes to
+        """
+
         if not isinstance(bitstream, Bitstream):
             raise RuntimeError("bitstream argument is not a Bitstream object")
-        with requests.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as req:
+        with requests.get(bitstream.content_url, headers={HEADER_TOKEN: self.token},
+                          stream=True) as req:
             if req.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.bitstream_content(bitstream, filename)
@@ -111,6 +122,7 @@ class EntityAPI(AuthenticatedAPI):
                 if os.path.getsize(filename) == bitstream.length:
                     return bitstream.length
                 else:
+                    os.remove(filename)
                     return None
             else:
                 raise RuntimeError(req.status_code, "bitstream_content failed")
@@ -256,7 +268,15 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "add_identifier failed with error code")
 
-    def delete_metadata(self, entity: Entity, schema: str):
+    def delete_metadata(self, entity: Entity, schema: str) -> Entity:
+        """
+        Deletes all the metadata fragments on an entity which match the schema URI
+
+        Returns The updated Entity
+
+        :param entity: The Entity to delete metadata from
+        :param schema: The schema URI to match against
+        """
         headers = {HEADER_TOKEN: self.token}
         for url in entity.metadata:
             if schema == entity.metadata[url]:
@@ -267,15 +287,27 @@ class EntityAPI(AuthenticatedAPI):
                     self.token = self.__token__()
                     return self.delete_metadata(entity, schema)
                 else:
-                    raise RuntimeError(request.status_code, "delete_metadata failed with error code")
+                    raise RuntimeError(request.status_code,
+                                       "delete_metadata failed with error code")
         return self.entity(entity.entity_type, entity.reference)
 
-    def update_metadata(self, entity: Entity, schema: str, data):
+    def update_metadata(self, entity: Entity, schema: str, data) -> Entity:
+        """
+        Update all existing metadata fragments which match the schema
+
+        Returns The updated Entity
+
+        :param data:   The updated XML as a string or as IO bytes
+        :param entity: The Entity to update
+        :param schema: The schema URI to match against
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         for url in entity.metadata:
             if schema == entity.metadata[url]:
-                mref = url[url.rfind(f"{entity.reference}/metadata/") + len(f"{entity.reference}/metadata/"):]
-                xml_object = xml.etree.ElementTree.Element('MetadataContainer', {"schemaUri": schema, "xmlns": NS_XIPV6})
+                mref = url[url.rfind(f"{entity.reference}/metadata/") + len(
+                    f"{entity.reference}/metadata/"):]
+                xml_object = xml.etree.ElementTree.Element('MetadataContainer',
+                                                           {"schemaUri": schema, "xmlns": NS_XIPV6})
                 xml.etree.ElementTree.SubElement(xml_object, "Ref").text = mref
                 xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
                 content = xml.etree.ElementTree.SubElement(xml_object, "Content")
@@ -287,19 +319,32 @@ class EntityAPI(AuthenticatedAPI):
                     content.append(tree.getroot())
                 else:
                     raise RuntimeError("Unknown data type")
-                xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8', xml_declaration=True)
+                xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8',
+                                                             xml_declaration=True)
                 request = requests.put(url, data=xml_request, headers=headers)
                 if request.status_code == requests.codes.ok:
-                    return self.entity(entity.entity_type, entity.reference)
+                    pass
                 elif request.status_code == requests.codes.unauthorized:
                     self.token = self.__token__()
                     return self.update_metadata(entity, schema, data)
                 else:
-                    raise RuntimeError(request.status_code, "update_metadata failed with error code")
+                    raise RuntimeError(request.status_code,
+                                       "update_metadata failed with error code")
+        return self.entity(entity.entity_type, entity.reference)
 
-    def add_metadata(self, entity: Entity, schema: str, data):
+    def add_metadata(self, entity: Entity, schema: str, data) -> Entity:
+        """
+        Add a metadata fragment with a given namespace URI
+
+        Returns The updated Entity
+
+        :param data:   The new XML as a string or as IO bytes
+        :param entity: The Entity to update
+        :param schema: The schema URI of the XML document
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        xml_object = xml.etree.ElementTree.Element('MetadataContainer', {"schemaUri": schema, "xmlns": NS_XIPV6})
+        xml_object = xml.etree.ElementTree.Element('MetadataContainer',
+                                                   {"schemaUri": schema, "xmlns": NS_XIPV6})
         xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
         content = xml.etree.ElementTree.SubElement(xml_object, "Content")
         if isinstance(data, str):
@@ -314,12 +359,7 @@ class EntityAPI(AuthenticatedAPI):
         end_point = f"/{entity._path}/{entity.reference}/metadata"
         request = requests.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
-            if isinstance(entity, Asset):
-                return self.asset(entity.reference)
-            elif isinstance(entity, Folder):
-                return self.folder(entity.reference)
-            elif isinstance(entity, ContentObject):
-                return self.content_object(entity.reference)
+            return self.entity(entity_type=entity.entity_type, reference=entity.reference)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.add_metadata(entity, schema, data)
@@ -327,6 +367,13 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "add_metadata failed with error code")
 
     def save(self, entity: Entity) -> Entity:
+        """
+        Save the title and description of an entity
+
+        Returns The updated Entity
+
+        :param entity: The Entity to update
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         xml_object = xml.etree.ElementTree.Element(entity._tag, {"xmlns": NS_XIPV6})
         xml.etree.ElementTree.SubElement(xml_object, "Ref").text = entity.reference
@@ -350,7 +397,8 @@ class EntityAPI(AuthenticatedAPI):
                               response['security_tag'],
                               response['parent'], response['metadata'])
             elif isinstance(entity, ContentObject):
-                return ContentObject(response['reference'], response['title'], response['description'],
+                return ContentObject(response['reference'], response['title'],
+                                     response['description'],
                                      response['security_tag'],
                                      response['parent'], response['metadata'])
         elif request.status_code == requests.codes.unauthorized:
@@ -359,15 +407,27 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "save failed for entity: " + entity.reference)
 
-    def move(self, entity: Entity, dest_folder: Folder):
+    def move(self, entity: Entity, dest_folder: Folder) -> Entity:
+        """
+        Move an Entity (Asset or Folder) to a new Folder
+        If dest_folder is None then the entity must be a Folder and will be moved to the root of the repository
+
+        Returns The updated Entity
+
+        :param entity:      The Entity to update
+        :param dest_folder: The Folder which will become the new parent of this entity
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
         if isinstance(entity, Asset) and dest_folder is None:
-            raise RuntimeError(entity.reference, "Only folders can be moved to the root of the repository")
+            raise RuntimeError(entity.reference,
+                               "Only folders can be moved to the root of the repository")
         if dest_folder is not None:
             data = dest_folder.reference
         else:
             data = "@root@"
-        request = requests.put(f'https://{self.server}/api/entity/{entity._path}/{entity.reference}/parent-ref', data=data, headers=headers)
+        request = requests.put(
+            f'https://{self.server}/api/entity/{entity._path}/{entity.reference}/parent-ref',
+            data=data, headers=headers)
         if request.status_code == requests.codes.accepted:
             return self.entity(entity.entity_type, entity.reference)
         elif request.status_code == requests.codes.unauthorized:
@@ -376,26 +436,38 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "move failed for entity: " + entity.reference)
 
-    def create_folder(self, title: str, description: str, security_tag: str, parent: str = None) -> Folder:
-        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        structuralobject = xml.etree.ElementTree.Element('StructuralObject', {"xmlns": NS_XIPV6})
-        xml.etree.ElementTree.SubElement(structuralobject, "Ref").text = str(uuid.uuid4())
-        xml.etree.ElementTree.SubElement(structuralobject, "Title").text = title
-        xml.etree.ElementTree.SubElement(structuralobject, "Description").text = description
-        xml.etree.ElementTree.SubElement(structuralobject, "SecurityTag").text = security_tag
-        if parent is not None:
-            xml.etree.ElementTree.SubElement(structuralobject, "Parent").text = parent
+    def create_folder(self, title: str, description: str, security_tag: str,
+                      parent: str = None) -> Folder:
+        """
+        Create a new Folder in the repository
+        If parent is None then the new Folder will be created at the root of the repository
 
-        xml_request = xml.etree.ElementTree.tostring(structuralobject, encoding='utf-8')
-        request = requests.post(f'https://{self.server}/api/entity/structural-objects', data=xml_request,
-                                headers=headers)
+        Returns The updated Entity
+
+        :param title:       The title of the new folder
+        :param description: The description of the new folder
+        :param security_tag: The security_tag of the new folder
+        :param parent:       The parent of the new folder, Can be None to create a root Folder
+        """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        structural_object = xml.etree.ElementTree.Element('StructuralObject', {"xmlns": NS_XIPV6})
+        xml.etree.ElementTree.SubElement(structural_object, "Ref").text = str(uuid.uuid4())
+        xml.etree.ElementTree.SubElement(structural_object, "Title").text = title
+        xml.etree.ElementTree.SubElement(structural_object, "Description").text = description
+        xml.etree.ElementTree.SubElement(structural_object, "SecurityTag").text = security_tag
+        if parent is not None:
+            xml.etree.ElementTree.SubElement(structural_object, "Parent").text = parent
+
+        xml_request = xml.etree.ElementTree.tostring(structural_object, encoding='utf-8')
+        request = requests.post(f'https://{self.server}/api/entity/structural-objects',
+                                data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
             entity = entity_from_string(xml_response)
-            f = Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'],
-                       entity['parent'],
-                       entity['metadata'])
-            return f
+            return Folder(entity['reference'], entity['title'], entity['description'],
+                          entity['security_tag'],
+                          entity['parent'],
+                          entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.create_folder(title, description, security_tag, parent=parent)
@@ -403,6 +475,14 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "create_folder failed")
 
     def metadata_for_entity(self, entity: Entity, schema: str) -> Optional[str]:
+        """
+        Retrieve the first metadata fragment on an entity with a matching schema URI
+
+        Returns XML document as a string
+
+        :param entity:       The entity with the metadata
+        :param schema:       The schema URI
+        """
         for u, s in entity.metadata.items():
             if schema == s:
                 return self.metadata(u)
@@ -451,12 +531,20 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, f"security_tag_async change failed on {entity.reference}")
 
     def metadata(self, uri: str) -> str:
+        """
+        Retrieve the metadata fragment which is referenced by the URI
+
+        Returns XML document as a string
+
+        :param uri:          The endpoint of the metadata fragment
+        """
         request = requests.get(uri, headers={HEADER_TOKEN: self.token})
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('UTF-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             content = entity_response.find('.//{http://preservica.com/XIP/v6.0}Content')
-            return xml.etree.ElementTree.tostring(content[0], encoding='utf-8', method='xml').decode('utf-8')
+            return xml.etree.ElementTree.tostring(content[0], encoding='utf-8',
+                                                  method='xml').decode('utf-8')
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.metadata(uri)
@@ -464,6 +552,14 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, f"metadata failed for {uri}")
 
     def entity(self, entity_type: EntityType, reference: str) -> Entity:
+        """
+        Retrieve an entity by its type and reference
+
+        Returns Entity (Asset, Folder, ContentObject)
+
+        :param entity_type:          The type of entity to fetch
+        :param reference:            The unique identifier of the entity
+        """
         if entity_type is EntityType.CONTENT_OBJECT:
             return self.content_object(reference)
         if entity_type is EntityType.FOLDER:
@@ -472,12 +568,21 @@ class EntityAPI(AuthenticatedAPI):
             return self.asset(reference)
 
     def asset(self, reference: str) -> Asset:
+        """
+         Retrieve an Asset by its reference
+
+         Returns Asset
+
+         :param reference:            The unique identifier of the entity
+         """
         headers = {HEADER_TOKEN: self.token}
-        request = requests.get(f'https://{self.server}/api/entity/{IO_PATH}/{reference}', headers=headers)
+        request = requests.get(f'https://{self.server}/api/entity/{IO_PATH}/{reference}',
+                               headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity = entity_from_string(xml_response)
-            return Asset(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
+            return Asset(entity['reference'], entity['title'], entity['description'],
+                         entity['security_tag'], entity['parent'],
                          entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -488,12 +593,21 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, f"asset failed for {reference}")
 
     def folder(self, reference: str) -> Folder:
+        """
+         Retrieve an Folder by its reference
+
+         Returns Folder
+
+         :param reference:            The unique identifier of the entity
+         """
         headers = {HEADER_TOKEN: self.token}
-        request = requests.get(f'https://{self.server}/api/entity/{SO_PATH}/{reference}', headers=headers)
+        request = requests.get(f'https://{self.server}/api/entity/{SO_PATH}/{reference}',
+                               headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity = entity_from_string(xml_response)
-            return Folder(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
+            return Folder(entity['reference'], entity['title'], entity['description'],
+                          entity['security_tag'], entity['parent'],
                           entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -504,12 +618,21 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, f"folder failed for {reference}")
 
     def content_object(self, reference: str) -> ContentObject:
+        """
+         Retrieve an ContentObject by its reference
+
+         Returns ContentObject
+
+         :param reference:            The unique identifier of the entity
+         """
         headers = {HEADER_TOKEN: self.token}
-        request = requests.get(f'https://{self.server}/api/entity/{CO_PATH}/{reference}', headers=headers)
+        request = requests.get(f'https://{self.server}/api/entity/{CO_PATH}/{reference}',
+                               headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity = entity_from_string(xml_response)
-            return ContentObject(entity['reference'], entity['title'], entity['description'], entity['security_tag'], entity['parent'],
+            return ContentObject(entity['reference'], entity['title'], entity['description'],
+                                 entity['security_tag'], entity['parent'],
                                  entity['metadata'])
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -519,7 +642,14 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, f"content_object failed for {reference}")
 
-    def content_objects(self, representation: Representation):
+    def content_objects(self, representation: Representation) -> Optional[list]:
+        """
+         Retrieve a list of content objects within a representation
+
+         Returns List(ContentObject)
+
+         :param representation:
+         """
         headers = {HEADER_TOKEN: self.token}
         if not isinstance(representation, Representation):
             return None
@@ -528,7 +658,8 @@ class EntityAPI(AuthenticatedAPI):
             results = list()
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            content_objects = entity_response.findall('.//{http://preservica.com/XIP/v6.0}ContentObject')
+            content_objects = entity_response.findall(
+                './/{http://preservica.com/XIP/v6.0}ContentObject')
             for co in content_objects:
                 content_object = self.content_object(co.text)
                 content_object.representation_type = representation.rep_type
@@ -542,6 +673,13 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "content_objects failed")
 
     def generation(self, url: str):
+        """
+         Retrieve a list of generation objects
+
+         Returns List(Generation)
+
+         :param url:
+         """
         headers = {HEADER_TOKEN: self.token}
         request = requests.get(url, headers=headers)
         if request.status_code == requests.codes.ok:
@@ -549,17 +687,17 @@ class EntityAPI(AuthenticatedAPI):
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             ge = entity_response.find('.//{http://preservica.com/XIP/v6.0}Generation')
             format_group = entity_response.find('.//{http://preservica.com/XIP/v6.0}FormatGroup')
-            effective_date = entity_response.find('.//{http://preservica.com/XIP/v6.0}EffectiveDate')
-            bitstreams = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Bitstream')
+            effective_date = entity_response.find(
+                './/{http://preservica.com/XIP/v6.0}EffectiveDate')
+            bitstreams = entity_response.findall(
+                './/{http://preservica.com/EntityAPI/v6.0}Bitstream')
             bitstream_list = list()
             for bit in bitstreams:
                 bitstream_list.append(self.bitstream(bit.text))
-
-            generation = Generation(bool(ge.attrib['original']), bool(ge.attrib['active']),
-                                    format_group.text if hasattr(format_group, 'text') else None,
-                                    effective_date.text if hasattr(effective_date, 'text') else None,
-                                    bitstream_list)
-            return generation
+            return Generation(bool(ge.attrib['original']), bool(ge.attrib['active']),
+                              format_group.text if hasattr(format_group, 'text') else None,
+                              effective_date.text if hasattr(effective_date, 'text') else None,
+                              bitstream_list)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.generation(url)
@@ -567,6 +705,13 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "generation failed")
 
     def bitstream(self, url: str):
+        """
+         Retrieve a bitstream by its url
+
+         Returns Bitstream
+
+         :param url:
+         """
         headers = {HEADER_TOKEN: self.token}
         request = requests.get(url, headers=headers)
         if request.status_code == requests.codes.ok:
@@ -591,13 +736,23 @@ class EntityAPI(AuthenticatedAPI):
             print(request.request.url)
             raise RuntimeError(request.status_code, "bitstream failed")
 
-    def generations(self, content_object: ContentObject):
+    def generations(self, content_object: ContentObject) -> list:
+        """
+        Retrieve list of generations on a content object
+
+        Returns list
+
+        :param content_object:
+        """
         headers = {HEADER_TOKEN: self.token}
-        request = requests.get(f'https://{self.server}/api/entity/{CO_PATH}/{content_object.reference}/generations', headers=headers)
+        request = requests.get(
+            f'https://{self.server}/api/entity/{CO_PATH}/{content_object.reference}/generations',
+            headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            generations = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Generation')
+            generations = entity_response.findall(
+                './/{http://preservica.com/EntityAPI/v6.0}Generation')
             result = list()
             for g in generations:
                 if hasattr(g, 'text'):
@@ -611,15 +766,25 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "generations failed")
 
-    def representations(self, asset: Asset):
+    def representations(self, asset: Asset) -> set:
+        """
+        Retrieve set of representations on an Asset
+
+        Returns list
+
+        :param asset:   The asset
+        """
         headers = {HEADER_TOKEN: self.token}
         if not isinstance(asset, Asset):
             return None
-        request = requests.get(f'https://{self.server}/api/entity/{asset._path}/{asset.reference}/representations', headers=headers)
+        request = requests.get(
+            f'https://{self.server}/api/entity/{asset._path}/{asset.reference}/representations',
+            headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            representations = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Representation')
+            representations = entity_response.findall(
+                './/{http://preservica.com/EntityAPI/v6.0}Representation')
             result = set()
             for r in representations:
                 representation = Representation(asset, r.attrib['type'], r.attrib['name'], r.text)
@@ -632,6 +797,13 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "representations failed")
 
     def all_descendants(self, folder_reference: str = None):
+        """
+         Retrieve list of entities below a folder in the repository
+
+         Returns list
+
+         :param folder_reference: The folder to find children of
+         """
         for e in self.descendants(folder_reference=folder_reference):
             yield e
             if e.entity_type == EntityType.FOLDER:
@@ -737,6 +909,7 @@ class EntityAPI(AuthenticatedAPI):
             return PagedSet(result, has_more, total_hits.text, url)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self._updated_entities(previous_days=previous_days, maximum=maximum, next_page=next_page)
+            return self._updated_entities_page(previous_days=previous_days, maximum=maximum,
+                                               next_page=next_page)
         else:
             raise RuntimeError(request.status_code, "updated_entities failed")
