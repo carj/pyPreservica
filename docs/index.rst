@@ -575,7 +575,7 @@ You can specify the size of the thumbnail by passing a second argument ::
 Content API QuickStart
 ~~~~~~~~~~~~~~~~~~~~~~
 
-PyPreservica now contains some experimental interfaces to the content API
+pyPreservica now contains some experimental interfaces to the content API
 
 https://demo.preservica.com/api/content/documentation.html
 
