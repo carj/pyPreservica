@@ -193,8 +193,11 @@ Begin by importing the pyPreservica module ::
 Now, let's create the EntityAPI class ::
 
     >>> client = EntityAPI()
+
+Fetching Entities (Assets, Folders & Content Objects)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
-and fetch an asset and print its attributes ::
+Fetch an asset and print its attributes ::
 
     >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> print(asset.reference)
@@ -237,6 +240,9 @@ To get the parent objects of an asset all the way to the root of the repository 
     >>>     folder = client.folder(folder.parent)
     >>>     print(folder.title)
 
+
+Fetching Children of Entities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The immediate children of a folder can also be retrieved using the library.
 
@@ -314,6 +320,10 @@ again if you need a list of every asset in the system you can filter using ::
     >>>     print(asset.title)
 
 
+
+Creating new Folders
+^^^^^^^^^^^^^^^^^^^^^^^^
+
 Folder objects can be created directly in the repository, the create_folder() function takes 3
 mandatory parameters, folder title, description and security tag. ::
 
@@ -326,6 +336,9 @@ last argument. ::
     >>> new_folder = client.create_folder("title", "description", "open", folder.parent)
     >>> print(new_folder.reference)
 
+
+Updating Entities
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 We can update either the title or description attribute for assets, folders and content objects using the save() method ::
 
@@ -355,6 +368,9 @@ The synchronous version will block until the security tag has been updated on al
 
     >>> entity = client.security_tag_sync(entity, new_tag)
 
+
+3rd Party External Identifiers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We can add external identifiers to either assets, folders or content objects. External identifiers have a type and a value.
 External identifiers do not have to be unique in the same way as internal identifiers. ::
@@ -401,6 +417,8 @@ Will delete all identifiers which have type "ISBN" ::
 
 Will only delete identifiers which match the type and value
 
+Descriptive Metadata
+^^^^^^^^^^^^^^^^^^^^^^^
 
 You can query an entity to determine if it has any attached descriptive metadata using the metadata attribute. This returns a dict[] object
 the dictionary key is a url to the metadata and the value is the schema ::
@@ -454,6 +472,9 @@ Descriptive metadata can also be updated to amend values or change the document 
     >>>         entity.update_metadata(folder, schema, xml_string)   # call into the API
 
 
+Representations, Content Objects & Generations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Each asset in Preservica contains one or more representations, such as Preservation or Access etc.
 
 To get a list of all the representations of an asset ::
@@ -499,11 +520,23 @@ The actual content files can be download using bitstream_content() ::
 
     >>> client.bitstream_content(bs, bs.filename)
 
+
+Moving Entities
+^^^^^^^^^^^^^^^^
+
 We can move entities between folders using the move call ::
 
     >>> client.move(entity, dest_folder)
 
-Where entity is the object to move either an asset or folder and the second argument is destination folder where the entity is moved to
+Where entity is the object to move either an asset or folder and the second argument is destination folder where the entity is moved to.
+
+Folders can be moved to the root of the repository by passing None as the second argument. ::
+
+    >>> client.move(folder, None)
+
+
+Finding Updated Entities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We can query Preservica for entities which have changed over the last n days using ::
 
