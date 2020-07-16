@@ -95,8 +95,8 @@ class Entity:
         self.parent = parent
         self.metadata = metadata
         self.entity_type = None
-        self._path = None
-        self._tag = None
+        self.path = None
+        self.tag = None
 
     def __str__(self):
         return f"Ref:\t\t\t{self.reference}\n" \
@@ -113,16 +113,16 @@ class Folder(Entity):
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.FOLDER
-        self._path = SO_PATH
-        self._tag = "StructuralObject"
+        self.path = SO_PATH
+        self.tag = "StructuralObject"
 
 
 class Asset(Entity):
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.ASSET
-        self._path = IO_PATH
-        self._tag = "InformationObject"
+        self.path = IO_PATH
+        self.tag = "InformationObject"
 
 
 class ContentObject(Entity):
@@ -131,8 +131,8 @@ class ContentObject(Entity):
         self.entity_type = EntityType.CONTENT_OBJECT
         self.representation_type = None
         self.asset = None
-        self._path = CO_PATH
-        self._tag = "ContentObject"
+        self.path = CO_PATH
+        self.tag = "ContentObject"
 
 
 def content_api_identifier_to_type(ref):

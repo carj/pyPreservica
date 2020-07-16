@@ -106,7 +106,7 @@ class ContentAPI(AuthenticatedAPI):
             metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type",
                                "xip.parent_ref", "xip.security_descriptor"]
         else:
-            metadata_fields = list(args)
+            metadata_fields = list(*args)
         if "xip.reference" not in metadata_fields:
             metadata_fields.insert(0, "xip.reference")
         with open(csv_file, newline='', mode="wt", encoding="utf-8") as csvfile:
@@ -132,7 +132,7 @@ class ContentAPI(AuthenticatedAPI):
         if len(args) == 0:
             metadata_fields = "xip.title,xip.description,xip.document_type,xip.parent_ref,xip.security_descriptor"
         else:
-            metadata_fields = ','.join(args)
+            metadata_fields = ','.join(*args)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields,
                    'q': queryterm}
         results = requests.post(f'https://{self.server}/api/content/search', data=payload,

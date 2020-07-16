@@ -106,6 +106,13 @@ You can clone the public repository::
     $ git clone git://github.com/carj/pyPreservica.git
 
 
+Contributing
+------------
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/carj/pyPreservica
+
+
+
 Example
 ------------
 
@@ -174,7 +181,7 @@ You can create a new credentials.properties file automatically using the save_co
 The User Guide
 --------------
 
-QuickStart
+Entity API QuickStart
 ~~~~~~~~~~~~
 
 Making a call to the Preservica repository is very simple.
@@ -530,14 +537,87 @@ You can specify the size of the thumbnail by passing a second argument ::
     >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.MEDIUM)    ## 150×150   pixels
     >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.SMALL)     ## 64×64     pixels
 
-Developer Interface
+
+
+Content API QuickStart
+~~~~~~~~~~~~~~~~~~~~~~
+
+PyPreservica now contains some experimental interfaces to the content API
+
+https://demo.preservica.com/api/content/documentation.html
+
+The content API is a readonly interface which returns json documents rather than XML and which has some duplication with the entity API, but it does contain search capabilities.
+unlike the entity API above the interfaces for the content API are subject to change.
+
+The content API client is created using ::
+
+    >>> from pyPreservica import *
+    >>> client = ContentAPI()
+
+
+object-details
+^^^^^^^^^^^^^^^^^
+
+Get the details for a Asset or Folder as a raw json document::
+
+    >>> client = ContentAPI()
+    >>> client.object_details("IO", "uuid")
+    >>> client.object_details("SO", "uuid")
+
+
+indexed-fields
+^^^^^^^^^^^^^^^^^
+
+Get a list of all the indexed metadata fields within the solr server. This includes the default
+xip.* fields and any custom indexes which have been created through custom index files. ::
+
+    >>> client = ContentAPI()
+    >>> client.indexed_fields():
+
+Search
+^^^^^^^^^
+
+Search the repository using a single expression which matches on any indexed field. ::
+
+    >>> client = ContentAPI()
+    >>> client.simple_search_csv()
+
+Searches for everything and writes the results to a csv file called "search.csv", by default the csv
+columns contain reference, title, description, document_type, parent_ref, security_tag ::
+
+You can pass the query term as the first argument (% is the wildcard character) and the csv file name as the second argument. ::
+
+    >>> client = ContentAPI()
+    >>> client.simple_search_csv("%", "results.csv")
+
+    >>> client = ContentAPI()
+    >>> client.simple_search_csv("Oxford", "oxford.csv")
+
+    >>> client = ContentAPI()
+    >>> client.simple_search_csv("History of Oxford", "history.csv")
+
+The last argument is an optional list of indexed fields which are the csv file columns. ::
+
+    >>> client = ContentAPI()
+    >>> metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type", "xip.parent_ref", "xip.security_descriptor"]
+    >>> client.simple_search_csv("%", "results.csv", metadata_fields)
+
+    or to include everything except the full text index value ::
+
+    >>> client = ContentAPI()
+    >>> everything = list(filter(lambda x: x != "xip.full_text", client.indexed_fields()))
+    >>> client.simple_search_csv("%", "results.csv", everything)
+
+
+
+Entity API Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~
 
 
 This part of the documentation covers all the interfaces of pyPreservica.
 
-All of the pyPreservica functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
 
+All of the pyPreservica functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
 
 .. py:class:: EntityAPI
 
@@ -577,7 +657,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :param str reference: The unique identifier for the enity
     :return: The entity
     :rtype: Entity
-    :raises SystemExit: if the identifier is incorrect
+    :raises RuntimeError: if the identifier is incorrect
 
    .. py:method:: save(entity)
 
@@ -591,7 +671,6 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
    .. py:method:: security_tag_async(entity, new_tag)
 
     Change the security tag of an asset or folder
-    All the children of the folder will have their tag updated.
     This is a non blocking call which returns immediately.
 
     :param Entity entity: The entity (asset, folder) to be updated
@@ -602,7 +681,6 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
    .. py:method:: security_tag_sync(entity, new_tag)
 
     Change the security tag of an asset or folder
-    All the children of the folder will have their tag updated.
     This is a blocking call which returns after all entities have been updated.
 
     :param Entity entity: The entity (asset, folder) to be updated
