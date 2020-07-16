@@ -547,7 +547,10 @@ PyPreservica now contains some experimental interfaces to the content API
 https://demo.preservica.com/api/content/documentation.html
 
 The content API is a readonly interface which returns json documents rather than XML and which has some duplication with the entity API, but it does contain search capabilities.
-unlike the entity API above the interfaces for the content API are subject to change.
+
+
+.. warning::
+    Unlike the entity API above the interfaces for the content API are subject to change.
 
 The content API client is created using ::
 
@@ -602,7 +605,8 @@ The last argument is an optional list of indexed fields which are the csv file c
     >>> metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type", "xip.parent_ref", "xip.security_descriptor"]
     >>> client.simple_search_csv("%", "results.csv", metadata_fields)
 
-    or to include everything except the full text index value ::
+
+or to include everything except the full text index value ::
 
     >>> client = ContentAPI()
     >>> everything = list(filter(lambda x: x != "xip.full_text", client.indexed_fields()))
