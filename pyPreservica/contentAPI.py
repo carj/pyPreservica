@@ -1,7 +1,8 @@
 import requests
 import csv
 
-from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, EntityType, HEADER_TOKEN, content_api_identifier_to_type
+from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, EntityType, HEADER_TOKEN, \
+    content_api_identifier_to_type
 
 
 class ContentAPI(AuthenticatedAPI):
@@ -11,6 +12,10 @@ class ContentAPI(AuthenticatedAPI):
 
     """
 
+    def __init__(self, username="", password="", tenant="", server=""):
+        super().__init__(username, password, tenant, server)
+        self.callback = None
+
     class SearchResult:
         def __init__(self, metadata, refs, hits, results_list, next_start):
             self.metadata = metadata
@@ -18,6 +23,9 @@ class ContentAPI(AuthenticatedAPI):
             self.hits = int(hits)
             self.results_list = results_list
             self.next_start = next_start
+
+    def search_callback(self, fn):
+        self.callback = fn
 
     def object_details(self, entity_type, reference):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
@@ -38,7 +46,8 @@ class ContentAPI(AuthenticatedAPI):
     def download(self, reference, filename):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:IO|{reference}'}
-        with requests.get(f'https://{self.server}/api/content/download', params=params, headers=headers, stream=True) as req:
+        with requests.get(f'https://{self.server}/api/content/download', params=params, headers=headers,
+                          stream=True) as req:
             if req.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
                     for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
@@ -144,6 +153,7 @@ class ContentAPI(AuthenticatedAPI):
             refs = list(json['value']['objectIds'])
             refs = list(map(lambda x: content_api_identifier_to_type(x), refs))
             hits = int(json['value']['totalHits'])
+
             for m_row, r_row in zip(metadata, refs):
                 results_map = dict()
                 results_map['xip.reference'] = r_row[1]
@@ -151,6 +161,11 @@ class ContentAPI(AuthenticatedAPI):
                     results_map[li['name']] = li['value']
                 results_list.append(results_map)
             next_start = start_index + page_size
+
+            if self.callback is not None:
+                value = str(f'{len(results_list) + start_index}:{hits}')
+                self.callback(value)
+
             search_results = self.SearchResult(metadata, refs, hits, results_list, next_start)
             return search_results
         elif results.status_code == requests.codes.unauthorized:
