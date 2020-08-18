@@ -177,6 +177,19 @@ You can create a new credentials.properties file automatically using the save_co
    >>> client.save_config()
 
 
+SSL Certificates
+-----------------
+
+pyPreservica will only connect to servers which use the https:// protocol and will always validate certificates.
+For example all Preservica SaaS systems are deployed on https://
+pyPreservica uses the Certifi project to provide SSL certificate validation.
+Self-signed certificates used by on-premise deployments are not part of the Certifi CA bundle and need to be set
+explicitly.
+For on-premise deployments the trusted CAs can be specified through the REQUESTS_CA_BUNDLE environment variable. e.g. ::
+
+    export REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/my-server.cert
+
+
 
 The User Guide
 --------------
@@ -333,8 +346,9 @@ mandatory parameters, folder title, description and security tag. ::
 This will create a folder at the top level of the repository. You can create child folders by passing the reference of the parent as the
 last argument. ::
 
-    >>> new_folder = client.create_folder("title", "description", "open", folder.parent)
+    >>> new_folder = client.create_folder("title", "description", "open", folder.reference)
     >>> print(new_folder.reference)
+    >>> assert  new_folder.parent == folder.reference
 
 
 Updating Entities
