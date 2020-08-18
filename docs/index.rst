@@ -181,10 +181,12 @@ SSL Certificates
 -----------------
 
 pyPreservica will only connect to servers which use the https:// protocol and will always validate certificates.
-For example all Preservica SaaS systems are deployed on https://
+
 pyPreservica uses the Certifi project to provide SSL certificate validation.
+
 Self-signed certificates used by on-premise deployments are not part of the Certifi CA bundle and need to be set
 explicitly.
+
 For on-premise deployments the trusted CAs can be specified through the REQUESTS_CA_BUNDLE environment variable. e.g. ::
 
     export REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/my-server.cert
