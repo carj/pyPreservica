@@ -251,6 +251,7 @@ We can fetch any of assets, folders and content objects using the entity type an
 To get the parent objects of an asset all the way to the root of the repository ::
 
     >>> folder = client.folder(asset.parent)
+    >>> print(folder.title)
     >>> while folder.parent is not None:
     >>>     folder = client.folder(folder.parent)
     >>>     print(folder.title)
