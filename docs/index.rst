@@ -24,7 +24,7 @@ a Preservica repository without having to manage the underlying REST HTTPS reque
 The library provides a level of abstraction which reflects the underlying data model, such as structural and
 information objects.
 
-The pyPreservica allows Preservica users to build applications which interact with the repository such as metadata
+The pyPreservica library allows Preservica users to build applications which interact with the repository such as metadata
 synchronisation with 3rd party systems etc.
 
 .. hint::
