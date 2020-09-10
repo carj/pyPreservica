@@ -48,7 +48,7 @@ class Representation:
                f"URL:\t{self.url}"
 
     def __repr__(self):
-        self.__str__()
+        return self.__str__()
 
 
 class Bitstream:
