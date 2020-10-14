@@ -7,6 +7,10 @@ This library provides a Python class for working with the Preservica Entity Rest
 
 https://us.preservica.com/api/entity/documentation.html
 
+This version of the documentation is for use against a Preservica 6.2 system
+
+For Preservica 6.0 and 6.1 see `the previous version <https://pypreservica.readthedocs.io/en/v6.1/>`_
+
 -------------------
 
 .. default-domain:: py
@@ -24,7 +28,7 @@ a Preservica repository without having to manage the underlying REST HTTPS reque
 The library provides a level of abstraction which reflects the underlying data model, such as structural and
 information objects.
 
-The pyPreservica allows Preservica users to build applications which interact with the repository such as metadata
+The pyPreservica library allows Preservica users to build applications which interact with the repository such as metadata
 synchronisation with 3rd party systems etc.
 
 .. hint::
@@ -38,14 +42,16 @@ Features
 
 -  Fetch and Update Entity Objects (Folders, Assets, Content Objects)
 -  Add, Delete and Update External Identifiers
--  Add, Delete and Update Descriptive Metadata fragments
+-  Add, Delete and Update Descriptive Metadata Fragments
 -  Change Security tags on Folders and Assets
--  Create new Folder entities
--  Fetch Folders and Assets belonging to parent Folders
+-  Create new Folder Entities
 -  Move Assets and Folders within the repository
+-  Deleting Assets and Folders    (**New in 6.2**)
+-  Fetch Folders and Assets belonging to parent Folders
 -  Retrieve Representations, Generations & Bitstreams from Assets
 -  Download digital files and thumbnails
 -  Fetch lists of changed entities over the last n days.
+-  Request information on completed integrity checks   (**New in 6.2**)
 
 Background
 -----------
@@ -54,19 +60,31 @@ They key to working with the pyPreservica library is that the services follow th
 
 .. image:: images/entity-API.jpg
 
-The Preservica data model represents a hierarchy of entities, starting with the **structural objects** which are used to represent aggregations of digital assets. Structural objects define the organisation of the data. In a library context they may be referred to as collections, in an archival context they may be Fonds, Sub-Fonds, Series etc and in a records management context they could be simply a hierarchy of folders or directories.
+The Preservica data model represents a hierarchy of entities, starting with the **structural objects** which are used to
+represent aggregations of digital assets. Structural objects define the organisation of the data. In a library context
+they may be referred to as collections, in an archival context they may be Fonds, Sub-Fonds, Series etc and in a
+records management context they could be simply a hierarchy of folders or directories.
 
-These structural objects may contain other structural objects in the same way as a computer filesystem may contain folders within folders.
+These structural objects may contain other structural objects in the same way as a computer filesystem may contain
+folders within folders.
 
-Within the structural objects comes the **information objects**. These objects which are sometimes referred to as the digital assets are what PREMIS defines as an Intellectual Entity. Information objects are considered a single intellectual unit for purposes of management and description: for example, a book, document, map, photograph or database etc.
+Within the structural objects comes the **information objects**. These objects which are sometimes referred to as the
+digital assets are what PREMIS defines as an Intellectual Entity. Information objects are considered a single
+intellectual unit for purposes of management and description: for example, a book, document, map, photograph or database etc.
 
-**Representations** are used to define how the information object are composed in terms of technology and structure. For example, a book may be represented as a single multiple page PDF, a single eBook file or a set of single page image files.
+**Representations** are used to define how the information object are composed in terms of technology and structure.
+For example, a book may be represented as a single multiple page PDF, a single eBook file or a set of single page image files.
 
-Representations are usually associated with a use case such as access or long-term preservation. All Information objects have a least one representation defined by default. Multiple representations can be either created outside of Preservica through a process such as digitisation or within Preservica through preservation processes such a normalisation.
+Representations are usually associated with a use case such as access or long-term preservation.
+All Information objects have a least one representation defined by default. Multiple representations can be either
+created outside of Preservica through a process such as digitisation or within Preservica through preservation processes such a normalisation.
 
-**Content Objects** represent the components of the asset. Simple assets such as digital images may only contain a single content object whereas more complex assets such as books or 3d models may contain multiple content objects. In most cases content objects will map directly to digital files or bitstreams.
+**Content Objects** represent the components of the asset. Simple assets such as digital images may only contain a
+single content object whereas more complex assets such as books or 3d models may contain multiple content objects.
+In most cases content objects will map directly to digital files or bitstreams.
 
-**Generations** represent changes to content objects over time, as formats become obsolete new generations may need to be created to make the information accessible.
+**Generations** represent changes to content objects over time, as formats become obsolete new generations may need
+to be created to make the information accessible.
 
 **Bitstreams** represent the actual computer files as ingested into Preservica, i.e. the TIFF photograph or the PDF document.
 
@@ -111,18 +129,31 @@ Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/carj/pyPreservica
 
+For announcements about new versions and discussion of pyPreservica please subscribe to the google groups
+forum https://groups.google.com/g/pypreservica
+
 
 
 Example
 ------------
 
 Create the entity API client object and request an asset (information object) by its unique identifier ::
-    
+
     >>> from pyPreservica import *
     >>> client = EntityAPI()
-    >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
-    >>> print(asset.title)
-    
+    >>> client
+    pyPreservica version: 0.8.0  (Preservica 6.2 Compatible)
+    Connected to: us.preservica.com Version: 6.2.0 as test@test.com
+    >>> asset = client.asset("dc949259-2c1d-4658-8eee-c17b27a8823d")
+    >>> asset.title
+    'LC-USZ62-20901'
+    >>> asset.parent
+    'ae108c8f-b058-4228-b099-6049175d2f0c'
+    >>> asset.security_tag
+    'open'
+    >>> asset.entity_type
+    <EntityType.ASSET: 'IO'>
+
 
 
 Authentication
@@ -196,8 +227,8 @@ For on-premise deployments the trusted CAs can be specified through the REQUESTS
 The User Guide
 --------------
 
-Entity API QuickStart
-~~~~~~~~~~~~
+Entity API
+~~~~~~~~~~~~~~~~~~
 
 Making a call to the Preservica repository is very simple.
 
@@ -326,7 +357,7 @@ for each page of results.
 
 The following will return all entities within the repository from the root folders down ::
 
-    >>> for e in client.all_descendants()
+    >>> for e in client.all_descendants():
     >>>     print(e.title)
 
 again if you need a list of every asset in the system you can filter using ::
@@ -380,13 +411,22 @@ This is the asynchronous call which returns immediately returning a process id :
 
     >>> pid = client.security_tag_async(entity, new_tag)
 
-The synchronous version will block until the security tag has been updated on all entities. ::
+ You can determine the completed status of the asynchronous by passing the argument to get_async_progress::
+
+    >>> status = client.get_async_progress(pid)
+
+
+The synchronous version will block until the security tag has been updated on the entity.
+This call does not recursively change entities within a folder. It only applies to the named entity passed as an argument. ::
 
     >>> entity = client.security_tag_sync(entity, new_tag)
 
 
 3rd Party External Identifiers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+    Adding, Updating and Deleting external identifiers is only available in version 6.1 and above
 
 We can add external identifiers to either assets, folders or content objects. External identifiers have a type and a value.
 External identifiers do not have to be unique in the same way as internal identifiers. ::
@@ -395,6 +435,7 @@ External identifiers do not have to be unique in the same way as internal identi
     >>> client.add_identifier(asset, "ISBN", "978-3-16-148410-0")
     >>> client.add_identifier(asset, "DOI", "https://doi.org/10.1109/5.771073")
     >>> client.add_identifier(asset, "URN", "urn:isan:0000-0000-2CEA-0000-1-0000-0000-Y")
+
 
 Fetch external identifiers on an entity. This call returns a set of tuples (identifier_type, identifier_value) ::
 
@@ -537,6 +578,21 @@ The actual content files can be download using bitstream_content() ::
     >>> client.bitstream_content(bs, bs.filename)
 
 
+
+Integrity Check History
+^^^^^^^^^^^^^^^^^^^^^^
+
+You can request the history of all integrity checks which have been carried out on a bitstream ::
+
+    >>> for bitstream in generation.bitstreams:
+    >>>     for check in client.integrity_checks(bitstream):
+    >>>         print(check)
+
+The list of returned checks includes both full and quick integrity checks.
+
+.. note::
+    This call does not start a new check, it only returns information about previous checks.
+
 Moving Entities
 ^^^^^^^^^^^^^^^^
 
@@ -548,7 +604,55 @@ Where entity is the object to move either an asset or folder and the second argu
 
 Folders can be moved to the root of the repository by passing None as the second argument. ::
 
-    >>> client.move(folder, None)
+    >>> entity = client.move(folder, None)
+
+The move() call is an alias for move_sync() which is a synchronous (blocking call)::
+
+    >>> entity = client.move_sync(entity, dest_folder)
+
+An asynchronous (non-blocking) version is also available which returns a progress id. ::
+
+    >>> pid = client.move_async(entity, dest_folder)
+
+You can determine the completed status of the asynchronous by passing the argument to get_async_progress::
+
+    >>> status = client.get_async_progress(pid)
+
+
+Deleting Entities
+^^^^^^^^^^^^^^^^^^^^^^^
+
+You can initiate and approve a deletion request using the API.
+
+.. note::
+    Deletion is a two stage process within Preservica and requires two distinct sets of credentials.
+    To use the delete functions you must be using the "credentials.properties" authentication method.
+
+    Add manager.username and manager.password to the credentials file.  ::
+
+    [credentials]
+    username=
+    password=
+    server=
+    tenant=
+    manager.username=
+    manager.password=
+
+Deleting an asset ::
+
+    >>> asset_ref = client.delete_asset(asset, "operator comments", "supervisor comments")
+    >>> print(asset_ref)
+
+Deleting a folder ::
+
+    >>> folder_ref = client.delete_folder(folder, "operator comments", "supervisor comments")
+    >>> print(folder_ref)
+
+
+.. warning::
+    This API call deletes entities within the repository, it both initiates and approves the deletion request
+    and therefore must be used with care.
+
 
 
 Finding Updated Entities
@@ -588,8 +692,8 @@ You can specify the size of the thumbnail by passing a second argument ::
 
 
 
-Content API QuickStart
-~~~~~~~~~~~~~~~~~~~~~~
+Content API
+~~~~~~~~~~~~~~~
 
 pyPreservica now contains some experimental interfaces to the content API
 
@@ -599,7 +703,7 @@ The content API is a readonly interface which returns json documents rather than
 
 
 .. warning::
-    Unlike the entity API above the interfaces for the content API are subject to change.
+    Unlike the Entity API above the interfaces for the content API are subject to change.
 
 The content API client is created using ::
 
@@ -663,12 +767,135 @@ or to include everything except the full text index value ::
 
 
 
+Upload API
+~~~~~~~~~~~~~~~~~~
+
+PyPreservica provides some limited capabilities for the Upload Content API
+
+https://developers.preservica.com/api-reference/3-upload-content-s3-compatible
+
+The Upload API can be used for creating, uploading and automatically starting an ingest workflows with pre-created packages.
+The Package can be either a native v5 SIP as created from a tool such as the SIP Creator or a native v6 SIP created
+manually.
+Zipped OPEX packages are also supported. https://developers.preservica.com/documentation/open-preservation-exchange-opex
+
+The package can also be a regular zip file containing just folders and files with or without simple .metadata files.
+
+Uploading Packages
+^^^^^^^^^^^^^^^^^^^^^
+
+The upload API client is created using ::
+
+    >>> from pyPreservica import *
+    >>> upload = UploadAPI()
+
+Once you have a client you can use it to upload packages.::
+
+    >>> upload.upload_zip_package("my-package.zip")
+
+Will upload the local zip file and start an ingest workflow if one is enabled.
+
+The zip file can be any of the following:
+
+- Zipped Native XIPv4 Package (i.e. created from the SIP Creator)
+- Zipped Native XIPv6 Package
+- Zipped OPEX Package
+- Zipped Folder
+
+.. note::
+A Workflow Context must be active for the package upload requests to be successful.
+
+If the package is a simple zipped folder without a manifest XML then you will want to pass information to the
+ingest to specify which folder the content should be ingested into.
+To specify the parent folder of the ingest pass a folder object as the second argument. ::
+
+    >>> upload = UploadAPI()
+    >>> client = EntityAPI()
+    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>> upload.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder)
+
+
+upload_zip_package accepts an optional Callback parameter.
+The parameter references a class that the Python SDK invokes intermittently during the transfer operation.
+
+Invoking a Python class executes the class's __call__ method. For each invocation, the class is passed the
+number of bytes transferred up to that point. This information can be used to implement a progress monitor.
+
+The following Callback setting instructs the Python SDK to create an instance of the UploadProgressCallback class.
+During the upload, the instance's __call__ method will be invoked intermittently.::
+
+ >>> from pyPreservica import UploadProgressCallback
+ >>> client.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder, callback=UploadProgressCallback("my-package.zip"))
+
+The default pyPreservica UploadProgressCallback looks like
+
+.. code:: python
+
+    import os
+    import sys
+    import threading
+
+    class ProgressPercentage(object):
+        def __init__(self, filename):
+            self._filename = filename
+            self._size = float(os.path.getsize(filename))
+            self._seen_so_far = 0
+            self._lock = threading.Lock()
+
+        def __call__(self, bytes_amount):
+            with self._lock:
+                self._seen_so_far += bytes_amount
+                percentage = (self._seen_so_far / self._size) * 100
+                sys.stdout.write("\r%s  %s / %s  (%.2f%%)" % (self._filename, self._seen_so_far, self._size, percentage))
+                sys.stdout.flush()
+
+
+
+Creating Packages
+^^^^^^^^^^^^^^^^^^^^
+
+The UploadAPI module also contains functions for creating packages directly from content files.
+
+To create a package containing a single preservation content object (file) as part of an asset which will be a child of folder ::
+
+    >>> package_path = simple_asset_package(preservation_file="my-image.tiff",  parent_folder=folder)
+
+The output is a path to the zip file which can be passed directly to ::
+
+    >>> client.upload_zip_package(path_to_zip_package=package_path)
+
+By default the asset title and description will be taken from the file name.
+
+You can specify the asset title and description using additional keyword arguments. ::
+
+    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder, Title="Asset Title", Description="Asset Description")
+
+You can also add a second Access content object to the asset. This will create an asset
+with two representations (Preservation & Access) ::
+
+    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg" parent_folder=folder)
+
+It is possible to configure the asset using the following keyword arguments.
+
+*  'Title'                             Asset Title
+*  'Description'                       Asset Description
+*  'SecurityTag'                       Asset Security Tag
+*  'CustomType'                        Asset Type
+*  'Preservation_Content_Title'        Content Object Title of the Preservation Object
+*  'Preservation_Content_Description'  Content Object Description of the Preservation Object
+*  'Access_Content_Title'              Content Object Title of the Access Object
+*  'Access_Content_Description'        Content Object Description of the Access Object
+*  'Preservation_Generation_Label'     Generation Label for the Preservation Object
+*  'Access_Generation_Label'           Generation Label for the Access Object
+*  'Asset_Metadata'                    Map of metadata schema/documents to add to asset
+*  'Identifiers'                       Map of asset identifiers
+
+
 Entity API Developer Interface
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 This part of the documentation covers all the interfaces of pyPreservica.
-
 
 All of the pyPreservica functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
 
@@ -728,7 +955,7 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
 
     :param Entity entity: The entity (asset, folder) to be updated
     :param str new_tag: The new security tag to be set on the entity
-    :return: A process ID
+    :return: A progress ID
     :rtype: str
 
    .. py:method:: security_tag_sync(entity, new_tag)
@@ -873,10 +1100,32 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :return: The updated Entity
     :rtype: Entity
 
+    .. py:method::  move_sync(entity, dest_folder)
+
+    Move an entity (asset or folder) to a new folder
+    This call blocks until the move is complete
+
+    :param Entity entity: The entity to move either asset or folder
+    :param Entity dest_folder: The new destination folder. This can be None to move a folder to the root of the repository
+    :return: The updated entity
+    :rtype: Entity
+
+
+    .. py:method::  move_async(entity, dest_folder)
+
+    Move an entity (asset or folder) to a new folder
+    This call returns immediately and does not block
+
+    :param Entity entity: The entity to move either asset or folder
+    :param Entity dest_folder: The new destination folder. This can be None to move a folder to the root of the repository
+    :return: Progress ID token
+    :rtype: str
+
 
    .. py:method::  move(entity, dest_folder)
 
     Move an entity (asset or folder) to a new folder
+    This call is an alias for the move_sync (blocking) method.
 
     :param Entity entity: The entity to move either asset or folder
     :param Entity dest_folder: The new destination folder. This can be None to move a folder to the root of the repository
@@ -913,6 +1162,27 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     :param str folder_reference: The parent folder reference, None for the children of root folders
     :return: A set of entity objects (Folders and Assets)
     :rtype: set(Entity)
+
+   .. py:method::  delete_asset(asset, operator_comment, supervisor_comment)
+
+    Initiate and approve the deletion of an asset.
+
+    :param Asset asset: The asset to delete
+    :param str operator_comment: The comments from the operator which are added to the logs
+    :param str supervisor_comment: The comments from the supervisor which are added to the logs
+    :return: The asset reference
+    :rtype: str
+
+   .. py:method::  delete_folder(asset, operator_comment, supervisor_comment)
+
+    Initiate and approve the deletion of a folder.
+
+    :param Folder asset: The folder to delete
+    :param str operator_comment: The comments from the operator which are added to the logs
+    :param str supervisor_comment: The comments from the supervisor which are added to the logs
+    :return: The folder reference
+    :rtype: str
+
 
    .. py:method::  thumbnail(entity, filename, size=Thumbnail.LARGE)
 

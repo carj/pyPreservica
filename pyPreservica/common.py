@@ -1,13 +1,27 @@
+"""
+Base class for authenticated API calls used by Entity, Content and Upload
+"""
+
 import configparser
 import os
+import sys
+import threading
 import xml.etree.ElementTree
 from enum import Enum
 import requests
 
+import pyPreservica
+
 CHUNK_SIZE = 1024 * 2
 
 NS_XIPV6 = "http://preservica.com/XIP/v6.0"
+NS_XIPV61 = "http://preservica.com/XIP/v6.1"
+NS_XIPV62 = "http://preservica.com/XIP/v6.2"
+
 NS_ENTITY = "http://preservica.com/EntityAPI/v6.0"
+NS_ENTITY61 = "http://preservica.com/EntityAPI/v6.1"
+NS_ENTITY62 = "http://preservica.com/EntityAPI/v6.2"
+
 namespace = {'xip': NS_XIPV6, 'v6': NS_ENTITY}
 HEADER_TOKEN = "Preservica-Access-Token"
 
@@ -15,16 +29,44 @@ IO_PATH = "information-objects"
 SO_PATH = "structural-objects"
 CO_PATH = "content-objects"
 
-
-def only_assets(e):
-    return True if e.entity_type is EntityType.ASSET else False
+HASH_BLOCKSIZE = 65536
 
 
-def only_folders(e):
-    return True if e.entity_type is EntityType.FOLDER else False
+class FileHash:
+    """
+    A wrapper around the hashlib hash algorithms that allows an entire file to
+    be hashed in a chunked manner.
+    """
+
+    def __init__(self, algorithm):
+        self.algorithm = algorithm
+
+    def get_algorithm(self):
+        return self.algorithm
+
+    def __call__(self, file):
+        hash_algorithm = self.algorithm()
+        with open(file, 'rb') as afile:
+            buf = afile.read(HASH_BLOCKSIZE)
+            while len(buf) > 0:
+                hash_algorithm.update(buf)
+                buf = afile.read(HASH_BLOCKSIZE)
+        return hash_algorithm.hexdigest()
+
+
+def only_assets(entity):
+    return bool(entity.entity_type is EntityType.ASSET)
+
+
+def only_folders(entity):
+    return bool(entity.entity_type is EntityType.FOLDER)
 
 
 class PagedSet:
+    """
+    Class to represent a page of results
+    The results object contains the list of objects of interest
+    """
     def __init__(self, results, has_more, total, next_page):
         self.results = results
         self.has_more = bool(has_more)
@@ -34,8 +76,66 @@ class PagedSet:
     def __str__(self):
         return self.results.__str__()
 
+    def get_results(self):
+        return self.results
+
+    def get_total(self):
+        return self.total
+
+    def has_more_pages(self):
+        return self.has_more
+
+
+class UploadProgressCallback:
+    """
+    Default implementation of a callback class to show upload progress of a file
+    """
+    def __init__(self, filename):
+        self._filename = filename
+        self._size = float(os.path.getsize(filename))
+        self._seen_so_far = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, bytes_amount):
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self._size) * 100
+            sys.stdout.write("\r%s  %s / %s  (%.2f%%)" % (self._filename, self._seen_so_far, self._size, percentage))
+            sys.stdout.flush()
+
+
+class IntegrityCheck:
+    """
+    Class to hold information about completed integrity checks
+    """
+    def __init__(self, check_type, success, date, adapter, fixed, reason):
+        self.check_type = check_type
+        self.success = bool(success)
+        self.date = date
+        self.adapter = adapter
+        self.fixed = bool(fixed)
+        self.reason = reason
+
+    def __str__(self):
+        return f"Type:\t\t\t{self.check_type}\n" \
+               f"Success:\t\t\t{self.success}\n" \
+               f"Date:\t{self.date}\n" \
+               f"Storage Adapter:\t{self.adapter}\n"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def get_adapter(self):
+        return self.adapter
+
+    def get_success(self):
+        return self.success
+
 
 class Representation:
+    """
+        Class to represent the Representation Object in the Preservica data model
+    """
     def __init__(self, asset, rep_type, name, url):
         self.asset = asset
         self.rep_type = rep_type
@@ -48,10 +148,13 @@ class Representation:
                f"URL:\t{self.url}"
 
     def __repr__(self):
-        self.__str__()
+        return self.__str__()
 
 
 class Bitstream:
+    """
+        Class to represent the Bitstream Object or digital file in the Preservica data model
+    """
     def __init__(self, filename, length, fixity, content_url):
         self.filename = filename
         self.length = int(length)
@@ -69,6 +172,9 @@ class Bitstream:
 
 
 class Generation:
+    """
+         Class to represent the Generation Object in the Preservica data model
+     """
     def __init__(self, original, active, format_group, effective_date, bitstreams):
         self.original = original
         self.active = active
@@ -87,6 +193,9 @@ class Generation:
 
 
 class Entity:
+    """
+        Base Class of Assets, Folders and Content Objects
+    """
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         self.reference = reference
         self.title = title
@@ -110,6 +219,9 @@ class Entity:
 
 
 class Folder(Entity):
+    """
+       Class to represent the Structural Object or Folder in the Preservica data model
+    """
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.FOLDER
@@ -118,6 +230,9 @@ class Folder(Entity):
 
 
 class Asset(Entity):
+    """
+        Class to represent the Information Object or Asset in the Preservica data model
+    """
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.ASSET
@@ -126,6 +241,9 @@ class Asset(Entity):
 
 
 class ContentObject(Entity):
+    """
+       Class to represent the Content Object in the Preservica data model
+    """
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.CONTENT_OBJECT
@@ -143,17 +261,17 @@ def content_api_identifier_to_type(ref):
 
 def entity_from_string(xml_data):
     entity_response = xml.etree.ElementTree.fromstring(xml_data)
-    reference = entity_response.find('.//xip:Ref', namespaces=namespace)
-    title = entity_response.find('.//xip:Title', namespaces=namespace)
-    security_tag = entity_response.find('.//xip:SecurityTag', namespaces=namespace)
-    description = entity_response.find('.//xip:Description', namespaces=namespace)
-    parent = entity_response.find('.//xip:Parent', namespaces=namespace)
+    reference = entity_response.find('.//{*}Ref')
+    title = entity_response.find('.//{*}Title')
+    security_tag = entity_response.find('.//{*}SecurityTag')
+    description = entity_response.find('.//{*}Description')
+    parent = entity_response.find('.//{*}Parent')
     if hasattr(parent, 'text'):
         parent = parent.text
     else:
         parent = None
 
-    fragments = entity_response.findall('.//v6:Metadata/v6:Fragment', namespaces=namespace)
+    fragments = entity_response.findall('.//{*}Metadata/{*}Fragment')
     metadata = {}
     for fragment in fragments:
         metadata[fragment.text] = fragment.attrib['schema']
@@ -175,23 +293,49 @@ class EntityType(Enum):
     CONTENT_OBJECT = "CO"
 
 
-class AuthenticatedAPI(object):
+class AuthenticatedAPI:
+    """
+    Base class for authenticated calls which need an access token
+    """
+    def __version_number__(self):
+        headers = {HEADER_TOKEN: self.token}
+        request = requests.get(f'https://{self.server}/api/entity/versiondetails/version', headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_ = str(request.content)
+            return xml_[xml_.find("<CurrentVersion>") + len("<CurrentVersion>"):xml_.find("</CurrentVersion>")]
+        if request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.__version_number__()
+        raise RuntimeError(request.status_code, "version number failed")
+
+    def __str__(self):
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.2 Compatible) \n" \
+               f"Connected to: {self.server} Product Version: {self.version} as {self.username}\n"
+
+    def __repr__(self):
+        return self.__str__()
 
     def save_config(self):
         config = configparser.ConfigParser()
-        config['credentials'] = {'username': self.username, 'password': self.password, 'tenant': self.tenant, 'server': self.server}
+        config['credentials'] = {'username': self.username, 'password': self.password, 'tenant': self.tenant,
+                                 'server': self.server}
         with open('credentials.properties', 'wt') as configfile:
             config.write(configfile)
+
+    def manager_token(self, username, password):
+        data = {'username': username, 'password': password, 'tenant': self.tenant}
+        response = requests.post(f'https://{self.server}/api/accesstoken/login', data=data)
+        if response.status_code == requests.codes.ok:
+            return response.json()['token']
+        raise RuntimeError(response.status_code, "Could not generate valid manager approval password")
 
     def __token__(self):
         data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
         response = requests.post(f'https://{self.server}/api/accesstoken/login', data=data)
         if response.status_code == requests.codes.ok:
             return response.json()['token']
-        else:
-            print(f"new_token failed with error code: {response.status_code}")
-            print(response.request.url)
-            raise SystemExit
+        raise RuntimeError(response.status_code, "Failed to create an authentication token. Check your credentials "
+                                                 "are correct")
 
     def __init__(self, username="", password="", tenant="", server=""):
         config = configparser.ConfigParser()
@@ -250,3 +394,4 @@ class AuthenticatedAPI(object):
             self.server = server
 
         self.token = self.__token__()
+        self.version = self.__version_number__()

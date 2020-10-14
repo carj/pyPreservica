@@ -77,6 +77,7 @@ def test_get_asset_metadata():
 def test_get_co_metadata():
     client = EntityAPI()
     entity = client.entity(EntityType.CONTENT_OBJECT, CO_ID)
+    entity = client.delete_metadata(entity, "https://www.person.com/person")
     xml_string = client.metadata_for_entity(entity, "https://www.person.com/person")
     assert xml_string is None
     co = client.add_metadata(entity, "https://www.person.com/person", XML_DOCUMENT)

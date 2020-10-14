@@ -7,10 +7,13 @@ HERE = pathlib.Path(__file__).parent
 # The text of the README file
 README = (HERE / "README.md").read_text()
 
+PKG = "pyPreservica"
+
+
 # This call to setup() does all the work
 setup(
-    name="pyPreservica",
-    version="0.7.1",
+    name=PKG,
+    version="0.8.1",
     description="Python library for the Preservica Rest API",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -25,5 +28,9 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: System :: Archiving",
     ],
-    install_requires=["requests", "certifi"]
+    install_requires=["requests", "certifi", "boto3", "botocore"],
+    project_urls={
+        'Documentation': 'https://pypreservica.readthedocs.io',
+        'Source': 'https://github.com/carj/pyPreservica',
+    }
 )

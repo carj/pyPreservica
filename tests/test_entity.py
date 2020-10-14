@@ -191,3 +191,33 @@ def test_save_co_description():
     content_object.description = "LC-USZ62-20901"
     content_object = client.save(content_object)
     assert content_object.description == "LC-USZ62-20901"
+
+
+def test_move_entity_to_root():
+    client = EntityAPI()
+    asset = client.asset("c365634e-9fcc-4ea1-b47f-077f55df9d64")
+    folder = client.folder(FOLDER_ID)
+    assert asset.parent == folder.reference
+    assert asset.title == "LC-USZ62-79099"
+
+    new_folder = client.folder("9fd239eb-19a3-4a46-9495-40fd9a5d8f93")
+    asset = client.move(asset, new_folder)
+    assert asset.parent == new_folder.reference
+
+    asset = client.move(asset, folder)
+    assert asset.parent == folder.reference
+
+
+def change_security_tag():
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    assert asset.security_tag == "open"
+    client.security_tag_sync(asset, "closed")
+
+    asset = client.asset(ASSET_ID)
+    assert asset.security_tag == "closed"
+
+    client.security_tag_sync(asset, "open")
+    asset = client.asset(ASSET_ID)
+    assert asset.security_tag == "open"
+

@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from time import sleep
@@ -114,8 +115,7 @@ class EntityAPI(AuthenticatedAPI):
                 with open(filename, 'wb') as file:
                     for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
                         file.write(chunk)
-                        file.flush()
-                file.close()
+                    file.flush()
                 if os.path.getsize(filename) == bitstream.length:
                     return bitstream.length
                 else:
@@ -141,8 +141,7 @@ class EntityAPI(AuthenticatedAPI):
                 with open(filename, 'wb') as file:
                     for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
                         file.write(chunk)
-                        file.flush()
-                file.close()
+                    file.flush()
                 return filename
             elif req.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
@@ -167,8 +166,7 @@ class EntityAPI(AuthenticatedAPI):
                 with open(filename, 'wb') as file:
                     for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
                         file.write(chunk)
-                        file.flush()
-                file.close()
+                    file.flush()
                 return filename
             elif req.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
@@ -192,17 +190,17 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            identifier_list = entity_response.findall('.//{http://preservica.com/XIP/v6.0}Identifier')
+            identifier_list = entity_response.findall('.//{*}Identifier')
             for identifier_element in identifier_list:
                 _ref = _type = _value = _aipid = None
                 for identifier in identifier_element:
-                    if identifier.tag == "{http://preservica.com/XIP/v6.0}Entity":
+                    if identifier.tag.endswith("Entity"):
                         _ref = identifier.text
-                    if identifier.tag == "{http://preservica.com/XIP/v6.0}Type" and identifier_type is not None:
+                    if identifier.tag.endswith("Type") and identifier_type is not None:
                         _type = identifier.text
-                    if identifier.tag == "{http://preservica.com/XIP/v6.0}Value" and identifier_value is not None:
+                    if identifier.tag.endswith("Value") and identifier_value is not None:
                         _value = identifier.text
-                    if identifier.tag == "{http://preservica.com/XIP/v6.0}ApiId":
+                    if identifier.tag.endswith("ApiId"):
                         _aipid = identifier.text
                 if _ref == entity.reference and _type == identifier_type and _value == identifier_value:
                     del_req = requests.delete(
@@ -236,14 +234,14 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            identifier_list = entity_response.findall('.//{http://preservica.com/XIP/v6.0}Identifier')
+            identifier_list = entity_response.findall('.//{*}Identifier')
             result = set()
             for identifier in identifier_list:
                 identifier_value = identifier_type = ""
                 for child in identifier:
-                    if child.tag == "{http://preservica.com/XIP/v6.0}Type":
+                    if child.tag.endswith("Type"):
                         identifier_type = child.text
-                    if child.tag == "{http://preservica.com/XIP/v6.0}Value":
+                    if child.tag.endswith("Value"):
                         identifier_value = child.text
                 result.add(tuple((identifier_type, identifier_value)))
             return result
@@ -269,7 +267,7 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            entity_list = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Entity')
+            entity_list = entity_response.findall('.//{*}Entity')
             result = set()
             for entity in entity_list:
                 if entity.attrib['type'] == EntityType.FOLDER.value:
@@ -309,7 +307,7 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_string = str(request.content.decode("utf-8"))
             identifier_response = xml.etree.ElementTree.fromstring(xml_string)
-            aip_id = identifier_response.find('.//{http://preservica.com/XIP/v6.0}ApiId')
+            aip_id = identifier_response.find('.//{*}ApiId')
             if hasattr(aip_id, 'text'):
                 return aip_id.text
             else:
@@ -353,6 +351,10 @@ class EntityAPI(AuthenticatedAPI):
         :param schema: The schema URI to match against
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        if schema not in entity.metadata.values():
+            raise RuntimeError("Only existing schema's can be updated.")
+
         for url in entity.metadata:
             if schema == entity.metadata[url]:
                 mref = url[url.rfind(f"{entity.reference}/metadata/") + len(f"{entity.reference}/metadata/"):]
@@ -455,10 +457,13 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "save failed for entity: " + entity.reference)
 
-    def move(self, entity: Entity, dest_folder: Folder) -> Entity:
+    def move_async(self, entity: Entity, dest_folder: Folder) -> str:
         """
         Move an Entity (Asset or Folder) to a new Folder
         If dest_folder is None then the entity must be a Folder and will be moved to the root of the repository
+
+
+        Returns a process ID asynchronous (without blocking)
 
         Returns The updated Entity
 
@@ -475,12 +480,76 @@ class EntityAPI(AuthenticatedAPI):
         request = requests.put(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/parent-ref',
                                data=data, headers=headers)
         if request.status_code == requests.codes.accepted:
-            return self.entity(entity.entity_type, entity.reference)
+            return request.content.decode()
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.move(entity, dest_folder)
+            return self.move_async(entity, dest_folder)
         else:
             raise RuntimeError(request.status_code, "move failed for entity: " + entity.reference)
+
+    def get_async_progress(self, pid: str) -> str:
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
+        request = requests.get(f"https://{self.server}/api/entity/progress/{pid}", headers=headers)
+        if request.status_code == requests.codes.ok:
+            entity_response = xml.etree.ElementTree.fromstring(request.content.decode("utf-8"))
+            status = entity_response.find(".//{http://status.preservica.com}Status")
+            if hasattr(status, 'text'):
+                return status.text
+            else:
+                return "UNKNOWN"
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.get_async_progress(pid)
+        else:
+            raise RuntimeError(request.status_code, "get_async_progress" + pid)
+
+    def move_sync(self, entity: Entity, dest_folder: Folder) -> Entity:
+        """
+        Move an Entity (Asset or Folder) to a new Folder
+        If dest_folder is None then the entity must be a Folder and will be moved to the root of the repository
+
+        Returns The updated Entity.
+        Blocks until the move is complete.
+
+        :param entity:      The Entity to update
+        :param dest_folder: The Folder which will become the new parent of this entity
+        """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
+        if isinstance(entity, Asset) and dest_folder is None:
+            raise RuntimeError(entity.reference, "Only folders can be moved to the root of the repository")
+        if dest_folder is not None:
+            data = dest_folder.reference
+        else:
+            data = "@root@"
+        request = requests.put(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/parent-ref',
+                               data=data, headers=headers)
+        if request.status_code == requests.codes.accepted:
+            sleep_sec = 1
+            while True:
+                status = self.get_async_progress(request.content.decode("utf-8"))
+                if status != "ACTIVE":
+                    return self.entity(entity.entity_type, entity.reference)
+                else:
+                    sleep(sleep_sec)
+                    sleep_sec = sleep_sec + 1
+
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.move_sync(entity, dest_folder)
+        else:
+            raise RuntimeError(request.status_code, "move failed for entity: " + entity.reference)
+
+    def move(self, entity: Entity, dest_folder: Folder) -> Entity:
+        """
+        Move an Entity (Asset or Folder) to a new Folder
+        If dest_folder is None then the entity must be a Folder and will be moved to the root of the repository
+
+        Returns The updated Entity
+
+        :param entity:      The Entity to update
+        :param dest_folder: The Folder which will become the new parent of this entity
+        """
+        return self.move_sync(entity, dest_folder)
 
     def create_folder(self, title: str, description: str, security_tag: str, parent: str = None) -> Folder:
         """
@@ -548,18 +617,14 @@ class EntityAPI(AuthenticatedAPI):
         request = requests.put(f'https://{self.server}/api/entity{end_point}?includeDescendants=false',
                                data=new_tag, headers=headers)
         if request.status_code == requests.codes.accepted:
-            sleep_sec = 2
+            sleep_sec = 1
             while True:
-                req = requests.get(f"https://{self.server}/api/entity/progress/{request.content.decode()}",
-                                   headers=headers)
-                if req.status_code == requests.codes.ok:
-                    entity_response = xml.etree.ElementTree.fromstring(req.content.decode("utf-8"))
-                    status = entity_response.find(".//{http://status.preservica.com}Status")
-                    if hasattr(status, 'text'):
-                        if status.text != "ACTIVE":
-                            return self.entity(entity.entity_type, entity.reference)
-                sleep(sleep_sec)
-                sleep_sec = sleep_sec + 2
+                status = self.get_async_progress(request.content.decode("utf-8"))
+                if status != "ACTIVE":
+                    return self.entity(entity.entity_type, entity.reference)
+                else:
+                    sleep(sleep_sec)
+                    sleep_sec = sleep_sec + 1
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.security_tag_sync(entity, new_tag)
@@ -580,7 +645,7 @@ class EntityAPI(AuthenticatedAPI):
         request = requests.put(f'https://{self.server}/api/entity{end_point}?includeDescendants=false',
                                data=new_tag, headers=headers)
         if request.status_code == requests.codes.accepted:
-            return request.content.decode()
+            return request.content.decode("utf-8")
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.security_tag_async(entity, new_tag)
@@ -597,9 +662,9 @@ class EntityAPI(AuthenticatedAPI):
         """
         request = requests.get(uri, headers={HEADER_TOKEN: self.token})
         if request.status_code == requests.codes.ok:
-            xml_response = str(request.content.decode('UTF-8'))
+            xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            content = entity_response.find('.//{http://preservica.com/XIP/v6.0}Content')
+            content = entity_response.find('.//{*}Content')
             return xml.etree.ElementTree.tostring(content[0], encoding='utf-8', method='xml').decode('utf-8')
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -711,7 +776,7 @@ class EntityAPI(AuthenticatedAPI):
             results = list()
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            content_objects = entity_response.findall('.//{http://preservica.com/XIP/v6.0}ContentObject')
+            content_objects = entity_response.findall('.//{*}Representation/{*}ContentObjects/{*}ContentObject')
             for co in content_objects:
                 content_object = self.content_object(co.text)
                 content_object.representation_type = representation.rep_type
@@ -737,10 +802,10 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            ge = entity_response.find('.//{http://preservica.com/XIP/v6.0}Generation')
-            format_group = entity_response.find('.//{http://preservica.com/XIP/v6.0}FormatGroup')
-            effective_date = entity_response.find('.//{http://preservica.com/XIP/v6.0}EffectiveDate')
-            bitstreams = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Bitstream')
+            ge = entity_response.find('.//{*}Generation')
+            format_group = entity_response.find('.//{*}FormatGroup')
+            effective_date = entity_response.find('.//{*}EffectiveDate')
+            bitstreams = entity_response.findall('./{*}Bitstreams/{*}Bitstream')
             bitstream_list = list()
             for bit in bitstreams:
                 bitstream_list.append(self.bitstream(bit.text))
@@ -753,6 +818,67 @@ class EntityAPI(AuthenticatedAPI):
             return self.generation(url)
         else:
             raise RuntimeError(request.status_code, "generation failed")
+
+    def _integrity_checks(self, bitstream: Bitstream, maximum: int = 10, next_page: str = None):
+        headers = {HEADER_TOKEN: self.token}
+        if next_page is None:
+            url = re.sub('content$', f'integrity-check-history', bitstream.content_url)
+            params = {'start': '0', 'max': str(maximum)}
+            request = requests.get(url, headers=headers, params=params)
+        else:
+            request = requests.get(next_page, headers=headers)
+
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            histories = entity_response.findall('.//{*}IntegrityCheckHistory')
+
+            next_url = entity_response.find('.//{*}Paging/{*}Next')
+            total_hits = entity_response.find('.//{*}Paging/{*}TotalResults')
+            results = list()
+            for history in histories:
+                xiptype = history.find('./{*}Type')
+                xipsuccess = history.find('./{*}Success')
+                xipdate = history.find('./{*}Date')
+                xipadapter_name = history.find('./{*}AdapterName')
+                xipfixed = history.find('./{*}Fixed')
+                xipreason = history.find('./{*}Reason')
+
+                check = IntegrityCheck(xiptype.text if hasattr(xiptype, 'text') else None,
+                                       xipsuccess.text if hasattr(xipsuccess, 'text') else None,
+                                       xipdate.text if hasattr(xipdate, 'text') else None,
+                                       xipadapter_name.text if hasattr(xipadapter_name, 'text') else None,
+                                       xipfixed.text if hasattr(xipfixed, 'text') else None,
+                                       xipreason.text if hasattr(xipreason, 'text') else None)
+                results.append(check)
+            has_more = True
+            url = None
+            if next_url is None:
+                has_more = False
+            else:
+                url = next_url.text
+
+            return PagedSet(results, has_more, total_hits.text, url)
+
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self._integrity_checks(bitstream, maximum, next_page)
+        else:
+            raise RuntimeError(request.status_code, "integrity_checks failed")
+
+    def integrity_checks(self, bitstream: Bitstream):
+        """
+         Return integrity checks for a bitstream
+
+         """
+        maximum = 10
+        paged_set = self._integrity_checks(bitstream=bitstream, maximum=maximum, next_page=None)
+        for entity in paged_set.results:
+            yield entity
+        while paged_set.has_more:
+            paged_set = self._integrity_checks(bitstream=bitstream, maximum=maximum, next_page=paged_set.next_page)
+            for entity in paged_set.results:
+                yield entity
 
     def bitstream(self, url: str):
         """
@@ -767,10 +893,10 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            filename = entity_response.find('.//{http://preservica.com/XIP/v6.0}Filename')
-            filesize = entity_response.find('.//{http://preservica.com/XIP/v6.0}FileSize')
-            fixity_values = entity_response.findall('.//{http://preservica.com/XIP/v6.0}Fixity')
-            content = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}Content')
+            filename = entity_response.find('.//{*}Filename')
+            filesize = entity_response.find('.//{*}FileSize')
+            fixity_values = entity_response.findall('.//{*}Fixity')
+            content = entity_response.find('.//{*}Content')
             fixity = dict()
             for f in fixity_values:
                 fixity[f[0].text] = f[1].text
@@ -800,7 +926,7 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            generations = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Generation')
+            generations = entity_response.findall('.//{*}Generation')
             result = list()
             for g in generations:
                 if hasattr(g, 'text'):
@@ -830,10 +956,10 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            representations = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Representation')
+            representations = entity_response.findall('.//{*}Representation')
             result = set()
             for r in representations:
-                representation = Representation(asset, r.attrib['type'], r.attrib['name'], r.text)
+                representation = Representation(asset, r.get('type'), r.get("name", str("")), r.text)
                 result.add(representation)
             return result
         elif request.status_code == requests.codes.unauthorized:
@@ -850,6 +976,7 @@ class EntityAPI(AuthenticatedAPI):
 
          :param folder_reference: The folder to find children of
          """
+        self.token = self.__token__()
         for e in self.descendants(folder_reference=folder_reference):
             yield e
             if e.entity_type == EntityType.FOLDER:
@@ -880,10 +1007,10 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            children = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Child')
+            children = entity_response.findall('.//{*}Child')
             result = set()
-            next_url = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}Next')
-            total_hits = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}TotalResults')
+            next_url = entity_response.find('.//{*}Next')
+            total_hits = entity_response.find('.//{*}TotalResults')
             for c in children:
                 if c.attrib['type'] == EntityType.FOLDER.value:
                     f = Folder(c.attrib['ref'], c.attrib['title'], None, None, folder_reference, None)
@@ -905,6 +1032,7 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "children failed")
 
     def updated_entities(self, previous_days: int = 1):
+        self.token = self.__token__()
         maximum = 50
         paged_set = self._updated_entities_page(previous_days=previous_days, maximum=maximum, next_page=None)
         for entity in paged_set.results:
@@ -915,7 +1043,7 @@ class EntityAPI(AuthenticatedAPI):
             for entity in paged_set.results:
                 yield entity
 
-    def _updated_entities_page(self, previous_days: int = 1, maximum: int = 50, next_page: str = None):
+    def _updated_entities_page(self, previous_days: int = 1, maximum: int = 50, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
         x = datetime.utcnow() - timedelta(days=previous_days)
         today = x.replace(tzinfo=timezone.utc).isoformat()
@@ -928,7 +1056,7 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            entities = entity_response.findall('.//{http://preservica.com/EntityAPI/v6.0}Entity')
+            entities = entity_response.findall('.//{*}Entity')
             result = list()
             for e in entities:
                 if 'type' in e.attrib:
@@ -941,8 +1069,8 @@ class EntityAPI(AuthenticatedAPI):
                     elif e.attrib['type'] == EntityType.CONTENT_OBJECT.value:
                         c = ContentObject(e.attrib['ref'], e.attrib['title'], None, None, None, None)
                         result.append(c)
-            next_url = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}Next')
-            total_hits = entity_response.find('.//{http://preservica.com/EntityAPI/v6.0}TotalResults')
+            next_url = entity_response.find('.//{*}Next')
+            total_hits = entity_response.find('.//{*}TotalResults')
             has_more = True
             url = None
             if next_url is None:
@@ -956,3 +1084,77 @@ class EntityAPI(AuthenticatedAPI):
                                                next_page=next_page)
         else:
             raise RuntimeError(request.status_code, "updated_entities failed")
+
+    def delete_asset(self, asset: Asset, operator_comment: str, supervisor_comment: str):
+        if isinstance(asset, Asset):
+            return self.__delete_entity__(asset, operator_comment, supervisor_comment)
+        else:
+            raise RuntimeError("delete_asset only deletes assets")
+
+    def delete_folder(self, folder: Folder, operator_comment: str, supervisor_comment: str):
+        if isinstance(folder, Folder):
+            return self.__delete_entity__(folder, operator_comment, supervisor_comment)
+        else:
+            raise RuntimeError("delete_folder only deletes folders")
+
+    def __delete_entity__(self, entity: Entity, operator_comment: str, supervisor_comment: str):
+        """
+        Delete an asset from the repository
+
+
+        :param entity:            The entity
+        :param operator_comment: The comment on the deletion
+        """
+
+        # check manager password is available:
+        config = configparser.ConfigParser()
+        config.read('credentials.properties')
+        try:
+            manager_username = config['credentials']['manager.username']
+            manager_password = config['credentials']['manager.password']
+            self.manager_token(manager_username, manager_password)
+        except KeyError:
+            raise RuntimeError("No manager password set in credentials.properties")
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        xml_object = xml.etree.ElementTree.Element('DeletionAction', {"xmlns:xip": NS_XIPV62, "xmlns": NS_ENTITY62})
+        submission_el = xml.etree.ElementTree.SubElement(xml_object, "Submission")
+        comment_el = xml.etree.ElementTree.SubElement(submission_el, "Comment")
+        comment_el.text = operator_comment
+        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8', xml_declaration=True)
+        request = requests.delete(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}',
+                                  data=xml_request, headers=headers)
+        if request.status_code == requests.codes.accepted:
+            progress = request.content.decode("utf-8")
+            req = requests.get(f"https://{self.server}/api/entity/progress/{progress}", headers=headers)
+            while True:
+                if req.status_code == requests.codes.ok:
+                    entity_response = xml.etree.ElementTree.fromstring(req.content.decode("utf-8"))
+                    status = entity_response.find(".//{http://status.preservica.com}Status")
+                    if hasattr(status, 'text'):
+                        if status.text == "PENDING":
+                            headers = {HEADER_TOKEN: self.manager_token(manager_username, manager_password),
+                                       'Content-Type': 'application/xml;charset=UTF-8'}
+                            xml_object = xml.etree.ElementTree.Element('DeletionAction ',
+                                                                       {"xmlns:xip": NS_XIPV62, "xmlns": NS_ENTITY62})
+                            approval_el = xml.etree.ElementTree.SubElement(xml_object, "Approval")
+                            xml.etree.ElementTree.SubElement(approval_el, "Approved").text = "true"
+                            xml.etree.ElementTree.SubElement(approval_el, "Comment").text = supervisor_comment
+                            xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8',
+                                                                         xml_declaration=True)
+                            approve = requests.put(f"https://{self.server}/api/entity/actions/deletions/{progress}",
+                                                   data=xml_request, headers=headers)
+                            if approve.status_code == requests.codes.accepted:
+                                return entity.reference
+                            else:
+                                raise RuntimeError(approve.status_code, "delete_asset failed during approval")
+                        sleep(2.0)
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.__delete_entity__(entity, operator_comment, supervisor_comment)
+        if request.status_code == requests.codes.unprocessable:
+            raise RuntimeError(request.status_code, "no active workflow context for full deletion exists in the system")
+        if request.status_code == requests.codes.forbidden:
+            raise RuntimeError(request.status_code, "User doesn't have deletion rights on the "
+                                                    "entity or the required operator role to evaluate a deletion")
+        raise RuntimeError(request.status_code, "delete_asset failed")
