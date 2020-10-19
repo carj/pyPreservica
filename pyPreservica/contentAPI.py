@@ -1,8 +1,7 @@
 import requests
 import csv
 
-from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, EntityType, HEADER_TOKEN, \
-    content_api_identifier_to_type
+from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE,  HEADER_TOKEN, content_api_identifier_to_type
 
 
 class ContentAPI(AuthenticatedAPI):

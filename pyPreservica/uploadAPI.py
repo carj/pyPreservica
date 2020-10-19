@@ -98,21 +98,21 @@ def __make_generation__(xip, filename, co_ref, generation_label):
 
 def __make_bitstream__(xip, file_name, full_path):
     bitstream = SubElement(xip, 'Bitstream')
-    filenameElement = SubElement(bitstream, "Filename")
-    filenameElement.text = file_name
+    filename_element = SubElement(bitstream, "Filename")
+    filename_element.text = file_name
     filesize = SubElement(bitstream, "FileSize")
     file_stats = os.stat(full_path)
     filesize.text = str(file_stats.st_size)
     fixities = SubElement(bitstream, "Fixities")
     fixity = SubElement(fixities, "Fixity")
-    fixityAlgorithmRef = SubElement(fixity, "FixityAlgorithmRef")
-    fixityAlgorithmRef.text = "SHA1"
-    fixityValue = SubElement(fixity, "FixityValue")
+    fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
+    fixity_algorithm_ref.text = "SHA1"
+    fixity_value = SubElement(fixity, "FixityValue")
     sha1 = FileHash(hashlib.sha1)
-    fixityValue.text = sha1(full_path)
+    fixity_value.text = sha1(full_path)
 
 
-def __make_representation_mulitple_co__(xip, rep_name, rep_type, rep_files, io_ref):
+def __make_representation_multiple_co__(xip, rep_name, rep_type, rep_files, io_ref):
     representation = SubElement(xip, 'Representation')
     io_link = SubElement(representation, 'InformationObject')
     io_link.text = io_ref
@@ -183,12 +183,12 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
     if has_preservation_files:
         # add the content objects
-        preservation_refs_dict = __make_representation_mulitple_co__(xip, "Preservation", "Preservation",
+        preservation_refs_dict = __make_representation_multiple_co__(xip, "Preservation", "Preservation",
                                                                      preservation_files_list, io_ref)
 
     if has_access_files:
         # add the content objects
-        access_refs_dict = __make_representation_mulitple_co__(xip, "Access", "Access", access_files_list, io_ref)
+        access_refs_dict = __make_representation_multiple_co__(xip, "Access", "Access", access_files_list, io_ref)
 
     if has_preservation_files:
 

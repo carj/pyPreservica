@@ -208,6 +208,30 @@ You can create a new credentials.properties file automatically using the save_co
    >>> client.save_config()
 
 
+
+4 **Shared Secrets**
+
+pyPreservica now supports authentication using shared secrets rather than a login account username and password.
+This allows a trusted external applications such as pyPreservica to acquire Preservica access rights without
+being authenticated by Preservica.
+
+To use the shared secret authentication you need to add a secure secret key to your Preservica system.
+
+The username, password, tenant and server attributes are used as normal, the password field now holds the shared
+secret and not the users password. ::
+
+   >>> from pyPreservica import *
+   >>> client = EntityAPI(username="test@test.com", password="shared-secret", tenant="PREVIEW",
+                          server="preview.preservica.com", use_shared_secret=True)
+
+
+
+   >>> from pyPreservica import *
+   >>> client = EntityAPI(use_shared_secret=True)
+
+
+
+
 SSL Certificates
 -----------------
 
@@ -875,7 +899,7 @@ with two representations (Preservation & Access) ::
 
     >>> package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg" parent_folder=folder)
 
-It is possible to configure the asset using the following keyword arguments.
+It is possible to configure the asset using the following additional keyword arguments.
 
 *  'Title'                             Asset Title
 *  'Description'                       Asset Description
@@ -889,6 +913,30 @@ It is possible to configure the asset using the following keyword arguments.
 *  'Access_Generation_Label'           Generation Label for the Access Object
 *  'Asset_Metadata'                    Map of metadata schema/documents to add to asset
 *  'Identifiers'                       Map of asset identifiers
+
+The package will contain an asset with the following structure.
+
+.. image:: images/simple_asset_package.png
+
+
+
+
+More complex assets can also be defined which contain multiple Content Objects,
+for example a book with multiple pages etc.
+
+
+The complex_asset_package function takes a list of preservation files and an optional list of access files.
+It creates a single asset package with multiple content objects per file. ::
+
+
+    >>> preservation_files = list()
+    >>> preservation_files.append("page-1.tiff")
+    >>> preservation_files.append("page-2.tiff")
+    >>> preservation_files.append("page-3.tiff")
+    >>> access_files = list()
+    >>> access_files.append("book.pdf")
+    >>> package_path = complex_asset_package(preservation_files_list=preservation_files, access_files_list=access_files,
+                                             parent_folder=folder)
 
 
 Entity API Developer Interface
@@ -1428,6 +1476,12 @@ All of the pyPreservica functionality can be accessed by these  methods on the :
     Assets have entity type EntityType.CONTENT_OBJECT
 
 
+
+Content API Developer Interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Upload API Developer Interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Example Applications
 ~~~~~~~~~~~~~~~~~~~~~~

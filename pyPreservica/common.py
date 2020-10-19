@@ -3,9 +3,11 @@ Base class for authenticated API calls used by Entity, Content and Upload
 """
 
 import configparser
+import hashlib
 import os
 import sys
 import threading
+import time
 import xml.etree.ElementTree
 from enum import Enum
 import requests
@@ -67,6 +69,7 @@ class PagedSet:
     Class to represent a page of results
     The results object contains the list of objects of interest
     """
+
     def __init__(self, results, has_more, total, next_page):
         self.results = results
         self.has_more = bool(has_more)
@@ -90,6 +93,7 @@ class UploadProgressCallback:
     """
     Default implementation of a callback class to show upload progress of a file
     """
+
     def __init__(self, filename):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
@@ -108,6 +112,7 @@ class IntegrityCheck:
     """
     Class to hold information about completed integrity checks
     """
+
     def __init__(self, check_type, success, date, adapter, fixed, reason):
         self.check_type = check_type
         self.success = bool(success)
@@ -136,6 +141,7 @@ class Representation:
     """
         Class to represent the Representation Object in the Preservica data model
     """
+
     def __init__(self, asset, rep_type, name, url):
         self.asset = asset
         self.rep_type = rep_type
@@ -155,6 +161,7 @@ class Bitstream:
     """
         Class to represent the Bitstream Object or digital file in the Preservica data model
     """
+
     def __init__(self, filename, length, fixity, content_url):
         self.filename = filename
         self.length = int(length)
@@ -175,6 +182,7 @@ class Generation:
     """
          Class to represent the Generation Object in the Preservica data model
      """
+
     def __init__(self, original, active, format_group, effective_date, bitstreams):
         self.original = original
         self.active = active
@@ -196,6 +204,7 @@ class Entity:
     """
         Base Class of Assets, Folders and Content Objects
     """
+
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         self.reference = reference
         self.title = title
@@ -222,6 +231,7 @@ class Folder(Entity):
     """
        Class to represent the Structural Object or Folder in the Preservica data model
     """
+
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.FOLDER
@@ -233,6 +243,7 @@ class Asset(Entity):
     """
         Class to represent the Information Object or Asset in the Preservica data model
     """
+
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.ASSET
@@ -244,6 +255,7 @@ class ContentObject(Entity):
     """
        Class to represent the Content Object in the Preservica data model
     """
+
     def __init__(self, reference, title, description, security_tag, parent, metadata):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.CONTENT_OBJECT
@@ -297,6 +309,7 @@ class AuthenticatedAPI:
     """
     Base class for authenticated calls which need an access token
     """
+
     def __version_number__(self):
         headers = {HEADER_TOKEN: self.token}
         request = requests.get(f'https://{self.server}/api/entity/versiondetails/version', headers=headers)
@@ -310,7 +323,7 @@ class AuthenticatedAPI:
 
     def __str__(self):
         return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.2 Compatible) \n" \
-               f"Connected to: {self.server} Product Version: {self.version} as {self.username}\n"
+               f"Connected to: {self.server} Preservica version: {self.version} as {self.username}\n"
 
     def __repr__(self):
         return self.__str__()
@@ -330,16 +343,32 @@ class AuthenticatedAPI:
         raise RuntimeError(response.status_code, "Could not generate valid manager approval password")
 
     def __token__(self):
-        data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
-        response = requests.post(f'https://{self.server}/api/accesstoken/login', data=data)
-        if response.status_code == requests.codes.ok:
-            return response.json()['token']
+
+        if self.shared_secret is False:
+            data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
+            response = requests.post(f'https://{self.server}/api/accesstoken/login', data=data)
+            if response.status_code == requests.codes.ok:
+                return response.json()['token']
+
+        if self.shared_secret is True:
+            endpoint = "api/accesstoken/acquire-external"
+            timestamp = int(time.time())
+            to_hash = f"preservica-external-auth{timestamp}{self.username}{self.password}"
+            sha1 = hashlib.sha1()
+            sha1.update(to_hash.encode(encoding='UTF-8'))
+            data = {"username": self.username, "tenant": self.tenant, "timestamp": timestamp, "hash": sha1.hexdigest()}
+            response = requests.post(f'https://{self.server}/{endpoint}', data=data)
+            if response.status_code == requests.codes.ok:
+                return response.json()['token']
+
         raise RuntimeError(response.status_code, "Failed to create an authentication token. Check your credentials "
                                                  "are correct")
 
-    def __init__(self, username="", password="", tenant="", server=""):
+    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
         config = configparser.ConfigParser()
         config.read('credentials.properties')
+
+        self.shared_secret = bool(use_shared_secret)
 
         if not username:
             username = os.environ.get('PRESERVICA_USERNAME')
