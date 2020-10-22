@@ -659,7 +659,7 @@ You can initiate and approve a deletion request using the API.
     The Deletion API below is only available when connected to version 6.2 or above systems
 
 
-    Add manager.username and manager.password to the credentials file.  ::
+Add manager.username and manager.password to the credentials file. ::
 
     [credentials]
     username=
@@ -668,6 +668,7 @@ You can initiate and approve a deletion request using the API.
     tenant=
     manager.username=
     manager.password=
+
 
 Deleting an asset ::
 
@@ -728,9 +729,10 @@ Content API
 
 pyPreservica now contains some experimental interfaces to the content API
 
-https://demo.preservica.com/api/content/documentation.html
+https://us.preservica.com/api/content/documentation.html
 
-The content API is a readonly interface which returns json documents rather than XML and which has some duplication with the entity API, but it does contain search capabilities.
+The content API is a readonly interface which returns json documents rather than XML and which has some duplication
+with the entity API, but it does contain search capabilities.
 
 
 .. warning::
