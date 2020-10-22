@@ -29,7 +29,6 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/carj/p
 For announcements about new versions and discussion of pyPreservica please subscribe to the google groups
 forum https://groups.google.com/g/pypreservica
 
-
 ## License
 
 The package is available as open source under the terms of the Apache License 2.0

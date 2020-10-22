@@ -27,14 +27,15 @@ class WorkflowContext:
 
 
 class WorkflowAPI(AuthenticatedAPI):
-
-    base_url = "sdb/rest/workflow"
+    """
+              A client library for the Preservica Workflow API
+              https://preview.preservica.com/sdb/rest/workflow/documentation.html
 
     """
-            A client library for the Preservica Workflow API
-            https://us.preservica.com/sdb/rest/workflow/documentation.html
 
-    """
+    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
+        super().__init__(username, password, tenant, server, use_shared_secret)
+        self.base_url = "sdb/rest/workflow"
 
     def get_workflow_contexts(self, definition: str):
         """
@@ -46,7 +47,7 @@ class WorkflowAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}
         payload = {"workflowDefinitionId": definition}
         workflow_contexts = list()
-        request = requests.get(f'https://{self.server}/{WorkflowAPI.base_url}/contexts', headers=headers, params=payload)
+        request = requests.get(f'https://{self.server}/{self.base_url}/contexts', headers=headers, params=payload)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
@@ -61,7 +62,7 @@ class WorkflowAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.get_workflow_contexts(definition)
         else:
-            raise RuntimeError(request.status_code, "get_workflow_context")
+            raise RuntimeError(request.status_code, "get_workflow_contexts")
 
     def start_workflow_instance(self, workflow_context, **kwargs):
         """
@@ -91,8 +92,7 @@ class WorkflowAPI(AuthenticatedAPI):
         xml.etree.ElementTree.SubElement(request_payload, "CorrelationId").text = correlation_id
 
         xml_request = xml.etree.ElementTree.tostring(request_payload, encoding='utf-8')
-        request = requests.post(f'https://{self.server}/{WorkflowAPI.base_url}/instances', headers=headers,
-                                data=xml_request)
+        request = requests.post(f'https://{self.server}/{self.base_url}/instances', headers=headers, data=xml_request)
         if request.status_code == requests.codes.created:
             return correlation_id
         if request.status_code == requests.codes.unauthorized:

@@ -9,4 +9,4 @@ from .workflowAPI import WorkflowAPI
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "0.8.2"
+__version__ = "0.8.5"

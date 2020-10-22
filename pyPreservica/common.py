@@ -349,6 +349,10 @@ class AuthenticatedAPI:
             response = requests.post(f'https://{self.server}/api/accesstoken/login', data=data)
             if response.status_code == requests.codes.ok:
                 return response.json()['token']
+            else:
+                raise RuntimeError(response.status_code,
+                                   "Failed to create an password based authentication token. Check your credentials "
+                                   "are correct")
 
         if self.shared_secret is True:
             endpoint = "api/accesstoken/acquire-external"
@@ -360,9 +364,10 @@ class AuthenticatedAPI:
             response = requests.post(f'https://{self.server}/{endpoint}', data=data)
             if response.status_code == requests.codes.ok:
                 return response.json()['token']
-
-        raise RuntimeError(response.status_code, "Failed to create an authentication token. Check your credentials "
-                                                 "are correct")
+            else:
+                raise RuntimeError(response.status_code,
+                                   "Failed to create an shared secret authentication token. Check your credentials "
+                                   "are correct")
 
     def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
         config = configparser.ConfigParser()

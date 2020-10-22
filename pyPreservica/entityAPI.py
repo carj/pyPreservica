@@ -959,7 +959,7 @@ class EntityAPI(AuthenticatedAPI):
             representations = entity_response.findall('.//{*}Representation')
             result = set()
             for r in representations:
-                representation = Representation(asset, r.get('type'), r.get("name", str("")), r.text)
+                representation = Representation(asset, r.get('type'), r.get("name", ""), r.text)
                 result.add(representation)
             return result
         elif request.status_code == requests.codes.unauthorized:

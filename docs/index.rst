@@ -3,9 +3,9 @@ Welcome to pyPreservica's documentation
 
 pyPreservica is python library for the Preservica API
 
-This library provides a Python class for working with the Preservica Entity Rest API
+This library provides a Python class for working with the Preservica Rest API
 
-https://us.preservica.com/api/entity/documentation.html
+https://developers.preservica.com/api-reference
 
 This version of the documentation is for use against a Preservica 6.2 system
 
@@ -142,7 +142,7 @@ Create the entity API client object and request an asset (information object) by
     >>> from pyPreservica import *
     >>> client = EntityAPI()
     >>> client
-    pyPreservica version: 0.8.0  (Preservica 6.2 Compatible)
+    pyPreservica version: 0.8.5  (Preservica 6.2 Compatible)
     Connected to: us.preservica.com Version: 6.2.0 as test@test.com
     >>> asset = client.asset("dc949259-2c1d-4658-8eee-c17b27a8823d")
     >>> asset.title
@@ -159,7 +159,8 @@ Create the entity API client object and request an asset (information object) by
 Authentication
 -----------------
 
-pyPreservica provides 3 different methods for authentication. The library requires the username and password of a Preservica user and a Tenant identifier along with the server hostname.
+pyPreservica provides 4 different methods for authentication. The library requires the username and password of a
+Preservica user and a Tenant identifier along with the server hostname.
 
 
 1 **Method Arguments**
@@ -306,6 +307,7 @@ We can fetch any of assets, folders and content objects using the entity type an
 To get the parent objects of an asset all the way to the root of the repository ::
 
     >>> folder = client.folder(asset.parent)
+    >>> print(folder.title)
     >>> while folder.parent is not None:
     >>>     folder = client.folder(folder.parent)
     >>>     print(folder.title)
@@ -652,6 +654,11 @@ You can initiate and approve a deletion request using the API.
     Deletion is a two stage process within Preservica and requires two distinct sets of credentials.
     To use the delete functions you must be using the "credentials.properties" authentication method.
 
+
+.. note::
+    The Deletion API below is only available when connected to version 6.2 or above systems
+
+
     Add manager.username and manager.password to the credentials file.  ::
 
     [credentials]
@@ -822,7 +829,7 @@ Will upload the local zip file and start an ingest workflow if one is enabled.
 The zip file can be any of the following:
 
 - Zipped Native XIPv4 Package (i.e. created from the SIP Creator)
-- Zipped Native XIPv6 Package
+- Zipped Native XIPv6 Package (see below)
 - Zipped OPEX Package
 - Zipped Folder
 
@@ -878,7 +885,7 @@ The default pyPreservica UploadProgressCallback looks like
 Creating Packages
 ^^^^^^^^^^^^^^^^^^^^
 
-The UploadAPI module also contains functions for creating packages directly from content files.
+The UploadAPI module also contains functions for creating XIPv6 packages directly from content files.
 
 To create a package containing a single preservation content object (file) as part of an asset which will be a child of folder ::
 
@@ -945,7 +952,7 @@ Entity API Developer Interface
 
 This part of the documentation covers all the interfaces of pyPreservica.
 
-All of the pyPreservica functionality can be accessed by these  methods on the :class:`EntityAPI <EntityAPI>` object.
+All of the pyPreservica functionality can be accessed by these methods on the :class:`EntityAPI <EntityAPI>` object.
 
 .. py:class:: EntityAPI
 
