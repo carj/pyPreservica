@@ -1555,7 +1555,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
    .. py:method:: upload_zip_package(path_to_zip_package, folder, callback, delete_after_upload)
 
-    Returns an asset object back by its internal reference identifier
+    Uploads a zip file package and starts an ingest workflow
 
     :param str path_to_zip_package: Path to the package
     :param Folder folder: The folder to ingest the package into
