@@ -52,7 +52,7 @@ synchronisation with 3rd party systems etc.
 
 
 Entity API Features
-------------
+-----------------------
 
 -  Fetch and Update Entity Objects (Folders, Assets, Content Objects)
 -  Add, Delete and Update External Identifiers
@@ -68,13 +68,13 @@ Entity API Features
 -  Request information on completed integrity checks   (**New in 6.2**)
 
 Content API Features
-----------------
+---------------------
 
 -  Fetch a list of indexed Solr Fields
 -  Search based on a single query term
 
 Upload API Features
-----------------
+---------------------
 
 -  Create single Content Object Packages with multiple Representations
 -  Create multiple Content Object Packages with multiple Representations
@@ -158,7 +158,6 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/carj/p
 
 For announcements about new versions and discussion of pyPreservica please subscribe to the google groups
 forum https://groups.google.com/g/pypreservica
-
 
 
 Example
@@ -544,11 +543,11 @@ to the ``metadata()`` method ::
     >>> for url in entity.metadata:
     >>>     xml_document = client.metadata(url)
 
-An alternative is to call the metadata_for_entity method directly ::
+An alternative is to call the ``method directly`` ::
 
     >>> xml_document = client.metadata_for_entity(entity, "https://www.person.com/person")
 
-to fetch the first metadata template which matches the schema argument on the entity
+to fetch the first metadata document which matches the schema argument on the entity
 
 
 Metadata can be attached to entities either by passing an XML document as a string::
@@ -572,16 +571,22 @@ or by reading the metadata from a file ::
 
 Descriptive metadata can also be updated to amend values or change the document structure ::
 
-    >>> folder = entity.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")   # call into the API
+To update an existing metadata document call ::
+
+    >>>  client.update_metadata(entity, schema, xml_string)
+
+For example the following python fragment appends a new element to an existing document. ::
+
+    >>> folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")   # call into the API
     >>>
     >>> for url, schema in folder.metadata.items():
     >>>     if schema == "https://www.person.com/person":
-    >>>         xml_string = entity.metadata(url)                    # call into the API
+    >>>         xml_string = client.metadata(url)                    # call into the API
     >>>         xml_document = ElementTree.fromstring(xml_string)
     >>>         postcode = ElementTree.Element('{https://www.person.com/person}Postcode')
     >>>         postcode.text = "OX14 3YS"
     >>>         xml_document.append(postcode)
-    >>>         xml_string = ElementTree.tostring(xml_document, encoding='UTF-8', xml_declaration=True).decode("utf-8")
+    >>>         xml_string = ElementTree.tostring(xml_document, encoding='UTF-8').decode("utf-8")
     >>>         entity.update_metadata(folder, schema, xml_string)   # call into the API
 
 
@@ -590,15 +595,15 @@ Representations, Content Objects & Generations
 
 Each asset in Preservica contains one or more representations, such as Preservation or Access etc.
 
-To get a list of all the representations of an asset ::
+To get a list of all the representations of an Asset ::
 
     >>> for representation in client.representations(asset):
     >>>     print(representation.rep_type)
     >>>     print(representation.name)
     >>>     print(representation.asset.title)
 
-Each Representation will contain one or more content objects.
-Simple assets contain a single content object whereas more complex objects such as 3D models, books, multi-page documents
+Each Representation will contain one or more Content Objects.
+Simple Assets contain a single Content Object whereas more complex objects such as 3D models, books, multi-page documents
 may have several content objects. ::
 
     >>> for content_object in client.content_objects(representation):
@@ -609,7 +614,7 @@ may have several content objects. ::
     >>>     print(content_object.metadata)
     >>>     print(content_object.asset.title)
 
-Each content object will contain a least one generation, migrated content may have multiple generations. ::
+Each content object will contain a least one Generation, migrated content may have multiple Generations. ::
 
     >>> for generation in client.generations(content_object):
     >>>     print(generation.original)
@@ -622,16 +627,15 @@ Each content object will contain a least one generation, migrated content may ha
 Each Generation has a list of BitStream ids which can be used to fetch the actual content from the server or
 fetch technical metadata about the bitstream itself::
 
-    >>> for bs in generation.bitstreams:
-    >>>     print(bs.filename)
-    >>>     print(bs.length)
-    >>>     print(bs.length)
-    >>>     for algorithm,value in bs.fixity.items():
+    >>> for bitstream in generation.bitstreams:
+    >>>     print(bitstream.filename)
+    >>>     print(bitstream.length)
+    >>>     for algorithm,value in bitstream.fixity.items():
     >>>         print(algorithm,  value)
 
-The actual content files can be download using bitstream_content() ::
+The actual content files can be download using ``bitstream_content()`` ::
 
-    >>> client.bitstream_content(bs, bs.filename)
+    >>> client.bitstream_content(bitstream, bitstream.filename)
 
 
 
@@ -656,13 +660,14 @@ We can move entities between folders using the move call ::
 
     >>> client.move(entity, dest_folder)
 
-Where entity is the object to move either an asset or folder and the second argument is destination folder where the entity is moved to.
+Where entity is the object to move either an Asset or Folder and the second argument is
+destination folder where the entity is moved to.
 
 Folders can be moved to the root of the repository by passing None as the second argument. ::
 
     >>> entity = client.move(folder, None)
 
-The move() call is an alias for move_sync() which is a synchronous (blocking call)::
+The ``move()`` call is an alias for ``move_sync()`` which is a synchronous (blocking call)::
 
     >>> entity = client.move_sync(entity, dest_folder)
 
@@ -670,7 +675,7 @@ An asynchronous (non-blocking) version is also available which returns a progres
 
     >>> pid = client.move_async(entity, dest_folder)
 
-You can determine the completed status of the asynchronous move call by passing the argument to get_async_progress::
+You can determine the completed status of the asynchronous move call by passing the argument to ``get_async_progress``::
 
     >>> status = client.get_async_progress(pid)
 
@@ -740,7 +745,7 @@ then this call will probably do what you expect. ::
     >>> filename = client.download(asset, "asset.jpg")
 
 For complex multi-part assets which have been through preservation actions it may be better to use the data model
-and the bitstream_content() function to fetch the exact bitstream you need.
+and the ``bitstream_content()`` function to fetch the exact bitstream you need.
 
 We also have a function to fetch the thumbnail image for an asset or folder ::
 
@@ -983,8 +988,8 @@ For example to add descriptive metadata and two 3rd party identifiers use the fo
 More complex assets can also be defined which contain multiple Content Objects,
 for example a book with multiple pages etc.
 
-The ``complex_asset_package function`` takes a collection of preservation files and an optional collection of access files.
-It creates a single asset package with multiple content objects per file.
+The ``complex_asset_package`` function takes a collection of preservation files and an optional collection of access files.
+It creates a single asset package with multiple content objects per Representation.
 
 Use a **list** collection to preserve the ordering of the content objects within the asset. For example the first
 page of a book should be the first item added to the list. ::
