@@ -518,8 +518,8 @@ Will only delete identifiers which match the type and value
 Descriptive Metadata
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-You can query an entity to determine if it has any attached descriptive metadata using the metadata attribute. This returns a dict[] object
-the dictionary key is a url to the metadata and the value is the schema ::
+You can query an entity to determine if it has any attached descriptive metadata using the metadata attribute.
+This returns a dictionary object the dictionary key is a url to the metadata and the value is the schema ::
 
     >>> for url, schema in entity.metadata.items():
     >>>     print(url, schema)
@@ -655,7 +655,7 @@ An asynchronous (non-blocking) version is also available which returns a progres
 
     >>> pid = client.move_async(entity, dest_folder)
 
-You can determine the completed status of the asynchronous by passing the argument to get_async_progress::
+You can determine the completed status of the asynchronous move call by passing the argument to get_async_progress::
 
     >>> status = client.get_async_progress(pid)
 
@@ -713,17 +713,19 @@ We can query Preservica for entities which have changed over the last n days usi
 The argument is the number of previous days to check for changes. This call does paging internally.
 
 The pyPreservica library also provides a web service call which is part of the content API which allows downloading of digital
-content directly without having to request the representations and generations first.
-This call is a short-cut to request the bitstream from the latest generation of the first content object in the Access representation
-of an asset. If the asset does not have an access representation then the preservation representation is used.
+content directly without having to request the Representations and Generations first.
+This call is a short-cut to request the Bitstream from the latest Generation of the first Content Object in the Access
+Representation of an Asset. If the asset does not have an Access Representation then the
+Preservation Representation is used.
 
-For very simple assets which comprise a single digital file in a single representation then this call will probably do what you expect. ::
+For very simple assets which comprise a single digital file in a single Representation
+then this call will probably do what you expect. ::
 
     >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
     >>> filename = client.download(asset, "asset.jpg")
 
-For complex multi-part assets which have been through preservation actions it may be better to use the data model and the bitstream_content() function
-to fetch the exact bitstream you need.
+For complex multi-part assets which have been through preservation actions it may be better to use the data model
+and the bitstream_content() function to fetch the exact bitstream you need.
 
 We also have a function to fetch the thumbnail image for an asset or folder ::
 
