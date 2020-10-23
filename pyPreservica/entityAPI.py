@@ -302,7 +302,7 @@ class EntityAPI(AuthenticatedAPI):
         xml.etree.ElementTree.SubElement(xml_object, "Value").text = identifier_value
         xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
         end_point = f"/{entity.path}/{entity.reference}/identifiers"
-        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8', xml_declaration=True)
+        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         request = requests.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
             xml_string = str(request.content.decode("utf-8"))
@@ -371,7 +371,7 @@ class EntityAPI(AuthenticatedAPI):
                     content.append(tree.getroot())
                 else:
                     raise RuntimeError("Unknown data type")
-                xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8', xml_declaration=True)
+                xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
                 request = requests.put(url, data=xml_request, headers=headers)
                 if request.status_code == requests.codes.ok:
                     pass
@@ -404,7 +404,7 @@ class EntityAPI(AuthenticatedAPI):
             content.append(tree.getroot())
         else:
             raise RuntimeError("Unknown data type")
-        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8', xml_declaration=True)
+        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         end_point = f"/{entity.path}/{entity.reference}/metadata"
         request = requests.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
@@ -1121,7 +1121,7 @@ class EntityAPI(AuthenticatedAPI):
         submission_el = xml.etree.ElementTree.SubElement(xml_object, "Submission")
         comment_el = xml.etree.ElementTree.SubElement(submission_el, "Comment")
         comment_el.text = operator_comment
-        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8', xml_declaration=True)
+        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         request = requests.delete(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}',
                                   data=xml_request, headers=headers)
         if request.status_code == requests.codes.accepted:
@@ -1140,8 +1140,7 @@ class EntityAPI(AuthenticatedAPI):
                             approval_el = xml.etree.ElementTree.SubElement(xml_object, "Approval")
                             xml.etree.ElementTree.SubElement(approval_el, "Approved").text = "true"
                             xml.etree.ElementTree.SubElement(approval_el, "Comment").text = supervisor_comment
-                            xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8',
-                                                                         xml_declaration=True)
+                            xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
                             approve = requests.put(f"https://{self.server}/api/entity/actions/deletions/{progress}",
                                                    data=xml_request, headers=headers)
                             if approve.status_code == requests.codes.accepted:

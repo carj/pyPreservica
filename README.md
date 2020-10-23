@@ -8,6 +8,11 @@
 
 # pyPreservica
 
+
+[![Downloads](https://pepy.tech/badge/pyPreservica/month)](https://pepy.tech/project/pyPreservica/month)
+[![Supported Versions](https://img.shields.io/pypi/pyversions/pyPreservica.svg)](https://pypi.org/project/pyPreservica)
+
+
 Python language binding for the Preservica API
 
 https://preservica.com/
@@ -21,6 +26,8 @@ Wiki with example scripts https://github.com/carj/pyPreservica/wiki
 ## Documentation
 
 The full documentation is available at: https://pypreservica.readthedocs.io/
+
+[![Documentation Status](https://readthedocs.org/projects/pypreservica/badge/?version=latest)](https://pypreservica.readthedocs.io/en/latest/?badge=latest)
 
 ## Contributing
 

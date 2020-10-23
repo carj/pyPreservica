@@ -1,6 +1,20 @@
 Welcome to pyPreservica's documentation
 ========================================
 
+
+.. image:: https://pepy.tech/badge/pyPreservica
+    :target: https://pepy.tech/project/pyPreservica
+
+.. image:: https://img.shields.io/pypi/l/pyPreservica.svg
+    :target: https://pypi.org/project/pyPreservica/
+
+.. image:: https://img.shields.io/pypi/wheel/pyPreservica.svg
+    :target: https://pypi.org/project/pyPreservica/
+
+.. image:: https://img.shields.io/pypi/pyversions/pyPreservica.svg
+    :target: https://pypi.org/project/pyPreservica/
+
+
 pyPreservica is python library for the Preservica API
 
 This library provides a Python class for working with the Preservica Rest API
@@ -150,7 +164,7 @@ forum https://groups.google.com/g/pypreservica
 Example
 ------------
 
-Create the entity API client object and request an asset (information object) by its unique identifier ::
+Create the entity API client object and request an Asset (Information Object) by its unique identifier ::
 
     >>> from pyPreservica import *
     >>> client = EntityAPI()
@@ -216,7 +230,7 @@ Create a properties file called "credentials.properties" and save to the working
     >>> client = EntityAPI()
 
 
-You can create a new credentials.properties file automatically using the save_config() method ::
+You can create a new credentials.properties file automatically using the ``save_config()`` method ::
 
    >>> from pyPreservica import *
    >>> client = EntityAPI(username="test@test.com", password="123444",
@@ -258,7 +272,7 @@ pyPreservica uses the Certifi project to provide SSL certificate validation.
 Self-signed certificates used by on-premise deployments are not part of the Certifi CA bundle and need to be set
 explicitly.
 
-For on-premise deployments the trusted CAs can be specified through the REQUESTS_CA_BUNDLE environment variable. e.g. ::
+For on-premise deployments the trusted CAs can be specified through the ``REQUESTS_CA_BUNDLE`` environment variable. e.g. ::
 
     export REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/my-server.cert
 
@@ -276,7 +290,7 @@ Begin by importing the pyPreservica module ::
 
     >>> from pyPreservica import *
     
-Now, let's create the EntityAPI class ::
+Now, let's create the ``EntityAPI`` class ::
 
     >>> client = EntityAPI()
 
@@ -343,15 +357,15 @@ or ::
 
 
 
-To get a set of children of a particular folder use ::
+To get a set of children of a particular Folder use ::
 
     >>> entities = client.children(folder.reference)
 
-To get the siblings of an asset you can use ::
+To get the siblings of an Asset you can use ::
 
     >>> entities = client.children(asset.parent)
 
-The set of entities returned may contain both assets and other folders.
+The set of entities returned may contain both Assets and other Folders.
 The default size of the result set is 50 items. The size can be configured and for large result sets
 paging is available. ::
 
@@ -393,7 +407,7 @@ or ::
 
 
 If you want **all** the entities below a point in the hierarchy, i.e a recursive list of all folders and assets the you can
-call all_descendants() this is a generator function which returns a lazy iterator will which make repeated calls to the server
+call ``all_descendants()`` this is a generator function which returns a lazy iterator will which make repeated calls to the server
 for each page of results.
 
 The following will return all entities within the repository from the root folders down ::
@@ -411,7 +425,7 @@ again if you need a list of every asset in the system you can filter using ::
 Creating new Folders
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Folder objects can be created directly in the repository, the create_folder() function takes 3
+Folder objects can be created directly in the repository, the ``create_folder()`` function takes 3
 mandatory parameters, folder title, description and security tag. ::
 
     >>> new_folder = client.create_folder("title", "description", "open")
@@ -428,7 +442,7 @@ last argument. ::
 Updating Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-We can update either the title or description attribute for assets, folders and content objects using the save() method ::
+We can update either the title or description attribute for assets, folders and content objects using the ``save()`` method ::
 
     >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> asset.title = "New Asset Title"
@@ -452,7 +466,7 @@ This is the asynchronous call which returns immediately returning a process id :
 
     >>> pid = client.security_tag_async(entity, new_tag)
 
-You can determine the completed status of the asynchronous by passing the argument to get_async_progress ::
+You can determine the completed status of the asynchronous by passing the argument to ``get_async_progress`` ::
 
     >>> status = client.get_async_progress(pid)
 
@@ -524,7 +538,8 @@ This returns a dictionary object the dictionary key is a url to the metadata and
     >>> for url, schema in entity.metadata.items():
     >>>     print(url, schema)
 
-The descriptive XML metadata document can be returned as a string by passing the key of the map to the metadata() method ::
+The descriptive XML metadata document can be returned as a string by passing the key of the map
+to the ``metadata()`` method ::
 
     >>> for url in entity.metadata:
     >>>     xml_document = client.metadata(url)
@@ -845,7 +860,7 @@ The zip file can be any of the following:
 
 - Zipped Native XIPv5 Package (i.e. created from the SIP Creator)
 - Zipped Native XIPv6 Package (see below)
-- Zipped OPEX Package (https://developers.preservica.com/documentation/open-preservation-exchange-opex)
+- Zipped OPEX Package
 - Zipped Folder
 
 .. note::
@@ -864,7 +879,7 @@ To specify the parent folder of the ingest pass a folder object as the second ar
 Monitoring Upload Progress
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-The upload_zip_package function accepts an optional Callback parameter.
+The ``upload_zip_package`` function accepts an optional Callback parameter.
 The parameter references a class that pyPreservica invokes intermittently during the transfer operation.
 
 pyPreservica executes the class's __call__ method. For each invocation, the class is passed the
@@ -877,7 +892,7 @@ During the upload, the instance's __call__ method will be invoked intermittently
  >>> my_callback=UploadProgressCallback("my-package.zip")
  >>> client.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder, callback=my_callback)
 
-The default pyPreservica UploadProgressCallback looks like
+The default pyPreservica ``UploadProgressCallback`` looks like
 
 .. code:: python
 
@@ -906,7 +921,8 @@ Creating Packages
 
 The UploadAPI module also contains functions for creating XIPv6 packages directly from content files.
 
-To create a package containing a single preservation content object (file) as part of an asset which will be a child of folder ::
+To create a package containing a single preservation Content Object (file) as part of an asset which will
+be a child of folder ::
 
     >>> package_path = simple_asset_package(preservation_file="my-image.tiff",  parent_folder=folder)
 
@@ -917,7 +933,8 @@ The output is a path to the zip file which can be passed directly to ::
 By default the asset title and description will be taken from the file name.
 
 If you don't specify an export folder the new package will be created in the system TEMP folder.
-If you want to override this behaviour and specify the output folder for the package use the export_folder argument ::
+If you want to override this behaviour and specify the output folder for the package
+use the ``export_folder argument`` ::
 
     >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder,
                                             export_folder="/mnt/export/packages")
@@ -966,7 +983,7 @@ For example to add descriptive metadata and two 3rd party identifiers use the fo
 More complex assets can also be defined which contain multiple Content Objects,
 for example a book with multiple pages etc.
 
-The complex_asset_package function takes a collection of preservation files and an optional collection of access files.
+The ``complex_asset_package function`` takes a collection of preservation files and an optional collection of access files.
 It creates a single asset package with multiple content objects per file.
 
 Use a **list** collection to preserve the ordering of the content objects within the asset. For example the first
