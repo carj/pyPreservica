@@ -296,7 +296,7 @@ Now, let's create the ``EntityAPI`` class ::
 Fetching Entities (Assets, Folders & Content Objects)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
-Fetch an asset and print its attributes ::
+Fetch an Asset and print its attributes ::
 
     >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> print(asset.reference)
@@ -307,7 +307,7 @@ Fetch an asset and print its attributes ::
     >>> print(asset.entity_type)
     
 
-We can also fetch the same attributes for both folders  ::
+We can also fetch the same attributes for both Folders  ::
 
     >>> folder = client.folder("0b0f0303-6053-4d4e-a638-4f6b81768264")
     >>> print(folder.reference)
@@ -317,7 +317,7 @@ We can also fetch the same attributes for both folders  ::
     >>> print(folder.parent)
     >>> print(folder.entity_type)
 
-and content objects ::
+and Content Objects ::
 
     >>> content_object = client.content_object("1a2a2101-6053-4d4e-a638-4f6b81768264")
     >>> print(content_object.reference)
@@ -327,12 +327,12 @@ and content objects ::
     >>> print(content_object.parent)
     >>> print(content_object.entity_type)
 
-We can fetch any of assets, folders and content objects using the entity type and the unique reference ::
+We can fetch any of Assets, Folders and Content Objects using the entity type and the unique reference ::
 
     >>> asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> folder = client.entity(EntityType.FOLDER, asset.parent)
 
-To get the parent objects of an asset all the way to the root of the repository ::
+To get the parent Folders of an Asset all the way to the root of the repository ::
 
     >>> folder = client.folder(asset.parent)
     >>> print(folder.title)
@@ -344,9 +344,9 @@ To get the parent objects of an asset all the way to the root of the repository 
 Fetching Children of Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The immediate children of a folder can also be retrieved using the library.
+The immediate children of a Folder can also be retrieved using the library.
 
-To get a set of all the root folders use ::
+To get a set of all the root Folders use ::
 
     >>> root_folders = client.children(None)
 
@@ -394,7 +394,7 @@ You can pass a parent reference to get the children of any folder in the same wa
 
 This is the preferred way to get children of folders as the paging is managed automatically.
 
-If you only need the folders or assets from a parent you can filter the results using a pre-defined filter ::
+If you only need the folders or Assets from a parent you can filter the results using a pre-defined filter ::
 
     >>> for asset in filter(only_assets, client.descendants(asset.parent)):
     >>>     print(asset.title)
@@ -405,7 +405,7 @@ or ::
     >>>     print(folders.title)
 
 
-If you want **all** the entities below a point in the hierarchy, i.e a recursive list of all folders and assets the you can
+If you want **all** the entities below a point in the hierarchy, i.e a recursive list of all folders and Assets the you can
 call ``all_descendants()`` this is a generator function which returns a lazy iterator will which make repeated calls to the server
 for each page of results.
 
@@ -414,7 +414,7 @@ The following will return all entities within the repository from the root folde
     >>> for e in client.all_descendants():
     >>>     print(e.title)
 
-again if you need a list of every asset in the system you can filter using ::
+again if you need a list of every Asset in the system you can filter using ::
 
     >>> for asset in filter(only_assets, client.all_descendants()):
     >>>     print(asset.title)
@@ -887,11 +887,11 @@ Monitoring Upload Progress
 The ``upload_zip_package`` function accepts an optional Callback parameter.
 The parameter references a class that pyPreservica invokes intermittently during the transfer operation.
 
-pyPreservica executes the class's __call__ method. For each invocation, the class is passed the
+pyPreservica executes the class's ``__call__`` method. For each invocation, the class is passed the
 number of bytes transferred up to that point. This information can be used to implement a progress monitor.
 
 The following Callback setting instructs pyPreservica to create an instance of the UploadProgressCallback class.
-During the upload, the instance's __call__ method will be invoked intermittently.::
+During the upload, the instance's ``__call__`` method will be invoked intermittently.::
 
  >>> from pyPreservica import UploadProgressCallback
  >>> my_callback=UploadProgressCallback("my-package.zip")
@@ -926,19 +926,19 @@ Creating Packages
 
 The UploadAPI module also contains functions for creating XIPv6 packages directly from content files.
 
-To create a package containing a single preservation Content Object (file) as part of an asset which will
-be a child of folder ::
+To create a package containing a single preservation Content Object (file) as part of an Asset which will
+be a child of specified folder ::
 
     >>> package_path = simple_asset_package(preservation_file="my-image.tiff",  parent_folder=folder)
 
-The output is a path to the zip file which can be passed directly to ::
+The output is a path to the zip file which can be passed directly to the ``upload_zip_package`` method::
 
     >>> client.upload_zip_package(path_to_zip_package=package_path)
 
-By default the asset title and description will be taken from the file name.
+By default the Asset title and description will be taken from the file name.
 
 If you don't specify an export folder the new package will be created in the system TEMP folder.
-If you want to override this behaviour and specify the output folder for the package
+If you want to override this behaviour and explicitly specify the output folder for the package
 use the ``export_folder argument`` ::
 
     >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder,
@@ -956,20 +956,20 @@ with two representations (Preservation & Access) ::
     >>> package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg"
                                             parent_folder=folder)
 
-It is possible to configure the asset using the following additional keyword arguments.
+It is possible to configure the asset within the package using the following additional keyword arguments.
 
-*  'Title'                             Asset Title
-*  'Description'                       Asset Description
-*  'SecurityTag'                       Asset Security Tag
-*  'CustomType'                        Asset Type
-*  'Preservation_Content_Title'        Content Object Title of the Preservation Object
-*  'Preservation_Content_Description'  Content Object Description of the Preservation Object
-*  'Access_Content_Title'              Content Object Title of the Access Object
-*  'Access_Content_Description'        Content Object Description of the Access Object
-*  'Preservation_Generation_Label'     Generation Label for the Preservation Object
-*  'Access_Generation_Label'           Generation Label for the Access Object
-*  'Asset_Metadata'                    Dictionary of metadata schema/documents to add to the Asset
-*  'Identifiers'                       Dictionary of Asset identifiers
+*  ``Title``                             Asset Title
+*  ``Description``                       Asset Description
+*  ``SecurityTag``                       Asset Security Tag
+*  ``CustomType``                        Asset Type
+*  ``Preservation_Content_Title``        Content Object Title of the Preservation Object
+*  ``Preservation_Content_Description``  Content Object Description of the Preservation Object
+*  ``Access_Content_Title``              Content Object Title of the Access Object
+*  ``Access_Content_Description``        Content Object Description of the Access Object
+*  ``Preservation_Generation_Label``     Generation Label for the Preservation Object
+*  ``Access_Generation_Label``           Generation Label for the Access Object
+*  ``Asset_Metadata``                    Dictionary of metadata schema/documents to add to the Asset
+*  ``Identifiers``                       Dictionary of Asset identifiers
 
 The package will contain an asset with the following structure.
 
@@ -1011,9 +1011,7 @@ Entity API Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-This part of the documentation covers all the interfaces of pyPreservica.
-
-All of the pyPreservica functionality can be accessed by these methods on the :class:`EntityAPI <EntityAPI>` object.
+This part of the documentation covers all the interfaces of pyPreservica :class:`EntityAPI <EntityAPI>` object.
 
 .. py:class:: EntityAPI
 
@@ -1550,6 +1548,21 @@ Content API Developer Interface
 
 Upload API Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This part of the documentation covers all the interfaces of pyPreservica :class:`UploadAPI <UploadAPI>` object.
+
+.. py:class:: UploadAPI
+
+   .. py:method:: upload_zip_package(path_to_zip_package, folder, callback, delete_after_upload)
+
+    Returns an asset object back by its internal reference identifier
+
+    :param str path_to_zip_package: Path to the package
+    :param Folder folder: The folder to ingest the package into
+    :param str callback: Optional callback to allow the callee to monitor the upload progress
+    :param bool delete_after_upload: Delete the package after the upload has completed
+    :raises RuntimeError:
+
 
 Example Applications
 ~~~~~~~~~~~~~~~~~~~~~~
