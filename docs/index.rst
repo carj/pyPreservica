@@ -37,8 +37,8 @@ synchronisation with 3rd party systems etc.
 
 
 
-Features
---------
+Entity API Features
+------------
 
 -  Fetch and Update Entity Objects (Folders, Assets, Content Objects)
 -  Add, Delete and Update External Identifiers
@@ -50,8 +50,21 @@ Features
 -  Fetch Folders and Assets belonging to parent Folders
 -  Retrieve Representations, Generations & Bitstreams from Assets
 -  Download digital files and thumbnails
--  Fetch lists of changed entities over the last n days.
+-  Fetch lists of changed entities over the last n days
 -  Request information on completed integrity checks   (**New in 6.2**)
+
+Content API Features
+----------------
+
+-  Fetch a list of indexed Solr Fields
+-  Search based on a single query term
+
+Upload API Features
+----------------
+
+-  Create single Content Object Packages with multiple Representations
+-  Create multiple Content Object Packages with multiple Representations
+-  Upload packages to Preservica
 
 Background
 -----------
@@ -830,9 +843,9 @@ Will upload the local zip file and start an ingest workflow if one is enabled.
 
 The zip file can be any of the following:
 
-- Zipped Native XIPv4 Package (i.e. created from the SIP Creator)
+- Zipped Native XIPv5 Package (i.e. created from the SIP Creator)
 - Zipped Native XIPv6 Package (see below)
-- Zipped OPEX Package
+- Zipped OPEX Package (https://developers.preservica.com/documentation/open-preservation-exchange-opex)
 - Zipped Folder
 
 .. note::
@@ -899,7 +912,13 @@ The output is a path to the zip file which can be passed directly to ::
 
 By default the asset title and description will be taken from the file name.
 
-You can specify the asset title and description using additional keyword arguments. ::
+If you don't specify an export folder the new package will be created in the system TEMP folder.
+If you want to override this behaviour and specify the output folder for the package use the export_folder argument ::
+
+    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder, export_folder="/mnt/export/packages")
+
+
+You can specify the Asset title and description using additional keyword arguments. ::
 
     >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder, Title="Asset Title", Description="Asset Description")
 
@@ -920,30 +939,41 @@ It is possible to configure the asset using the following additional keyword arg
 *  'Access_Content_Description'        Content Object Description of the Access Object
 *  'Preservation_Generation_Label'     Generation Label for the Preservation Object
 *  'Access_Generation_Label'           Generation Label for the Access Object
-*  'Asset_Metadata'                    Map of metadata schema/documents to add to asset
-*  'Identifiers'                       Map of asset identifiers
+*  'Asset_Metadata'                    Dictionary of metadata schema/documents to add to the Asset
+*  'Identifiers'                       Dictionary of Asset identifiers
 
 The package will contain an asset with the following structure.
 
 .. image:: images/simple_asset_package.png
 
 
+For example to add descriptive metadata and two 3rd party identifiers use the following ::
+
+   >>> metadata = {"http://purl.org/dc/elements/1.1/": "dublin_core.xml"}
+   >>> identifiers = {"DOI": "doi:10.1038/nphys1170", "ISBN": "978-3-16-148410-0"}
+   >>> package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg"
+                                           parent_folder=folder, Asset_Metadata=metadata, Identifiers=identifiers)
+
 
 
 More complex assets can also be defined which contain multiple Content Objects,
 for example a book with multiple pages etc.
 
+The complex_asset_package function takes a collection of preservation files and an optional collection of access files.
+It creates a single asset package with multiple content objects per file.
 
-The complex_asset_package function takes a list of preservation files and an optional list of access files.
-It creates a single asset package with multiple content objects per file. ::
+Use a **list** collection to preserve the ordering of the content objects within the asset. For example the first
+page of a book should be the first item added to the list. ::
 
 
     >>> preservation_files = list()
     >>> preservation_files.append("page-1.tiff")
     >>> preservation_files.append("page-2.tiff")
     >>> preservation_files.append("page-3.tiff")
+
     >>> access_files = list()
     >>> access_files.append("book.pdf")
+
     >>> package_path = complex_asset_package(preservation_files_list=preservation_files, access_files_list=access_files,
                                              parent_folder=folder)
 
