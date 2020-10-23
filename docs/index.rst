@@ -181,7 +181,8 @@ Preservica user and a Tenant identifier along with the server hostname.
 Include the user credentials as arguments to the EntityAPI Class ::
 
     >>> from pyPreservica import *
-    >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
+    >>> client = EntityAPI(username="test@test.com", password="123444",
+                           tenant="PREVIEW", server="preview.preservica.com")
 
 
 If you don't want to include your Preservica credentials within your python script then the following two methods should
@@ -218,7 +219,8 @@ Create a properties file called "credentials.properties" and save to the working
 You can create a new credentials.properties file automatically using the save_config() method ::
 
    >>> from pyPreservica import *
-   >>> client = EntityAPI(username="test@test.com", password="123444", tenant="PREVIEW", server="preview.preservica.com")
+   >>> client = EntityAPI(username="test@test.com", password="123444",
+                          tenant="PREVIEW", server="preview.preservica.com")
    >>> client.save_config()
 
 
@@ -226,8 +228,8 @@ You can create a new credentials.properties file automatically using the save_co
 4 **Shared Secrets**
 
 pyPreservica now supports authentication using shared secrets rather than a login account username and password.
-This allows a trusted external applications such as pyPreservica to acquire Preservica access rights without
-being authenticated by Preservica.
+This allows a trusted external applications such as pyPreservica to acquire a Preservica API authentication token
+without having to use a set of login credentials.
 
 To use the shared secret authentication you need to add a secure secret key to your Preservica system.
 
@@ -443,14 +445,14 @@ We can update either the title or description attribute for assets, folders and 
     >>> content_object.description = "New Content Object Description"
     >>> content_object = client.save(content_object)
 
-To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running process for folders containing
-many assets you can choose either a asynchronous (non-blocking) or synchronous (blocking call)
+To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running process
+for folders containing many assets you can choose either a asynchronous (non-blocking) or synchronous (blocking call)
 
 This is the asynchronous call which returns immediately returning a process id ::
 
     >>> pid = client.security_tag_async(entity, new_tag)
 
- You can determine the completed status of the asynchronous by passing the argument to get_async_progress::
+You can determine the completed status of the asynchronous by passing the argument to get_async_progress ::
 
     >>> status = client.get_async_progress(pid)
 
@@ -669,7 +671,7 @@ You can initiate and approve a deletion request using the API.
 
 
 .. note::
-    The Deletion API below is only available when connected to version 6.2 or above systems
+    The Deletion API is only available when connected to Preservica version 6.2 or above
 
 
 Add manager.username and manager.password to the credentials file. ::
@@ -746,10 +748,6 @@ https://us.preservica.com/api/content/documentation.html
 
 The content API is a readonly interface which returns json documents rather than XML and which has some duplication
 with the entity API, but it does contain search capabilities.
-
-
-.. warning::
-    Unlike the Entity API above the interfaces for the content API are subject to change.
 
 The content API client is created using ::
 
@@ -861,17 +859,21 @@ To specify the parent folder of the ingest pass a folder object as the second ar
     >>> upload.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder)
 
 
-upload_zip_package accepts an optional Callback parameter.
-The parameter references a class that the Python SDK invokes intermittently during the transfer operation.
+Monitoring Upload Progress
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-Invoking a Python class executes the class's __call__ method. For each invocation, the class is passed the
+The upload_zip_package function accepts an optional Callback parameter.
+The parameter references a class that pyPreservica invokes intermittently during the transfer operation.
+
+pyPreservica executes the class's __call__ method. For each invocation, the class is passed the
 number of bytes transferred up to that point. This information can be used to implement a progress monitor.
 
-The following Callback setting instructs the Python SDK to create an instance of the UploadProgressCallback class.
+The following Callback setting instructs pyPreservica to create an instance of the UploadProgressCallback class.
 During the upload, the instance's __call__ method will be invoked intermittently.::
 
  >>> from pyPreservica import UploadProgressCallback
- >>> client.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder, callback=UploadProgressCallback("my-package.zip"))
+ >>> my_callback=UploadProgressCallback("my-package.zip")
+ >>> client.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder, callback=my_callback)
 
 The default pyPreservica UploadProgressCallback looks like
 
@@ -915,17 +917,20 @@ By default the asset title and description will be taken from the file name.
 If you don't specify an export folder the new package will be created in the system TEMP folder.
 If you want to override this behaviour and specify the output folder for the package use the export_folder argument ::
 
-    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder, export_folder="/mnt/export/packages")
+    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder,
+                                            export_folder="/mnt/export/packages")
 
 
 You can specify the Asset title and description using additional keyword arguments. ::
 
-    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder, Title="Asset Title", Description="Asset Description")
+    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder,
+                                            Title="Asset Title", Description="Asset Description")
 
 You can also add a second Access content object to the asset. This will create an asset
 with two representations (Preservation & Access) ::
 
-    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg" parent_folder=folder)
+    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg"
+                                            parent_folder=folder)
 
 It is possible to configure the asset using the following additional keyword arguments.
 
