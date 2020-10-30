@@ -332,7 +332,7 @@ We can fetch any of Assets, Folders and Content Objects using the entity type an
     >>> asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     >>> folder = client.entity(EntityType.FOLDER, asset.parent)
 
-To get the parent Folders of an Asset all the way to the root of the repository ::
+To get a list of parent Folders of an Asset all the way to the root of the repository ::
 
     >>> folder = client.folder(asset.parent)
     >>> print(folder.title)
@@ -406,8 +406,8 @@ or ::
 
 
 If you want **all** the entities below a point in the hierarchy, i.e a recursive list of all folders and Assets the you can
-call ``all_descendants()`` this is a generator function which returns a lazy iterator will which make repeated calls to the server
-for each page of results.
+call ``all_descendants()`` this is a generator function which returns a lazy iterator which will make
+repeated calls to the server for each page of results.
 
 The following will return all entities within the repository from the root folders down ::
 
@@ -458,14 +458,15 @@ We can update either the title or description attribute for assets, folders and 
     >>> content_object.description = "New Content Object Description"
     >>> content_object = client.save(content_object)
 
-To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running process
-for folders containing many assets you can choose either a asynchronous (non-blocking) or synchronous (blocking call)
+To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running process.
+You can choose either a asynchronous (non-blocking) call which returns immediately or synchronous (blocking call) which
+waits for the security tag to be changed before returning.
 
 This is the asynchronous call which returns immediately returning a process id ::
 
     >>> pid = client.security_tag_async(entity, new_tag)
 
-You can determine the completed status of the asynchronous by passing the argument to ``get_async_progress`` ::
+You can determine the current status of the asynchronous call by passing the argument to ``get_async_progress`` ::
 
     >>> status = client.get_async_progress(pid)
 
@@ -479,11 +480,19 @@ This call does not recursively change entities within a folder. It only applies 
 3rd Party External Identifiers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3rd party or external identifiers are a useful way to provide additional names or identities to objects to
+provide an alternate way of accessing them.
+For example if you are synchronising metadata between an external metadata catalogue and Preservica adding the catalogue
+identifiers to the Preservica objects allows the catalogue to query Preservica using its own ids.
+
+Each Preservica entity can hold as many external identifiers as you need.
+
 .. note::
     Adding, Updating and Deleting external identifiers is only available in version 6.1 and above
 
-We can add external identifiers to either assets, folders or content objects. External identifiers have a type and a value.
-External identifiers do not have to be unique in the same way as internal identifiers. ::
+We can add external identifiers to either Assets, Folders or Content Objects. External identifiers have a name or type
+and a value. External identifiers do not have to be unique in the same way as internal identifiers.
+The same external identifiers can be added to multiple entities to form sets of objects. ::
 
     >>> asset = client.asset("9bad5acf-e7ce-458a-927d-2d1e7f15974d")
     >>> client.add_identifier(asset, "ISBN", "978-3-16-148410-0")
@@ -524,7 +533,7 @@ Will delete all identifiers on the entity ::
 
 Will delete all identifiers which have type "ISBN" ::
 
-     >>> client.delete_identifiers(entity, identifier_type="ISBN", identifier_value="122334")
+     >>> client.delete_identifiers(entity, identifier_type="ISBN", identifier_value="978-3-16-148410-0")
 
 Will only delete identifiers which match the type and value
 
@@ -532,22 +541,23 @@ Descriptive Metadata
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 You can query an entity to determine if it has any attached descriptive metadata using the metadata attribute.
-This returns a dictionary object the dictionary key is a url to the metadata and the value is the schema ::
+This returns a dictionary object the dictionary key is a url which can be used to the fetch metadata
+and the value is the schema name::
 
     >>> for url, schema in entity.metadata.items():
     >>>     print(url, schema)
 
-The descriptive XML metadata document can be returned as a string by passing the key of the map
+The descriptive XML metadata document can be returned as a string by passing the key of the map (url)
 to the ``metadata()`` method ::
 
     >>> for url in entity.metadata:
     >>>     xml_document = client.metadata(url)
 
-An alternative is to call the ``method directly`` ::
+An alternative is to call the ``metadata_for_entity``  directly ::
 
     >>> xml_document = client.metadata_for_entity(entity, "https://www.person.com/person")
 
-to fetch the first metadata document which matches the schema argument on the entity
+this will fetch the first metadata document which matches the schema argument on the entity
 
 
 Metadata can be attached to entities either by passing an XML document as a string::
@@ -656,7 +666,7 @@ The list of returned checks includes both full and quick integrity checks.
 Moving Entities
 ^^^^^^^^^^^^^^^^
 
-We can move entities between folders using the move call ::
+We can move entities between folders using the ``move`` call ::
 
     >>> client.move(entity, dest_folder)
 
@@ -675,7 +685,8 @@ An asynchronous (non-blocking) version is also available which returns a progres
 
     >>> pid = client.move_async(entity, dest_folder)
 
-You can determine the completed status of the asynchronous move call by passing the argument to ``get_async_progress``::
+You can determine the completed status of the asynchronous move call by passing the
+argument to ``get_async_progress`` ::
 
     >>> status = client.get_async_progress(pid)
 
@@ -939,7 +950,7 @@ By default the Asset title and description will be taken from the file name.
 
 If you don't specify an export folder the new package will be created in the system TEMP folder.
 If you want to override this behaviour and explicitly specify the output folder for the package
-use the ``export_folder argument`` ::
+use the ``export_folder`` argument ::
 
     >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder,
                                             export_folder="/mnt/export/packages")
