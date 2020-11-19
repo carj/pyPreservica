@@ -184,6 +184,10 @@ class EntityAPI(AuthenticatedAPI):
              :param identifier_type: The type of the identifier to delete.
              :param identifier_value: The value of the identifier to delete.
           """
+
+        if self.major_version == 6 and self.minor_version == 0:
+            raise RuntimeError("delete_identifiers API call is not available when connected to a v6.0 System")
+
         headers = {HEADER_TOKEN: self.token}
         request = requests.get(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers',
                                headers=headers)
@@ -296,6 +300,10 @@ class EntityAPI(AuthenticatedAPI):
             :param identifier_type: The identifier type
             :param identifier_value: The identifier value
           """
+
+        if self.major_version == 6 and self.minor_version == 0:
+            raise RuntimeError("add_identifier API call is not available when connected to a v6.0 System")
+
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         xml_object = xml.etree.ElementTree.Element('Identifier', {"xmlns": NS_XIPV6})
         xml.etree.ElementTree.SubElement(xml_object, "Type").text = identifier_type

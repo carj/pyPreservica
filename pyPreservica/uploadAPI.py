@@ -14,7 +14,7 @@ from boto3.s3.transfer import TransferConfig
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from pyPreservica.common import AuthenticatedAPI, FileHash
+from pyPreservica.common import AuthenticatedAPI, FileHash, Sha1FixityCallBack
 
 GB = 1024 ** 3
 transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 8))
@@ -96,7 +96,7 @@ def __make_generation__(xip, filename, co_ref, generation_label):
     SubElement(generation, "Properties")
 
 
-def __make_bitstream__(xip, file_name, full_path):
+def __make_bitstream__(xip, file_name, full_path, callback):
     bitstream = SubElement(xip, 'Bitstream')
     filename_element = SubElement(bitstream, "Filename")
     filename_element.text = file_name
@@ -106,10 +106,10 @@ def __make_bitstream__(xip, file_name, full_path):
     fixities = SubElement(bitstream, "Fixities")
     fixity = SubElement(fixities, "Fixity")
     fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
-    fixity_algorithm_ref.text = "SHA1"
     fixity_value = SubElement(fixity, "FixityValue")
-    sha1 = FileHash(hashlib.sha1)
-    fixity_value.text = sha1(full_path)
+    fixity = callback(file_name, full_path)
+    fixity_algorithm_ref.text = fixity[0]
+    fixity_value.text = fixity[1]
 
 
 def __make_representation_multiple_co__(xip, rep_name, rep_type, rep_files, io_ref):
@@ -134,18 +134,20 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
                           parent_folder=None, **kwargs):
     """
         optional kwargs map
-        'Title'                             Asset Title
-        'Description'                       Asset Description
-        'SecurityTag'                       Asset Security Tag
-        'CustomType'                        Asset Type
-        'Preservation_Content_Title'        Content Object Title of the Preservation Object
-        'Preservation_Content_Description'  Content Object Description of the Preservation Object
-        'Access_Content_Title'              Content Object Title of the Access Object
-        'Access_Content_Description'        Content Object Description of the Access Object
-        'Preservation_Generation_Label'     Generation Label for the Preservation Object
-        'Access_Generation_Label'           Generation Label for the Access Object
-        'Asset_Metadata'                    Map of metadata schema/documents to add to asset
-        'Identifiers'                       Map of asset identifiers
+        'Title'                                 Asset Title
+        'Description'                           Asset Description
+        'SecurityTag'                           Asset Security Tag
+        'CustomType'                            Asset Type
+        'Preservation_Content_Title'            Content Object Title of the Preservation Object
+        'Preservation_Content_Description'      Content Object Description of the Preservation Object
+        'Access_Content_Title'                  Content Object Title of the Access Object
+        'Access_Content_Description'            Content Object Description of the Access Object
+        'Preservation_Generation_Label'         Generation Label for the Preservation Object
+        'Access_Generation_Label'               Generation Label for the Access Object
+        'Asset_Metadata'                        Map of metadata schema/documents to add to asset
+        'Identifiers'                           Map of asset identifiers
+        'Preservation_files_fixity_callback'    Callback to allow external generated fixity values
+        'Access_files_fixity_callback'    Callback to allow external generated fixity values
     """
     # some basic validation
     if export_folder is None:
@@ -226,15 +228,25 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
     if has_preservation_files:
 
+        if 'Preservation_files_fixity_callback' in kwargs:
+            callback = kwargs.get('Preservation_files_fixity_callback')
+        else:
+            callback = Sha1FixityCallBack()
+
         for content_ref, filename in preservation_refs_dict.items():
             preservation_file_name = os.path.basename(filename)
-            __make_bitstream__(xip, preservation_file_name, filename)
+            __make_bitstream__(xip, preservation_file_name, filename, callback)
 
     if has_access_files:
 
+        if 'Access_files_fixity_callback' in kwargs:
+            callback = kwargs.get('Access_files_fixity_callback')
+        else:
+            callback = Sha1FixityCallBack()
+
         for content_ref, filename in access_refs_dict.items():
             access_file_name = os.path.basename(filename)
-            __make_bitstream__(xip, access_file_name, filename)
+            __make_bitstream__(xip, access_file_name, filename, callback)
 
     if 'Identifiers' in kwargs:
         identifier_map = kwargs.get('Identifiers')
@@ -303,6 +315,8 @@ def simple_asset_package(preservation_file=None, access_file=None, export_folder
         'Access_Generation_Label'           Generation Label for the Access Object
         'Asset_Metadata'                    Map of metadata schema/documents to add to asset
         'Identifiers'                       Map of asset identifiers
+        'Preservation_files_fixity_callback'    Callback to allow external generated fixity values
+        'Access_files_fixity_callback'    Callback to allow external generated fixity values
     """
 
     preservation_file_list = list()

@@ -89,6 +89,24 @@ class PagedSet:
         return self.has_more
 
 
+class Sha1FixityCallBack:
+    def __call__(self, filename, full_path):
+        sha = FileHash(hashlib.sha1)
+        return "SHA1", sha(full_path)
+
+
+class Sha256FixityCallBack:
+    def __call__(self, filename, full_path):
+        sha = FileHash(hashlib.sha3_256)
+        return "SHA256", sha(full_path)
+
+
+class Sha512FixityCallBack:
+    def __call__(self, filename, full_path):
+        sha = FileHash(hashlib.sha3_512)
+        return "SHA512", sha(full_path)
+
+
 class UploadProgressCallback:
     """
     Default implementation of a callback class to show upload progress of a file
@@ -315,7 +333,12 @@ class AuthenticatedAPI:
         request = requests.get(f'https://{self.server}/api/entity/versiondetails/version', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_ = str(request.content)
-            return xml_[xml_.find("<CurrentVersion>") + len("<CurrentVersion>"):xml_.find("</CurrentVersion>")]
+            version = xml_[xml_.find("<CurrentVersion>") + len("<CurrentVersion>"):xml_.find("</CurrentVersion>")]
+            version_numbers = version.split(".")
+            self.major_version = int(version_numbers[0])
+            self.minor_version = int(version_numbers[1])
+            self.patch_version = int(version_numbers[2])
+            return version
         if request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.__version_number__()
