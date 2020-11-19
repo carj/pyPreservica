@@ -15,7 +15,7 @@ Welcome to pyPreservica's documentation
     :target: https://pypi.org/project/pyPreservica/
 
 
-pyPreservica is python library for the Preservica API
+pyPreservica is a Python client for the Preservica API Services
 
 This library provides a Python class for working with the Preservica Rest API
 
