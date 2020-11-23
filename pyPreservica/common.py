@@ -97,13 +97,13 @@ class Sha1FixityCallBack:
 
 class Sha256FixityCallBack:
     def __call__(self, filename, full_path):
-        sha = FileHash(hashlib.sha3_256)
+        sha = FileHash(hashlib.sha256)
         return "SHA256", sha(full_path)
 
 
 class Sha512FixityCallBack:
     def __call__(self, filename, full_path):
-        sha = FileHash(hashlib.sha3_512)
+        sha = FileHash(hashlib.sha512)
         return "SHA512", sha(full_path)
 
 

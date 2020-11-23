@@ -13,7 +13,7 @@ PKG = "pyPreservica"
 # This call to setup() does all the work
 setup(
     name=PKG,
-    version="0.8.7",
+    version="0.8.8",
     description="Python library for the Preservica API",
     long_description=README,
     long_description_content_type="text/markdown",

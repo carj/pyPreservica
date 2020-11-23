@@ -194,19 +194,21 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
     if has_preservation_files:
 
-        preservation_content_title = kwargs.get('Preservation_Content_Title', default_asset_title)
-        preservation_content_description = kwargs.get('Preservation_Content_Description', default_asset_title)
+        for content_ref, filename in preservation_refs_dict.items():
+            default_content_objects_title = os.path.splitext(os.path.basename(filename))[0]
+            preservation_content_title = kwargs.get('Preservation_Content_Title', default_content_objects_title)
+            preservation_content_description = kwargs.get('Preservation_Content_Description', default_content_objects_title)
 
-        for content_ref in preservation_refs_dict:
             __make_content_objects__(xip, preservation_content_title, content_ref, io_ref, security_tag,
                                      preservation_content_description, content_type)
 
     if has_access_files:
 
-        access_content_title = kwargs.get('Access_Content_Title', default_asset_title)
-        access_content_description = kwargs.get('Access_Content_Description', default_asset_title)
+        for content_ref, filename in access_refs_dict.items():
+            default_content_objects_title = os.path.splitext(os.path.basename(filename))[0]
+            access_content_title = kwargs.get('Access_Content_Title', default_content_objects_title)
+            access_content_description = kwargs.get('Access_Content_Description', default_content_objects_title)
 
-        for content_ref in access_refs_dict:
             __make_content_objects__(xip, access_content_title, content_ref, io_ref, security_tag,
                                      access_content_description, content_type)
 
