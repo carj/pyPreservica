@@ -984,6 +984,8 @@ It is possible to configure the asset within the package using the following add
 *  ``Access_Generation_Label``           Generation Label for the Access Object
 *  ``Asset_Metadata``                    Dictionary of metadata schema/documents to add to the Asset
 *  ``Identifiers``                       Dictionary of Asset identifiers
+*  ``Preservation_files_fixity_callback`` Fixity generation callback for preservation files
+*  ``Access_files_fixity_callback``       Fixity generation callback for access files
 
 The package will contain an asset with the following structure.
 
@@ -1019,6 +1021,36 @@ page of a book should be the first item added to the list. ::
 
     >>> package_path = complex_asset_package(preservation_files_list=preservation_files, access_files_list=access_files,
                                              parent_folder=folder)
+
+
+
+Custom Fixity Generation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default the ``simple_asset_package`` and ``complex_asset_package`` routines will create packages which contain
+`SHA1 <https://en.wikipedia.org/wiki/SHA-1>`_ fixity values.
+
+You can override this default behaviour through the use of the callback options. The pyPreservica library provides
+default callbacks for SHA-1, SHA256 & SHA512
+
+* ``Sha1FixityCallBack``
+* ``Sha256FixityCallBack``
+* ``Sha512FixityCallBack``
+
+To use one of the default callbacks::
+
+    >>> package_path = complex_asset_package(preservation_files_list=preservation_files, access_files_list=access_files,
+                                             parent_folder=folder, Preservation_files_fixity_callback=Sha512FixityCallBack())
+
+If you want to re-use existing externally generated fixity values for performance or integrity reasons then you can create a custom callback.
+The callback takes the filename and the path of the file and should return a tuple containing the algorithm name
+and fixity value ::
+
+    >>> class MyFixityCallback:
+    >>>     def __call__(self, filename, full_path):
+    >>>         ...
+    >>>         ...
+    >>>         return "SHA1", value
 
 
 Entity API Developer Interface
