@@ -382,6 +382,12 @@ paging is available. ::
     >>>             next_page = root_folders.next_page
 
 
+
+.. note::
+    Entities within the returned set only contain the attributes (type, reference and title).
+If you need the full object you have to request it.
+
+
 A version of this method is also available as a generator function which does not require explicit paging.
 This version returns a lazy iterator which does the paging internally.
 It will default to 50 items between server requests ::
