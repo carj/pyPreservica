@@ -383,10 +383,6 @@ paging is available. ::
 
 
 
-.. note::
-    Entities within the returned set only contain the attributes (type, reference and title).
-    If you need the full object you have to request it.
-
 
 A version of this method is also available as a generator function which does not require explicit paging.
 This version returns a lazy iterator which does the paging internally.
@@ -412,6 +408,13 @@ or ::
 
     >>> for folders in filter(only_folders, client.descendants(asset.parent)):
     >>>     print(folders.title)
+
+
+
+.. note::
+    Entities within the returned set only contain the attributes (type, reference and title).
+    If you need the full object you have to request it.
+
 
 
 If you want **all** the entities below a point in the hierarchy, i.e a recursive list of all folders and Assets the you can

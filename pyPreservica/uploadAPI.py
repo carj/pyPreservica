@@ -33,7 +33,13 @@ def __create_io__(file_name=None, parent_folder=None, **kwargs):
     xip.set('xmlns', 'http://preservica.com/XIP/v6.0')
     io = SubElement(xip, 'InformationObject')
     ref = SubElement(io, 'Ref')
-    ref.text = str(uuid.uuid4())
+
+    if 'IO_Identifier_callback' in kwargs:
+        ident_callback = kwargs.get('IO_Identifier_callback')
+        ref.text = ident_callback()
+    else:
+        ref.text = str(uuid.uuid4())
+
     title = SubElement(io, 'Title')
     title.text = kwargs.get('Title', file_name)
     description = SubElement(io, 'Description')
@@ -147,7 +153,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         'Asset_Metadata'                        Map of metadata schema/documents to add to asset
         'Identifiers'                           Map of asset identifiers
         'Preservation_files_fixity_callback'    Callback to allow external generated fixity values
-        'Access_files_fixity_callback'    Callback to allow external generated fixity values
+        'Access_files_fixity_callback'          Callback to allow external generated fixity values
+        'IO_Identifier_callback'                Callback to allow external generated Asset identifier
     """
     # some basic validation
     if export_folder is None:
@@ -197,7 +204,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         for content_ref, filename in preservation_refs_dict.items():
             default_content_objects_title = os.path.splitext(os.path.basename(filename))[0]
             preservation_content_title = kwargs.get('Preservation_Content_Title', default_content_objects_title)
-            preservation_content_description = kwargs.get('Preservation_Content_Description', default_content_objects_title)
+            preservation_content_description = kwargs.get('Preservation_Content_Description',
+                                                          default_content_objects_title)
 
             __make_content_objects__(xip, preservation_content_title, content_ref, io_ref, security_tag,
                                      preservation_content_description, content_type)
