@@ -1073,7 +1073,7 @@ a custom search index.
 
 Before working with the spreadsheet it should be saved as a UTF-8 CSV document within Excel.
 
-.. image:: images/simple_asset_package.png
+.. image:: images/excel.png
 
 CSV to XML works by extracting each row of a spreadsheet and creating a single XML document for each row.
 The spreadsheet columns are the XML attributes.
