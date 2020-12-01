@@ -591,8 +591,7 @@ or by reading the metadata from a file ::
     >>>     asset = client.add_metadata(asset, "http://purl.org/dc/elements/1.1/", md)
 
 
-Descriptive metadata can also be updated to amend values or change the document structure ::
-
+Descriptive metadata can also be updated to amend values or change the document structure
 To update an existing metadata document call ::
 
     >>>  client.update_metadata(entity, schema, xml_string)
@@ -828,7 +827,7 @@ Search the repository using a single expression which matches on any indexed fie
     >>> client.simple_search_csv()
 
 Searches for everything and writes the results to a csv file called "search.csv", by default the csv
-columns contain reference, title, description, document_type, parent_ref, security_tag ::
+columns contain reference, title, description, document_type, parent_ref, security_tag.
 
 You can pass the query term as the first argument (% is the wildcard character) and
 the csv file name as the second argument. ::
@@ -1069,7 +1068,7 @@ Spreadsheet Metadata
 
 pyPreservica now provides some experimental support for working with metadata in spreadsheets.
 The library provides support for generating descriptive metadata XML documents for each row in a spreadsheet, creating
-an XML schema for the XML documents and creating a custom transform for viewing the metadata in the UA portal along side
+an XSD schema for the XML documents and creating a custom transform for viewing the metadata in the UA portal along side
 a custom search index.
 
 Before working with the spreadsheet it should be saved as a UTF-8 CSV document within Excel.
