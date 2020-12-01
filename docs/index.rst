@@ -1062,6 +1062,79 @@ and fixity value ::
     >>>         return "SHA1", value
 
 
+
+Spreadsheet Metadata
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pyPreservica now provides some experimental support for working with metadata in spreadsheets.
+The library provides support for generating descriptive metadata XML documents for each row in a spreadsheet, creating
+an XML schema for the XML documents and creating a custom transform for viewing the metadata in the UA portal along side
+a custom search index.
+
+Before working with the spreadsheet it should be saved as a UTF-8 CSV document within Excel.
+
+.. image:: images/simple_asset_package.png
+
+CSV to XML works by extracting each row of a spreadsheet and creating a single XML document for each row.
+The spreadsheet columns are the XML attributes.
+
+The XML namespace and root element need to be provided. You also need to specify which column should be used to name the
+XML files. ::
+
+    >>> cvs_to_xml(csv_file="my-spreadsheet.csv", root_element="Metadata", file_name_column="filename", xml_namespace="https://test.com/Metadata")
+
+This will read the ``my-spreadsheet.csv`` csv file and create a set of XML documents, one for each row in the csv file.
+The XML files will be named after the value in the filename column.
+
+The resulting XML documents will look like ::
+
+    <?xml version='1.0' encoding='utf-8'?>
+    <Metadata xmlns="https://test.com/Metadata">
+        <Column1>....</Column1>
+        <Column2>....</Column2>
+        <Column3>....</Column3>
+        <Column4>....</Column4>
+    </Metadata>
+
+
+You can create a XSD schema for the documents by calling ::
+
+    >>> cvs_to_xsd(csv_file="my-spreadsheet.csv", root_element="Metadata", xml_namespace="https://test.com/Metadata")
+
+Which will generate a document ``Metadata.xsd`` ::
+
+    <?xml version='1.0' encoding='utf-8'?>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" attributeFormDefault="unqualified" elementFormDefault="qualified"
+               targetNamespace="https://test.com/Metadata">
+        <xs:element name="Metadata">
+            <xs:complexType>
+                <xs:sequence>
+                    <xs:element type="xs:string" name="Column1" />
+                    <xs:element type="xs:string" name="Column2" />
+                    <xs:element type="xs:string" name="Column3" />
+                    <xs:element type="xs:string" name="Column4" />
+                </xs:sequence>
+            </xs:complexType>
+        </xs:element>
+    </xs:schema>
+
+To display the resulting metadata in the UA portal you will need a CMIS transform to tell Preservica which attributes to
+display. You can generate one by calling  ::
+
+    >>> cvs_to_cmis_xslt(csv_file="my-spreadsheet.csv", root_element="Metadata", title="My Metadata Title",
+           xml_namespace="https://test.com/Metadata")
+
+You can also auto-generate a custom search index document which will add indexes for each column in the spreadsheet ::
+
+    >>> csv_to_search_xml(csv_file="my-spreadsheet.csv", root_element="Metadata",
+           xml_namespace="https://test.com/Metadata")
+
+
+
+
+
+
+
 Entity API Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

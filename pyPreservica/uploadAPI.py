@@ -1,20 +1,21 @@
-import hashlib
+import csv
 import os
 import shutil
 import tempfile
 import uuid
+import xml
 from datetime import datetime
 from xml.dom import minidom
+from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 from xml.etree.ElementTree import ElementTree
-from xml.etree import ElementTree
 
 import boto3
 from boto3.s3.transfer import TransferConfig
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from pyPreservica.common import AuthenticatedAPI, FileHash, Sha1FixityCallBack
+from pyPreservica.common import AuthenticatedAPI, Sha1FixityCallBack
 
 GB = 1024 ** 3
 transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 8))
@@ -23,7 +24,7 @@ transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 8))
 def prettify(elem):
     """Return a pretty-printed XML string for the Element.
     """
-    rough_string = ElementTree.tostring(elem, 'utf-8')
+    rough_string = xml.etree.ElementTree.tostring(elem, 'utf-8')
     re_parsed = minidom.parseString(rough_string)
     return re_parsed.toprettyxml(indent="  ")
 
@@ -136,6 +137,175 @@ def __make_representation_multiple_co__(xip, rep_name, rep_type, rep_files, io_r
     return refs_dict
 
 
+def cvs_to_cmis_xslt(csv_file, xml_namespace, root_element, title="Metadata Title"):
+    """
+            Create a custom CMIS transform to display metadata within UA.
+
+    """
+    headers = list()
+    with open(csv_file, encoding='utf-8-sig', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            for header in row:
+                xml_tag = header.strip()
+                xml_tag = xml_tag.title()
+                xml_tag = xml_tag.replace(" ", "")
+                xml_tag = xml_tag.replace("_", "")
+                headers.append(xml_tag)
+            break
+
+    xml_stylesheet = xml.etree.ElementTree.Element("xsl:stylesheet",
+                                                   {"version": "2.0",
+                                                    "xmlns:xsl": "http://www.w3.org/1999/XSL/Transform",
+                                                    "xmlns:fn": "http://www.w3.org/2005/xpath-functions",
+                                                    "xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                                                    "xmlns:csv": xml_namespace,
+                                                    "xmlns": "http://www.tessella.com/sdb/cmis/metadata",
+                                                    "exclude-result-prefixes": "csv"})
+
+    xml_output = xml.etree.ElementTree.SubElement(xml_stylesheet, "xsl:output", {"method": "xml", "indent": "yes"})
+
+    xml_template = xml.etree.ElementTree.SubElement(xml_stylesheet, "xsl:template", {"match": "csv:" + root_element})
+
+    xml_group = xml.etree.ElementTree.SubElement(xml_template, "group")
+
+    xml_title = xml.etree.ElementTree.SubElement(xml_group, "title")
+    xml_title.text = title
+
+    xml_templates = xml.etree.ElementTree.SubElement(xml_group, "xsl:apply-templates")
+
+    elements = "csv:"
+    elements = elements + "|csv:".join(headers)
+
+    xml_matches = xml.etree.ElementTree.SubElement(xml_stylesheet, "xsl:template", {"match": elements})
+
+    xml_item = xml.etree.ElementTree.SubElement(xml_matches, "item")
+    xml_name = xml.etree.ElementTree.SubElement(xml_item, "name")
+    xml_name_value = xml.etree.ElementTree.SubElement(xml_name, "xsl:value-of", {
+        "select": "fn:replace(translate(local-name(), '_', ' '), '([a-z])([A-Z])', '$1 $2')"})
+
+    xml_value = xml.etree.ElementTree.SubElement(xml_item, "value")
+    xml_value_value = xml.etree.ElementTree.SubElement(xml_value, "xsl:value-of", {"select": "."})
+
+    xml_type = xml.etree.ElementTree.SubElement(xml_item, "type")
+    xml_type_value = xml.etree.ElementTree.SubElement(xml_type, "xsl:value-of", {
+        "select": "fn:replace(translate(local-name(), '_', ' '), '([a-z])([A-Z])', '$1 $2')"})
+
+    xml_request = xml.etree.ElementTree.tostring(xml_stylesheet, encoding='utf-8', xml_declaration=True)
+    file = open(root_element + "-cmis.xslt", "wt", encoding="utf-8")
+    file.write(xml_request.decode("utf-8"))
+    file.close()
+
+
+def cvs_to_xsd(csv_file, xml_namespace, root_element):
+    """
+        Create a XSD definition based on the csv file
+
+    """
+    headers = list()
+    with open(csv_file, encoding='utf-8-sig', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            for header in row:
+                xml_tag = header.strip()
+                xml_tag = xml_tag.title()
+                xml_tag = xml_tag.replace(" ", "")
+                xml_tag = xml_tag.replace("_", "")
+                headers.append(xml_tag)
+            break
+    xml_schema = xml.etree.ElementTree.Element("xs:schema", {"xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                                                             "attributeFormDefault": "unqualified",
+                                                             "elementFormDefault": "qualified",
+                                                             "targetNamespace": xml_namespace})
+    xml_element = xml.etree.ElementTree.SubElement(xml_schema, "xs:element", {"name": root_element})
+    xml_complex_type = xml.etree.ElementTree.SubElement(xml_element, "xs:complexType")
+    xml_sequence = xml.etree.ElementTree.SubElement(xml_complex_type, "xs:sequence")
+    for header in headers:
+        xml_e = xml.etree.ElementTree.SubElement(xml_sequence, "xs:element", {"type": "xs:string", "name": header})
+    xml_request = xml.etree.ElementTree.tostring(xml_schema, encoding='utf-8', xml_declaration=True)
+    file = open(root_element + ".xsd", "wt", encoding="utf-8")
+    file.write(xml_request.decode("utf-8"))
+    file.close()
+
+
+def csv_to_search_xml(csv_file, xml_namespace, root_element, title="Metadata Title"):
+    """
+        Create a custom Preservica search index based on the columns in a csv file
+
+    """
+    headers = list()
+    with open(csv_file, encoding='utf-8-sig', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            for header in row:
+                xml_tag = header.strip()
+                xml_tag = xml_tag.title()
+                xml_tag = xml_tag.replace(" ", "")
+                xml_tag = xml_tag.replace("_", "")
+                headers.append(xml_tag)
+            break
+
+    xml_index = xml.etree.ElementTree.Element("index", {"xmlns": "http://www.preservica.com/customindex/v1"})
+
+    short_name = "csv"
+
+    xml_schemaName = xml.etree.ElementTree.SubElement(xml_index, "schemaName")
+    xml_schemaName.text = title
+    xml_schemaUri = xml.etree.ElementTree.SubElement(xml_index, "schemaUri")
+    xml_schemaUri.text = xml_namespace
+    xml_shortName = xml.etree.ElementTree.SubElement(xml_index, "shortName")
+    xml_shortName.text = short_name
+
+    for header in headers:
+        attr = {"indexName": header, "displayName": header,
+                "xpath": f"//{short_name}:{root_element}/{short_name}:{header}",
+                "indexType": "STRING_DEFAULT"}
+        xml_term = xml.etree.ElementTree.SubElement(xml_index, "term", attr)
+
+    xml_request = xml.etree.ElementTree.tostring(xml_index, encoding='utf-8', xml_declaration=True)
+    name = root_element + "-index.xml"
+    file = open(name, "wt", encoding="utf-8")
+    file.write(xml_request.decode("utf-8"))
+    file.close()
+
+
+def cvs_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename"):
+    """
+    Export the rows of a CSV file as XML metadata documents which can be added to Preservica assets
+
+    """
+    headers = list()
+    link_column_id = 0
+    with open(csv_file, encoding='utf-8-sig', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            col_id = 0
+            for header in row:
+                col_id += 1
+                if header == file_name_column:
+                    link_column_id = col_id
+                xml_tag = header.strip()
+                xml_tag = xml_tag.title()
+                xml_tag = xml_tag.replace(" ", "")
+                xml_tag = xml_tag.replace("_", "")
+                headers.append(xml_tag)
+            break
+        if link_column_id > 0:
+            for row in reader:
+                col_id = 0
+                xml_object = xml.etree.ElementTree.Element(root_element, {"xmlns": xml_namespace})
+                for value, header in zip(row, headers):
+                    col_id += 1
+                    xml.etree.ElementTree.SubElement(xml_object, header).text = value
+                    if col_id == link_column_id:
+                        file_name = value
+                xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8', xml_declaration=True)
+                name = file_name + ".xml"
+                file = open(name, "wt", encoding="utf-8")
+                file.write(xml_request.decode("utf-8"))
+                file.close()
+
+
 def complex_asset_package(preservation_files_list=None, access_files_list=None, export_folder=None,
                           parent_folder=None, **kwargs):
     """
@@ -204,8 +374,13 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         for content_ref, filename in preservation_refs_dict.items():
             default_content_objects_title = os.path.splitext(os.path.basename(filename))[0]
             preservation_content_title = kwargs.get('Preservation_Content_Title', default_content_objects_title)
-            preservation_content_description = kwargs.get('Preservation_Content_Description',
-                                                          default_content_objects_title)
+            preservation_content_description = kwargs.get('Preservation_Content_Description',  default_content_objects_title)
+
+            if isinstance(preservation_content_title, dict):
+                preservation_content_title = preservation_content_title[filename]
+
+            if isinstance(preservation_content_description, dict):
+                preservation_content_description = preservation_content_description[filename]
 
             __make_content_objects__(xip, preservation_content_title, content_ref, io_ref, security_tag,
                                      preservation_content_description, content_type)
@@ -214,8 +389,15 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
         for content_ref, filename in access_refs_dict.items():
             default_content_objects_title = os.path.splitext(os.path.basename(filename))[0]
+
             access_content_title = kwargs.get('Access_Content_Title', default_content_objects_title)
             access_content_description = kwargs.get('Access_Content_Description', default_content_objects_title)
+
+            if isinstance(access_content_title, dict):
+                access_content_title = access_content_title[filename]
+
+            if isinstance(access_content_description, dict):
+                access_content_title = access_content_title[filename]
 
             __make_content_objects__(xip, access_content_title, content_ref, io_ref, security_tag,
                                      access_content_description, content_type)
@@ -277,7 +459,7 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
             if metadata_ns:
                 if metadata_path:
                     if os.path.exists(metadata_path) and os.path.isfile(metadata_path):
-                        descriptive_metadata = ElementTree.parse(metadata_path)
+                        descriptive_metadata = xml.etree.ElementTree.parse(source=metadata_path)
                         metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
                         metadata_ref = SubElement(metadata, 'Ref')
                         metadata_ref.text = str(uuid.uuid4())
