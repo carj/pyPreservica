@@ -662,7 +662,7 @@ The actual content files can be download using ``bitstream_content()`` ::
 
 
 Integrity Check History
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can request the history of all integrity checks which have been carried out on a bitstream ::
 
@@ -830,7 +830,8 @@ Search the repository using a single expression which matches on any indexed fie
 Searches for everything and writes the results to a csv file called "search.csv", by default the csv
 columns contain reference, title, description, document_type, parent_ref, security_tag ::
 
-You can pass the query term as the first argument (% is the wildcard character) and the csv file name as the second argument. ::
+You can pass the query term as the first argument (% is the wildcard character) and
+the csv file name as the second argument. ::
 
     >>> client = ContentAPI()
     >>> client.simple_search_csv("%", "results.csv")
@@ -892,7 +893,7 @@ The zip file can be any of the following:
 - Zipped Folder
 
 .. note::
-A Workflow Context must be active for the package upload requests to be successful.
+    A Workflow Context must be active for the package upload requests to be successful.
 
 If the package is a simple zipped folder without a manifest XML then you will want to pass information to the
 ingest to specify which folder the content should be ingested into.
@@ -905,7 +906,7 @@ To specify the parent folder of the ingest pass a folder object as the second ar
 
 
 Monitoring Upload Progress
-^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``upload_zip_package`` function accepts an optional Callback parameter.
 The parameter references a class that pyPreservica invokes intermittently during the transfer operation.
