@@ -66,6 +66,7 @@ Entity API Features
 -  Download digital files and thumbnails
 -  Fetch lists of changed entities over the last n days
 -  Request information on completed integrity checks   (**New in 6.2**)
+-  Add or remove asset and folder icons   (**New in 6.2**)
 
 Content API Features
 ---------------------
@@ -79,6 +80,8 @@ Upload API Features
 -  Create single Content Object Packages with multiple Representations
 -  Create multiple Content Object Packages with multiple Representations
 -  Upload packages to Preservica
+-  Spreadsheet Metadata
+-  Ingest Web Video
 
 Background
 -----------
@@ -769,6 +772,27 @@ then this call will probably do what you expect. ::
 For complex multi-part assets which have been through preservation actions it may be better to use the data model
 and the ``bitstream_content()`` function to fetch the exact bitstream you need.
 
+
+
+Add or remove asset and folder icons
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can now add and remove icons on assets and folders using the API. The icons will be displayed in the Explorer and
+Universal Access interfaces. ::
+
+    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>>> client.add_thumbnail(folder, "../my-icon.png")
+
+    >>> client.remove_thumbnail(folder)
+
+and for assets ::
+
+    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>> client.add_thumbnail(asset, "../my-icon.png")
+
+    >>> client.remove_thumbnail(asset)
+
+
 We also have a function to fetch the thumbnail image for an asset or folder ::
 
     >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
@@ -780,7 +804,6 @@ You can specify the size of the thumbnail by passing a second argument ::
     >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.LARGE)     ## 400×400   pixels
     >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.MEDIUM)    ## 150×150   pixels
     >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.SMALL)     ## 64×64     pixels
-
 
 
 Content API
@@ -1131,9 +1154,50 @@ You can also auto-generate a custom search index document which will add indexes
 
 
 
+Ingest Web Video
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pyPreservica now contains the ability to ingest web video directly from video hosting sites such as YouTube and others.
+To use this functionality you need to install the additional Python Project youtube_dl ::
+
+    $ pip install --upgrade youtube_dl
+
+ You can ingest video's directly with only the video site URL ::
+
+    >>> upload = UploadAPI()
+    >>> client = EntityAPI()
+    >>> url = "https://www.youtube.com/watch?v=4GCr9gljY7s"
+    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>> upload.ingest_web_video(url=url, parent_folder=folder):
 
 
+It will work with most sites that host video, for example using c-span::
 
+    >>> upload = UploadAPI()
+    >>> client = EntityAPI()
+    >>> url = "https://www.c-span.org/video/?508691-1/ceremonial-swearing-democratic-senator-padilla"
+    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>> upload.ingest_web_video(url=url, parent_folder=folder):
+
+
+or UK parliament ::
+
+    >>> upload = UploadAPI()
+    >>> client = EntityAPI()
+    >>> url = "https://parliamentlive.tv/event/index/b886f44b-0e65-47bc-b506-d0e805c01f4b"
+    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+
+The asset will automatically have a title and description pulled from the original site.
+You can override the default title, description and security tag with optional arguments and add 3rd party
+identifiers. ::
+
+    >>> upload = UploadAPI()
+    >>> client = EntityAPI()
+    >>> identifier_map = {"Type": "youtube.com"}
+    >>> url = "https://www.youtube.com/watch?v=4GCr9gljY7s"
+    >>> title = "Preservica Cloud Edition: Keeping your digital assets safe and accessible"
+    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>> upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_map, Title=title, SecurityTag="public")
 
 Entity API Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

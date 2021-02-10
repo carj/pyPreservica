@@ -94,6 +94,11 @@ class EntityAPI(AuthenticatedAPI):
 
     """
 
+    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
+        super().__init__(username, password, tenant, server, use_shared_secret)
+        xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
+        xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
+
     def bitstream_content(self, bitstream: Bitstream, filename: str):
         """
         Download a file represented as a Bitstream to a local filename
@@ -920,6 +925,72 @@ class EntityAPI(AuthenticatedAPI):
             print(request.request.url)
             raise RuntimeError(request.status_code, "bitstream failed")
 
+    def replace_generation_sync(self, content_object: ContentObject, file_name, fixity_algorithm=None,
+                                fixity_value=None) -> str:
+        """
+            Replace the last active generation of a content object with a new digital file.
+
+            Starts the workflow and blocks until the workflow completes.
+
+        """
+
+        status = "ACTIVE"
+
+        pid = self.replace_generation_async(content_object=content_object, file_name=file_name,
+                                            fixity_algorithm=fixity_algorithm, fixity_value=fixity_value)
+
+        while status == "ACTIVE":
+            status = self.get_async_progress(pid)
+
+        return status
+
+    def replace_generation_async(self, content_object: ContentObject, file_name, fixity_algorithm=None,
+                                 fixity_value=None) -> str:
+        """
+        Replace the last active generation of a content object with a new digital file.
+
+        Starts the workflow and returns
+
+        """
+        if (self.major_version < 7) and (self.minor_version < 2) and (self.patch_version < 1):
+            raise RuntimeError("replace API call is only available when connected to a v6.2.1 System")
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+
+        params = {"replaceType": "previous"}
+
+        if fixity_algorithm is None:
+            generation = self.generations(content_object=content_object).pop()
+            bitstream = generation.bitstreams.pop()
+            for algo, value in bitstream.fixity.items():
+                fixity_algorithm = algo
+                fixity_value = value
+
+        if fixity_algorithm and fixity_value:
+            if "MD5" in fixity_algorithm.upper():
+                headers["Fixity-MD5"] = fixity_value
+            if "SHA1" in fixity_algorithm.upper() or "SHA-1" in fixity_algorithm.upper():
+                headers["Fixity-SHA-1"] = fixity_value
+            if "SHA256" in fixity_algorithm.upper() or "SHA-256" in fixity_algorithm.upper():
+                headers["Fixity-SHA-256"] = fixity_value
+            if "SHA512" in fixity_algorithm.upper() or "SHA-512" in fixity_algorithm.upper():
+                headers["Fixity-SHA-512"] = fixity_value
+
+        headers["Filename"] = os.path.basename(file_name)
+        headers['Content-Length'] = str(os.path.getsize(file_name))
+
+        with open(file_name, 'rb') as f:
+            request = requests.post(
+                f'https://{self.server}/api/entity/{CO_PATH}/{content_object.reference}/generations',
+                params=params, data=f, headers=headers)
+
+        if request.status_code == requests.codes.ok:
+            return str(request.content.decode('utf-8'))
+        elif request.status_code == requests.codes.unauthorized:
+            return self.replace_generation_async(content_object=content_object, file_name=file_name,
+                                                 fixity_algorithm=fixity_algorithm, fixity_value=fixity_value)
+        else:
+            raise RuntimeError(request.status_code, f"replace_generation failed: {request.content}")
+
     def generations(self, content_object: ContentObject) -> list:
         """
         Retrieve list of generations on a content object
@@ -967,7 +1038,7 @@ class EntityAPI(AuthenticatedAPI):
             representations = entity_response.findall('.//{*}Representation')
             result = set()
             for r in representations:
-                representation = Representation(asset, r.get('type'), r.get("name", ""), r.text)
+                representation = Representation(asset, r.get('type'), r.get("name", str("")), r.text)
                 result.add(representation)
             return result
         elif request.status_code == requests.codes.unauthorized:
@@ -975,6 +1046,58 @@ class EntityAPI(AuthenticatedAPI):
             return self.representations(asset)
         else:
             raise RuntimeError(request.status_code, "representations failed")
+
+    def remove_thumbnail(self, entity: Entity):
+        """
+          remove a thumbnail icon to a folder or asset
+
+
+          :param entity:   The Entity
+          """
+        if self.major_version < 7 and self.minor_version < 2:
+            raise RuntimeError("Thumbnail API is only available when connected to a v6.2 System")
+
+        if isinstance(entity, ContentObject):
+            raise RuntimeError("Thumbnails cannot be added to Content Objects")
+
+        headers = {HEADER_TOKEN: self.token}
+
+        request = requests.delete(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/preview',
+                                  headers=headers)
+        if request.status_code == requests.codes.no_content:
+            return str(request.content.decode('utf-8'))
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.remove_thumbnail(entity)
+        else:
+            raise RuntimeError(request.status_code, f"remove_thumbnail failed: {request.content}")
+
+    def add_thumbnail(self, entity: Entity, image_file: str):
+        """
+         add a thumbnail icon to a folder or asset
+
+
+         :param entity:   The Entity
+         """
+        if self.major_version < 7 and self.minor_version < 2:
+            raise RuntimeError("Thumbnail API is only available when connected to a v6.2 System")
+
+        if isinstance(entity, ContentObject):
+            raise RuntimeError("Thumbnails cannot be added to Content Objects")
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+
+        with open(image_file, 'rb') as f:
+            request = requests.put(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/preview',
+                                   data=f, headers=headers)
+
+        if request.status_code == requests.codes.no_content:
+            return str(request.content.decode('utf-8'))
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.add_thumbnail(entity, image_file)
+        else:
+            raise RuntimeError(request.status_code, f"add_thumbnail failed: {request.content}")
 
     def all_descendants(self, folder_reference: str = None):
         """
