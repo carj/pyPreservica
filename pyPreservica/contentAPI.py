@@ -1,15 +1,20 @@
-import requests
+"""
+pyPreservica ContentAPI module definition
+
+A client library for the Preservica Repository web services Content API
+https://us.preservica.com/api/content/documentation.html
+
+author:     James Carr
+licence:    Apache License 2.0
+
+"""
+
 import csv
+from pyPreservica.common import *
 
-from pyPreservica.common import AuthenticatedAPI, Thumbnail, CHUNK_SIZE, HEADER_TOKEN, content_api_identifier_to_type
-
+logger = logging.getLogger(__name__)
 
 class ContentAPI(AuthenticatedAPI):
-    """
-         A client library for the Preservica Repository web services Content API
-         https://us.preservica.com/api/content/documentation.html
-
-    """
 
     def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
         super().__init__(username, password, tenant, server, use_shared_secret)
@@ -33,13 +38,13 @@ class ContentAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             return request.json()["value"]
         elif request.status_code == requests.codes.not_found:
+            logger.error(f"The requested reference is not found in the repository: {reference}")
             raise RuntimeError(reference, "The requested reference is not found in the repository")
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.object_details(entity_type, reference)
         else:
-            print(f"object_details failed with error code: {request.status_code}")
-            print(request.request.url)
+            logger.error(f"object_details failed with error code: {request.status_code}")
             raise RuntimeError(request.status_code, f"object_details failed with error code: {request.status_code}")
 
     def download(self, reference, filename):
@@ -58,10 +63,10 @@ class ContentAPI(AuthenticatedAPI):
                 self.token = self.__token__()
                 return self.download(reference, filename)
             elif req.status_code == requests.codes.not_found:
+                logger.error(f"The requested asset reference is not found in the repository: {reference}")
                 raise RuntimeError(reference, "The requested reference is not found in the repository")
             else:
-                print(f"download failed with error code: {req.status_code}")
-                print(req.request.url)
+                logger.error(f"download failed with error code: {req.status_code}")
                 raise RuntimeError(req.status_code, f"download failed with error code: {req.status_code}")
 
     def thumbnail(self, entity_type, reference, filename, size=Thumbnail.LARGE):
@@ -85,10 +90,10 @@ class ContentAPI(AuthenticatedAPI):
                 self.token = self.__token__()
                 return self.thumbnail(entity_type, reference, filename, size)
             elif req.status_code == requests.codes.not_found:
+                logger.error(f"The requested reference is not found in the repository: {reference}")
                 raise RuntimeError(reference, "The requested reference is not found in the repository")
             else:
-                print(f"thumbnail failed with error code: {req.status_code}")
-                print(req.request.url)
+                logger.error(f"thumbnail failed with error code: {req.status_code}")
                 raise RuntimeError(req.status_code, f"thumbnail failed with error code: {req.status_code}")
 
     def indexed_fields(self):
@@ -104,8 +109,7 @@ class ContentAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.indexed_fields()
         else:
-            print(f"indexed_fields failed with error code: {results.status_code}")
-            print(results.request.url)
+            logger.error(f"indexed_fields failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"indexed_fields failed with error code: {results.status_code}")
 
     def simple_search_csv(self, query: str = "%", csv_file="search.csv", *args):
@@ -117,8 +121,8 @@ class ContentAPI(AuthenticatedAPI):
             metadata_fields = list(*args)
         if "xip.reference" not in metadata_fields:
             metadata_fields.insert(0, "xip.reference")
-        with open(csv_file, newline='', mode="wt", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=metadata_fields)
+        with open(csv_file, newline='', mode="wt", encoding="utf-8") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=metadata_fields)
             writer.writeheader()
             writer.writerows(self.simple_search_list(query, page_size, *args))
 
@@ -136,15 +140,13 @@ class ContentAPI(AuthenticatedAPI):
     def simple_search(self, query: str = "%", start_index: int = 0, page_size: int = 10, *args):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
-        queryterm = ('{ "q":  "%s" }' % query)
+        query_term = ('{ "q":  "%s" }' % query)
         if len(args) == 0:
             metadata_fields = "xip.title,xip.description,xip.document_type,xip.parent_ref,xip.security_descriptor"
         else:
             metadata_fields = ','.join(*args)
-        payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields,
-                   'q': queryterm}
-        results = requests.post(f'https://{self.server}/api/content/search', data=payload,
-                                headers=headers)
+        payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': query_term}
+        results = requests.post(f'https://{self.server}/api/content/search', data=payload,  headers=headers)
         results_list = list()
         if results.status_code == requests.codes.ok:
             json = results.json()
@@ -171,8 +173,7 @@ class ContentAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.simple_search(query, start_index, page_size, *args)
         else:
-            print(f"search failed with error code: {results.status_code}")
-            print(results.request.url)
+            logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"simple_search failed with error code: {results.status_code}")
 
     def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", map_fields=None):
@@ -185,8 +186,8 @@ class ContentAPI(AuthenticatedAPI):
         header_fields = list(map_fields.keys())
         index = header_fields.index("xip.reference")
         header_fields.insert(0, header_fields.pop(index))
-        with open(csv_file, newline='', mode="wt", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=header_fields)
+        with open(csv_file, newline='', mode="wt", encoding="utf-8") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=header_fields)
             writer.writeheader()
             writer.writerows(self.search_index_filter_list(query, page_size, map_fields))
 
@@ -214,9 +215,9 @@ class ContentAPI(AuthenticatedAPI):
 
         filter_terms = ','.join(field_list)
 
-        queryterm = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
+        query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
 
-        payload = {'start': start_from, 'max': str(page_size), 'metadata': list(map_fields.keys()), 'q': queryterm}
+        payload = {'start': start_from, 'max': str(page_size), 'metadata': list(map_fields.keys()), 'q': query_term}
         results = requests.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = list()
         if results.status_code == requests.codes.ok:
@@ -244,6 +245,5 @@ class ContentAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.search_index_filter(query, start_index, page_size, map_fields)
         else:
-            print(f"search failed with error code: {results.status_code}")
-            print(results.request.url)
+            logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"search_index_filter failed")

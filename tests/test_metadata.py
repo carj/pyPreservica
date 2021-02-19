@@ -40,13 +40,13 @@ def test_update_folder_metadata():
     description = document.find(".//{http://purl.org/dc/elements/1.1/}description")
     assert description.text == "a"
     description.text = "description"
-    xml_string = ElementTree.tostring(document, encoding='UTF-8', xml_declaration=True).decode("utf-8")
+    xml_string = ElementTree.tostring(document, encoding='UTF-8').decode("utf-8")
     folder = client.update_metadata(entity, "http://purl.org/dc/elements/1.1/", xml_string)
     document = xml.etree.ElementTree.fromstring(client.metadata_for_entity(folder, "http://purl.org/dc/elements/1.1/"))
     description = document.find(".//{http://purl.org/dc/elements/1.1/}description")
     assert description.text == "description"
     description.text = "a"
-    xml_string = ElementTree.tostring(document, encoding='UTF-8', xml_declaration=True).decode("utf-8")
+    xml_string = ElementTree.tostring(document, encoding='UTF-8').decode("utf-8")
     folder = client.update_metadata(entity, "http://purl.org/dc/elements/1.1/", xml_string)
 
 

@@ -1,5 +1,4 @@
 import csv
-import os
 import shutil
 import tempfile
 import uuid
@@ -14,7 +13,9 @@ from boto3.s3.transfer import TransferConfig
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from pyPreservica.common import AuthenticatedAPI, Sha1FixityCallBack
+from pyPreservica.common import *
+
+logger = logging.getLogger(__name__)
 
 GB = 1024 ** 3
 transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 8))

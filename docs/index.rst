@@ -67,6 +67,8 @@ Entity API Features
 -  Fetch lists of changed entities over the last n days
 -  Request information on completed integrity checks   (**New in 6.2**)
 -  Add or remove asset and folder icons   (**New in 6.2**)
+-  Replace existing content objects within an Asset   (**New in 6.2**)
+-  Export OPEX Package   (**New in 6.2**)
 
 Content API Features
 ---------------------
@@ -280,6 +282,46 @@ explicitly.
 For on-premise deployments the trusted CAs can be specified through the ``REQUESTS_CA_BUNDLE`` environment variable. e.g. ::
 
     export REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/my-server.cert
+
+
+
+Application Logging
+-------------------
+
+You can add logging to your pyPreservica scripts by simply including the following ::
+
+
+    import logging
+    from pyPreservica import *
+
+    logging.basicConfig(level=logging.DEBUG)
+
+    client = EntityAPI()
+
+This will log all messages from level DEBUG or higher to standard output, i.e the console.
+
+When logging to files, the main thing to be wary of is that log files need to be rotated regularly.
+The application needs to detect the log file being renamed and handle that situation.
+While Python provides its own file rotation handler, it is best to leave log rotation to dedicated tools such as logrotate.
+The WatchedFileHandler will keep track of the log file and reopen it if it is rotated,
+making it work well with logrotate without requiring any specific signals.
+
+Here’s a sample implementation. ::
+
+    import logging
+    import logging.handlers
+    import os
+
+    from pyPreservica import *
+
+    handler = logging.handlers.WatchedFileHandler("pyPreservica.log")
+    formatter = logging.Formatter(logging.BASIC_FORMAT)
+    handler.setFormatter(formatter)
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    root.addHandler(handler)
+
+    client = EntityAPI()
 
 
 
@@ -806,6 +848,74 @@ You can specify the size of the thumbnail by passing a second argument ::
     >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.SMALL)     ## 64×64     pixels
 
 
+
+
+Replacing Content Objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Preservica now supports replacing individual Content Objects within an Asset. The use case here is you have uploaded
+a large digitised object such as book and you subsequently discover that a page has been digitised incorrectly.
+You would like to replace a single page (Content Object) without having to delete and re-ingest the complete Asset.
+
+The API call will replace the last active Generation of the Content Object ::
+
+    >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> file = "C:/book/page421.tiff"
+    >>> pid = client.replace_generation(content_object, file)
+
+ This will return a process id which can be used to monitor the replacement workflow using ::
+
+    >>> status = client.get_async_progress(pid)
+
+By default the API will generate a new fixity value on the client using the same fixity algorithm as the original Generation you are replacing.
+If you want to use a different fixity algorithm or you want to use a pre-calculated or existing fixity value you can specify the
+algorithm and value. ::
+
+    >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> file = "C:/book/page421.tiff"
+    >>> pid = client.replace_generation(content_object, file, fixity_algorithm='SHA1', fixity_value='2fd4e1c67a2d28fced849ee1bb76e7391b93eb12')
+
+
+
+Export OPEX Package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pyPreservica allows clients to request a full package export from the system by folder or asset,
+this will start an export workflow and download the resulting dissemination package when the export workflow has completed.
+
+The resulting package will be a zipped OPEX formatted package containing the digital content and metadata.
+The ``export_opex`` API is a blocking call which will wait for the export workflow to complete before downloading the package. ::
+
+    >>> folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> opex_zip = client.export_opex(folder)
+
+The output is the name of the downloaded zip file in the current working directory.
+
+By default the OPEX package includes metadata, digital content with the latest active generations
+and the parent hierarchy.
+
+The API can be called on either a folder or a single asset.  ::
+
+    >>> asset = client.asset('1f2129f7-728c-4e55-9f92-381ed1260d70')
+    >>> opex_zip = client.export_opex(asset)
+
+The call also takes the following optional arguments
+
+* ``IncludeContent``            "Content" or "NoContent"
+* ``IncludeMetadata``           "Metadata" or "NoMetadata" or "MetadataWithEvents"
+* ``IncludedGenerations``       "LatestActive" or "AllActive" or "All"
+* ``IncludeParentHierarchy``    "true" or "false"
+
+e.g.    ::
+
+
+    >>> folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> opex_zip = client.export_opex(folder, IncludeContent="Content", IncludeMetadata="MetadataWithEvents")
+
+
+
+
+
 Content API
 ~~~~~~~~~~~~~~~
 
@@ -1163,33 +1273,40 @@ To use this functionality you need to install the additional Python Project yout
     $ pip install --upgrade youtube_dl
 
 
-You can ingest video's directly with only the video site URL ::
+You can ingest video's directly with only the video site URL
+You also need to tell Preservica which folder the new video asset will be ingested into.::
 
     >>> upload = UploadAPI()
     >>> client = EntityAPI()
-    >>> url = "https://www.youtube.com/watch?v=4GCr9gljY7s"
     >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> upload.ingest_web_video(url=url, parent_folder=folder):
+    >>>
+    >>> upload.ingest_web_video(url="https://www.youtube.com/watch?v=4GCr9gljY7s", parent_folder=folder):
 
+The new asset will get the title and description from youtube metadata. The asset will be given the default
+security tag of "open".
+
+The video is downloaded from the web hosting platform to the local client running the Python script and then uploaded
+to Preservica.
 
 It will work with most sites that host video, for example using c-span::
 
     >>> upload = UploadAPI()
     >>> client = EntityAPI()
-    >>> url = "https://www.c-span.org/video/?508691-1/ceremonial-swearing-democratic-senator-padilla"
+    >>> cspan_url = "https://www.c-span.org/video/?508691-1/ceremonial-swearing-democratic-senator-padilla"
     >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> upload.ingest_web_video(url=url, parent_folder=folder):
+    >>> upload.ingest_web_video(url=cspan_url, parent_folder=folder):
 
 
 or UK parliament ::
 
     >>> upload = UploadAPI()
     >>> client = EntityAPI()
-    >>> url = "https://parliamentlive.tv/event/index/b886f44b-0e65-47bc-b506-d0e805c01f4b"
+    >>> uk_url = "https://parliamentlive.tv/event/index/b886f44b-0e65-47bc-b506-d0e805c01f4b"
     >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> upload.ingest_web_video(url=url, parent_folder=folder):
+    >>> upload.ingest_web_video(url=uk_url, parent_folder=folder):
 
 The asset will automatically have a title and description pulled from the original site.
+
 You can override the default title, description and security tag with optional arguments and add 3rd party
 identifiers. ::
 

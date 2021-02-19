@@ -4,6 +4,8 @@ from xml.etree import ElementTree
 
 from pyPreservica.common import *
 
+logger = logging.getLogger(__name__)
+
 
 def prettify(elem):
     """Return a pretty-printed XML string for the Element.

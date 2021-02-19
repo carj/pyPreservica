@@ -60,20 +60,6 @@ def test_get_generations():
     assert generation.format_group == "jpeg"
 
 
-def test_get_bitstream_checks():
-    client = EntityAPI()
-    asset = client.asset(ASSET_ID)
-    preservation_representations = list(filter(lambda x: x.rep_type == "Preservation", client.representations(asset)))
-    preservation_content_objects = client.content_objects(preservation_representations.pop())
-    generation = client.generations(preservation_content_objects[0])[0]
-    assert generation.format_group == "tiff"
-    assert len(generation.bitstreams) == 1
-    bitstream = generation.bitstreams[0]
-    assert bitstream.filename == "LC-USZ62-51820.tiff"
-    assert bitstream.length == 1942466
-
-    checks = list(client.integrity_checks(bitstream))
-    assert len(checks) > 3
 
 
 def test_get_bitstream_content():

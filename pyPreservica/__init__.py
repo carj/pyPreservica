@@ -1,3 +1,11 @@
+"""
+pyPreservica module definition
+import API classes, for entity, content, upload, workflows & retention
+
+author:     James Carr
+licence:    Apache License 2.0
+
+"""
 from .common import *
 from .contentAPI import ContentAPI
 from .entityAPI import EntityAPI
@@ -9,6 +17,6 @@ from .retentionAPI import RetentionAPI
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "0.9.0"
+__version__ = "0.9.2"
 
 __license__ = "Apache License Version 2.0"

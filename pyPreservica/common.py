@@ -1,5 +1,9 @@
 """
 Base class for authenticated API calls used by Entity, Content and Upload
+
+author:     James Carr
+licence:    Apache License 2.0
+
 """
 
 import configparser
@@ -11,27 +15,28 @@ import time
 import xml.etree.ElementTree
 from enum import Enum
 import requests
+import logging
 
 import pyPreservica
 
+logger = logging.getLogger(__name__)
+
 CHUNK_SIZE = 1024 * 2
 
-NS_XIPV6 = "http://preservica.com/XIP/v6.0"
-NS_XIPV61 = "http://preservica.com/XIP/v6.1"
-NS_XIPV62 = "http://preservica.com/XIP/v6.2"
+NS_XIP_ROOT = "http://preservica.com/XIP/"
+NS_ENTITY_ROOT = "http://preservica.com/EntityAPI/"
+NS_RM_ROOT = "http://preservica.com/RetentionManagement/"
 
+NS_XIP_V6 = "http://preservica.com/XIP/v6.0"
 NS_ENTITY = "http://preservica.com/EntityAPI/v6.0"
-NS_ENTITY61 = "http://preservica.com/EntityAPI/v6.1"
-NS_ENTITY62 = "http://preservica.com/EntityAPI/v6.2"
 
-namespace = {'xip': NS_XIPV6, 'v6': NS_ENTITY}
 HEADER_TOKEN = "Preservica-Access-Token"
 
 IO_PATH = "information-objects"
 SO_PATH = "structural-objects"
 CO_PATH = "content-objects"
 
-HASH_BLOCKSIZE = 65536
+HASH_BLOCK_SIZE = 65536
 
 
 class FileHash:
@@ -48,11 +53,11 @@ class FileHash:
 
     def __call__(self, file):
         hash_algorithm = self.algorithm()
-        with open(file, 'rb') as afile:
-            buf = afile.read(HASH_BLOCKSIZE)
+        with open(file, 'rb') as f:
+            buf = f.read(HASH_BLOCK_SIZE)
             while len(buf) > 0:
                 hash_algorithm.update(buf)
-                buf = afile.read(HASH_BLOCKSIZE)
+                buf = f.read(HASH_BLOCK_SIZE)
         return hash_algorithm.hexdigest()
 
 
@@ -289,28 +294,6 @@ def content_api_identifier_to_type(ref):
     return tuple((EntityType(parts[0]), parts[1]))
 
 
-def entity_from_string(xml_data):
-    entity_response = xml.etree.ElementTree.fromstring(xml_data)
-    reference = entity_response.find('.//{*}Ref')
-    title = entity_response.find('.//{*}Title')
-    security_tag = entity_response.find('.//{*}SecurityTag')
-    description = entity_response.find('.//{*}Description')
-    parent = entity_response.find('.//{*}Parent')
-    if hasattr(parent, 'text'):
-        parent = parent.text
-    else:
-        parent = None
-
-    fragments = entity_response.findall('.//{*}Metadata/{*}Fragment')
-    metadata = {}
-    for fragment in fragments:
-        metadata[fragment.text] = fragment.attrib['schema']
-
-    return {'reference': reference.text, 'title': title.text if hasattr(title, 'text') else None,
-            'description': description.text if hasattr(description, 'text') else None,
-            'security_tag': security_tag.text, 'parent': parent, 'metadata': metadata}
-
-
 class Thumbnail(Enum):
     SMALL = "small"
     MEDIUM = "medium"
@@ -328,25 +311,65 @@ class AuthenticatedAPI:
     Base class for authenticated calls which need an access token
     """
 
+    def entity_from_string(self, xml_data):
+        entity_response = xml.etree.ElementTree.fromstring(xml_data)
+        reference = entity_response.find(f'.//{{{self.xip_ns}}}Ref')
+        title = entity_response.find(f'.//{{{self.xip_ns}}}Title')
+        security_tag = entity_response.find(f'.//{{{self.xip_ns}}}SecurityTag')
+        description = entity_response.find(f'.//{{{self.xip_ns}}}Description')
+        parent = entity_response.find(f'.//{{{self.xip_ns}}}Parent')
+        if hasattr(parent, 'text'):
+            parent = parent.text
+        else:
+            parent = None
+
+        fragments = entity_response.findall(f'.//{{{self.entity_ns}}}Metadata/{{{self.entity_ns}}}Fragment')
+        metadata = {}
+        for fragment in fragments:
+            metadata[fragment.text] = fragment.attrib['schema']
+
+        return {'reference': reference.text, 'title': title.text if hasattr(title, 'text') else None,
+                'description': description.text if hasattr(description, 'text') else None,
+                'security_tag': security_tag.text, 'parent': parent, 'metadata': metadata}
+
+    def __version_namespace__(self):
+        """
+        Generate version specific namespaces from the server version
+        """
+        if self.major_version == 6:
+            if self.minor_version < 2:
+                self.xip_ns = NS_XIP_V6
+                self.entity_ns = NS_ENTITY
+            else:
+                self.xip_ns = f"{NS_XIP_ROOT}v{self.major_version}.{self.minor_version}"
+                self.entity_ns = f"{NS_ENTITY_ROOT}v{self.major_version}.{self.minor_version}"
+                self.rm_ns = f"{NS_RM_ROOT}v{self.major_version}.{2}"
+
     def __version_number__(self):
+        """
+        Determine the version number of the server
+        """
         headers = {HEADER_TOKEN: self.token}
-        request = requests.get(f'https://{self.server}/api/entity/versiondetails/version', headers=headers)
+        request = self.session.get(f'https://{self.server}/api/entity/versiondetails/version', headers=headers)
         if request.status_code == requests.codes.ok:
-            xml_ = str(request.content)
+            xml_ = str(request.content.decode('utf-8'))
             version = xml_[xml_.find("<CurrentVersion>") + len("<CurrentVersion>"):xml_.find("</CurrentVersion>")]
             version_numbers = version.split(".")
             self.major_version = int(version_numbers[0])
             self.minor_version = int(version_numbers[1])
             self.patch_version = int(version_numbers[2])
             return version
-        if request.status_code == requests.codes.unauthorized:
+        elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.__version_number__()
-        raise RuntimeError(request.status_code, "version number failed")
+        else:
+            logger.error(f"version number failed with http response {request.status_code}")
+            logger.error(str(request.content))
+            RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.2 Compatible) \n" \
-               f"Connected to: {self.server} Preservica version: {self.version} as {self.username}\n"
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.2 Compatible) " \
+               f"Connected to: {self.server} Preservica version: {self.version} as {self.username}"
 
     def __repr__(self):
         return self.__str__()
@@ -360,22 +383,31 @@ class AuthenticatedAPI:
 
     def manager_token(self, username, password):
         data = {'username': username, 'password': password, 'tenant': self.tenant}
-        response = requests.post(f'https://{self.server}/api/accesstoken/login', data=data)
+        response = self.session.post(f'https://{self.server}/api/accesstoken/login', data=data)
         if response.status_code == requests.codes.ok:
             return response.json()['token']
-        raise RuntimeError(response.status_code, "Could not generate valid manager approval password")
+        else:
+            msg = "Could not generate valid manager approval password"
+            logger.error(msg)
+            logger.error(response.status_code)
+            logger.error(str(response.content))
+            RuntimeError(response.status_code, "Could not generate valid manager approval password")
 
     def __token__(self):
-
+        logger.debug("Token Expired Requesting New Token")
         if self.shared_secret is False:
-            data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
-            response = requests.post(f'https://{self.server}/api/accesstoken/login', data=data)
+            if self.tenant == "%":
+                data = {'username': self.username, 'password': self.password}
+            else:
+                data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
+            response = self.session.post(f'https://{self.server}/api/accesstoken/login', data=data)
             if response.status_code == requests.codes.ok:
                 return response.json()['token']
             else:
-                raise RuntimeError(response.status_code,
-                                   "Failed to create an password based authentication token. Check your credentials "
-                                   "are correct")
+                msg = "Failed to create a password based authentication token. Check your credentials are correct"
+                logger.error(msg)
+                logger.error(str(response.content))
+                raise RuntimeError(response.status_code, msg)
 
         if self.shared_secret is True:
             endpoint = "api/accesstoken/acquire-external"
@@ -384,18 +416,18 @@ class AuthenticatedAPI:
             sha1 = hashlib.sha1()
             sha1.update(to_hash.encode(encoding='UTF-8'))
             data = {"username": self.username, "tenant": self.tenant, "timestamp": timestamp, "hash": sha1.hexdigest()}
-            response = requests.post(f'https://{self.server}/{endpoint}', data=data)
+            response = self.session.post(f'https://{self.server}/{endpoint}', data=data)
             if response.status_code == requests.codes.ok:
                 return response.json()['token']
             else:
-                raise RuntimeError(response.status_code,
-                                   "Failed to create an shared secret authentication token. Check your credentials "
-                                   "are correct")
+                msg = "Failed to create a shared secret authentication token. Check your credentials are correct"
+                logger.error(msg)
+                raise RuntimeError(response.status_code, msg)
 
     def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
         config = configparser.ConfigParser()
         config.read('credentials.properties')
-
+        self.session = requests.Session()
         self.shared_secret = bool(use_shared_secret)
 
         if not username:
@@ -406,8 +438,9 @@ class AuthenticatedAPI:
                 except KeyError:
                     pass
         if not username:
-            print("No valid username found in method arguments, environment variables or credentials.properties file")
-            raise SystemExit
+            msg = "No valid username found in method arguments, environment variables or credentials.properties file"
+            logger.error(msg)
+            raise RuntimeError(msg)
         else:
             self.username = username
 
@@ -419,8 +452,9 @@ class AuthenticatedAPI:
                 except KeyError:
                     pass
         if not password:
-            print("No valid password found in method arguments, environment variables or credentials.properties file")
-            raise SystemExit
+            msg = "No valid password found in method arguments, environment variables or credentials.properties file"
+            logger.error(msg)
+            raise RuntimeError(msg)
         else:
             self.password = password
 
@@ -432,8 +466,9 @@ class AuthenticatedAPI:
                 except KeyError:
                     pass
         if not tenant:
-            print("No valid tenant found in method arguments, environment variables or credentials.properties file")
-            raise SystemExit
+            msg = "No valid tenant found in method arguments, environment variables or credentials.properties file"
+            logger.error(msg)
+            raise RuntimeError(msg)
         else:
             self.tenant = tenant
 
@@ -445,10 +480,16 @@ class AuthenticatedAPI:
                 except KeyError:
                     pass
         if not server:
-            print("No valid server found in method arguments, environment variables or credentials.properties file")
-            raise SystemExit
+            msg = "No valid server found in method arguments, environment variables or credentials.properties file"
+            logger.error(msg)
+            raise RuntimeError(msg)
         else:
             self.server = server
 
         self.token = self.__token__()
         self.version = self.__version_number__()
+        self.__version_namespace__()
+
+        logger.debug(str(self))
+        logger.debug(self.xip_ns)
+        logger.debug(self.entity_ns)
