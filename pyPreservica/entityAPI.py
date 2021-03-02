@@ -9,7 +9,6 @@ licence:    Apache License 2.0
 
 """
 
-import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from time import sleep

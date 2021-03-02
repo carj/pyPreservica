@@ -17,6 +17,6 @@ from .retentionAPI import RetentionAPI
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "0.9.2"
+__version__ = "0.9.6"
 
 __license__ = "Apache License Version 2.0"

@@ -1,14 +1,16 @@
 import csv
+import json
 import shutil
 import tempfile
 import uuid
 import xml
+from time import sleep
+
+import boto3
 from datetime import datetime
 from xml.dom import minidom
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
-from sanitize_filename import sanitize
-import boto3
 from boto3.s3.transfer import TransferConfig
 from botocore.config import Config
 from botocore.exceptions import ClientError
@@ -50,7 +52,12 @@ def __create_io__(file_name=None, parent_folder=None, **kwargs):
     custom_type = SubElement(io, 'CustomType')
     custom_type.text = kwargs.get('CustomType', "")
     parent = SubElement(io, 'Parent')
-    parent.text = parent_folder.reference
+
+    if hasattr(parent_folder, "reference"):
+        parent.text = parent_folder.reference
+    elif isinstance(parent_folder, str):
+        parent.text = parent_folder
+
     return xip, ref.text
 
 
@@ -236,12 +243,13 @@ def cvs_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additi
 
     if additional_namespaces is not None:
         for prefix, uri in additional_namespaces.items():
-            namespaces["xmlns:" + prefix] = uri
+            namespaces["xmlns:" + prefix.trim()] = uri.trim()
 
     xml_schema = xml.etree.ElementTree.Element("xs:schema", namespaces)
 
-    for prefix, namespace in additional_namespaces.items():
-        xml_import = xml.etree.ElementTree.SubElement(xml_schema, "xs:import", {"namespace": namespace})
+    if additional_namespaces is not None:
+        for prefix, namespace in additional_namespaces.items():
+            xml_import = xml.etree.ElementTree.SubElement(xml_schema, "xs:import", {"namespace": namespace})
 
     xml_element = xml.etree.ElementTree.SubElement(xml_schema, "xs:element", {"name": root_element})
 
@@ -589,22 +597,166 @@ def simple_asset_package(preservation_file=None, access_file=None, export_folder
 
 class UploadAPI(AuthenticatedAPI):
 
+    def ingest_twitter_feed(self, twitter_user=None, num_tweets: int = 25, twitter_consumer_key=None,
+                            twitter_secret_key=None, folder=None, **kwargs):
+
+        entity_client = pyPreservica.EntityAPI(username=self.username, password=self.password, server=self.server,
+                                               tenant=self.tenant)
+        if hasattr(folder, "reference"):
+            folder = entity_client.folder(folder.reference)
+        else:
+            folder = entity_client.folder(folder)
+        try:
+            import tweepy
+            from tweepy import TweepError
+        except ImportError:
+            logger.error("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
+            raise RuntimeError("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
+        config = configparser.ConfigParser()
+        config.read('credentials.properties')
+        if twitter_consumer_key is None:
+            twitter_consumer_key = os.environ.get('TWITTER_CONSUMER_KEY')
+            if twitter_consumer_key is None:
+                try:
+                    twitter_consumer_key = config['credentials']['TWITTER_CONSUMER_KEY']
+                except KeyError:
+                    logger.error("No valid TWITTER_CONSUMER_KEY found in method arguments, "
+                                 "environment variables or credentials.properties file")
+                    raise RuntimeError("No valid TWITTER_CONSUMER_KEY found in method arguments, "
+                                       "environment variables or credentials.properties file")
+        if twitter_secret_key is None:
+            twitter_secret_key = os.environ.get('TWITTER_SECRET_KEY')
+            if twitter_secret_key is None:
+                try:
+                    twitter_secret_key = config['credentials']['TWITTER_SECRET_KEY']
+                except KeyError:
+                    logger.error("No valid TWITTER_SECRET_KEY found in method arguments, "
+                                 "environment variables or credentials.properties file")
+                    raise RuntimeError("No valid TWITTER_SECRET_KEY found in method arguments, "
+                                       "environment variables or credentials.properties file")
+
+        api = None
+        try:
+            auth = tweepy.AppAuthHandler(twitter_consumer_key, twitter_secret_key)
+            api = tweepy.API(auth, wait_on_rate_limit=True)
+        except TweepError:
+            logger.error("No valid Twitter API keys. Could not authenticate")
+            raise RuntimeError("No valid Twitter API keys. Could not authenticate")
+        if api is not None:
+            logger.debug(api)
+            for tweet in tweepy.Cursor(api.user_timeline, id=twitter_user).items(int(num_tweets)):
+                created_at = tweet.created_at
+                id_str = tweet.id_str
+                author = tweet.author.name
+                tweet_entities = tweet.entities
+                hashtags = dict()
+                if 'hashtags' in tweet_entities:
+                    hashtags = tweet.entities['hashtags']
+                entities = entity_client.identifier("tweet_id", id_str.strip())
+                if len(entities) > 0:
+                    logger.warning("Tweet already exists, skipping....")
+                    continue
+                logger.info(f"Processing tweet {id_str} ...")
+                tid = tweet.id
+                content_objects = list()
+                full_tweet = api.get_status(tid, tweet_mode="extended", include_entities=True)
+                text = tweet.text
+                full_text = full_tweet.full_text
+                file_name = f"{{{id_str}}}_[{twitter_user}].json"
+                json_doc = json.dumps(full_tweet._json)
+                json_file = open(file_name, "wt", encoding="UTF-8")
+                json_file.write(json_doc)
+                json_file.close()
+                content_objects.append(file_name)
+                if hasattr(full_tweet, "extended_entities"):
+                    extended_entities = full_tweet.extended_entities
+                    if "media" in extended_entities:
+                        media = extended_entities["media"]
+                        for med in media:
+                            media_id_str = med["id_str"]
+                            has_video = False
+                            if "video_info" in med:
+                                video_info = med["video_info"]
+                                variants = video_info["variants"]
+                                for v in variants:
+                                    video_url = v["url"]
+                                    r = requests.get(video_url)
+                                    if r.status_code == requests.codes.ok:
+                                        video_name = f"{{{media_id_str}}}_[{twitter_user}].mp4"
+                                        video_name_document = open(video_name, "wb")
+                                        video_name_document.write(r.content)
+                                        video_name_document.close()
+                                        content_objects.append(video_name)
+                                        has_video = True
+                                        continue
+                            if "media_url_https" in med:
+                                media_url_https = med["media_url_https"]
+                                r = requests.get(media_url_https)
+                                if r.status_code == requests.codes.ok:
+                                    if has_video:
+                                        image_name = f"{{{media_id_str}}}_[{twitter_user}]_thumb.jpg"
+                                    else:
+                                        image_name = f"{{{media_id_str}}}_[{twitter_user}].jpg"
+                                    image_name_document = open(image_name, "wb")
+                                    image_name_document.write(r.content)
+                                    image_name_document.close()
+                                    content_objects.append(image_name)
+                identifiers = dict()
+                asset_metadata = dict()
+                identifiers["tweet_id"] = id_str
+
+                xml_object = xml.etree.ElementTree.Element('tweet', {"xmlns": "http://www.preservica.com/tweets/v1"})
+                xml.etree.ElementTree.SubElement(xml_object, "id").text = id_str
+                xml.etree.ElementTree.SubElement(xml_object, "full_text").text = full_text
+                xml.etree.ElementTree.SubElement(xml_object, "created_at").text = str(created_at)
+                xml.etree.ElementTree.SubElement(xml_object, "screen_name_sender").text = twitter_user
+                for h in hashtags:
+                    xml.etree.ElementTree.SubElement(xml_object, "hashtag").text = h
+
+                xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
+
+                metadata_document = open("metadata.xml", "wt", encoding="utf-8")
+                metadata_document.write(xml_request.decode("utf-8"))
+                metadata_document.close()
+
+                asset_metadata["http://www.preservica.com/tweets/v1"] = "metadata.xml"
+
+                security_tag = kwargs.get("SecurityTag", "open")
+                asset_title = kwargs.get("Title", text)
+                asset_description = kwargs.get("Description", full_text)
+
+                p = complex_asset_package(preservation_files_list=content_objects, parent_folder=folder,
+                                          Title=asset_title, Description=asset_description, CustomType="Tweet",
+                                          Identifiers=identifiers, Asset_Metadata=asset_metadata,
+                                          SecurityTag=security_tag)
+                self.upload_zip_package(p, folder=folder)
+                for ob in content_objects:
+                    os.remove(ob)
+                os.remove("metadata.xml")
+                sleep(2)
+
     def ingest_web_video(self, url=None, parent_folder=None, **kwargs):
         try:
             import youtube_dl
         except ImportError:
+            logger.error("Package youtube_dl is required for this method. pip install --upgrade youtube-dl")
             raise RuntimeError("Package youtube_dl is required for this method. pip install --upgrade youtube-dl")
 
         ydl_opts = {}
 
         def my_hook(d):
             if d['status'] == 'finished':
-                print('Download Complete. Uploading to Preservica ...')
+                logger.info('Download Complete. Uploading to Preservica ...')
 
         ydl_opts = {
             'outtmpl': '%(id)s.mp4',
             'progress_hooks': [my_hook],
         }
+
+        if True:
+            ydl_opts['writesubtitles'] = True
+            ydl_opts['writeautomaticsub'] = True
+            ydl_opts['subtitleslangs'] = 'en'
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             meta = ydl.extract_info(url, download=True)
@@ -657,7 +809,10 @@ class UploadAPI(AuthenticatedAPI):
 
         metadata = dict()
         if folder is not None:
-            metadata = {'Metadata': {'structuralobjectreference': folder.reference}}
+            if hasattr(folder, "reference"):
+                metadata = {'Metadata': {'structuralobjectreference': folder.reference}}
+            elif isinstance(folder, str):
+                metadata = {'Metadata': {'structuralobjectreference': folder}}
 
         if os.path.exists(path_to_zip_package) and os.path.isfile(path_to_zip_package):
             try:
@@ -679,7 +834,10 @@ class UploadAPI(AuthenticatedAPI):
 
         metadata = dict()
         if folder is not None:
-            metadata = {'structuralobjectreference': folder.reference}
+            if hasattr(folder, "reference"):
+                metadata = {'structuralobjectreference': folder.reference}
+            elif isinstance(folder, str):
+                metadata = {'structuralobjectreference': folder}
 
         if os.path.exists(path_to_zip_package) and os.path.isfile(path_to_zip_package):
             try:

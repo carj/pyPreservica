@@ -84,6 +84,7 @@ Upload API Features
 -  Upload packages to Preservica
 -  Spreadsheet Metadata
 -  Ingest Web Video
+-  Ingest Twitter Feeds
 
 Background
 -----------
@@ -1317,6 +1318,22 @@ identifiers. ::
     >>> title = "Preservica Cloud Edition: Keeping your digital assets safe and accessible"
     >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
     >>> upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_map, Title=title, SecurityTag="public")
+
+
+Ingest Twitter Feeds
+^^^^^^^^^^^^^^^^^^^^^^^^
+To use this functionality you need to install the additional Python Project tweepy ::
+
+    $ pip install --upgrade tweepy
+
+The Twitter API is authenticated, this means that unlike youtube you need a set of API credentials to read tweets even
+if the tweets are public and you have a twitter account.
+
+You can apply for API Consumer Keys (The basic ready only set is required) at:
+
+https://developer.twitter.com/
+
+You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully.
 
 Entity API Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
