@@ -117,6 +117,7 @@ def __make_bitstream__(xip, file_name, full_path, callback):
     filesize = SubElement(bitstream, "FileSize")
     file_stats = os.stat(full_path)
     filesize.text = str(file_stats.st_size)
+    physical_location = SubElement(bitstream, "PhysicalLocation")
     fixities = SubElement(bitstream, "Fixities")
     fixity = SubElement(fixities, "Fixity")
     fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
@@ -400,8 +401,10 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
     if export_folder is None:
         export_folder = tempfile.gettempdir()
     if not os.path.isdir(export_folder):
+        logger.error("Export Folder Does Not Exist")
         raise RuntimeError(export_folder, "Export Folder Does Not Exist")
     if parent_folder is None:
+        logger.error("You must specify a parent folder for the package asset")
         raise RuntimeError("You must specify a parent folder for the package asset")
 
     io_ref = None
@@ -582,6 +585,16 @@ def simple_asset_package(preservation_file=None, access_file=None, export_folder
         'Access_files_fixity_callback'    Callback to allow external generated fixity values
     """
 
+    # some basic validation
+    if export_folder is None:
+        export_folder = tempfile.gettempdir()
+    if not os.path.isdir(export_folder):
+        logger.error("Export Folder Does Not Exist")
+        raise RuntimeError(export_folder, "Export Folder Does Not Exist")
+    if parent_folder is None:
+        logger.error("You must specify a parent folder for the package asset")
+        raise RuntimeError("You must specify a parent folder for the package asset")
+
     preservation_file_list = list()
     access_file_list = list()
 
@@ -598,7 +611,34 @@ def simple_asset_package(preservation_file=None, access_file=None, export_folder
 class UploadAPI(AuthenticatedAPI):
 
     def ingest_twitter_feed(self, twitter_user=None, num_tweets: int = 25, twitter_consumer_key=None,
-                            twitter_secret_key=None, folder=None, **kwargs):
+                            twitter_secret_key=None, folder=None, callback=None, **kwargs):
+
+        def get_image(m, has_video_element):
+            media_url_https_ = m["media_url_https"]
+            if media_url_https_:
+                req = requests.get(media_url_https_)
+                if req.status_code == requests.codes.ok:
+                    if has_video_element:
+                        image_name_ = f"{{{media_id_str}}}_[{twitter_user}]_thumb.jpg"
+                    else:
+                        image_name_ = f"{{{media_id_str}}}_[{twitter_user}].jpg"
+                    image_name_document_ = open(image_name_, "wb")
+                    image_name_document_.write(req.content)
+                    image_name_document_.close()
+                    return image_name_
+
+        def get_video(m):
+            video_info_ = m["video_info"]
+            variants_ = video_info_["variants"]
+            for v_ in variants_:
+                video_url_ = v_["url"]
+                req = requests.get(video_url_)
+                if req.status_code == requests.codes.ok:
+                    video_name_ = f"{{{media_id_str}}}_[{twitter_user}].mp4"
+                    video_name_document_ = open(video_name_, "wb")
+                    video_name_document_.write(req.content)
+                    video_name_document_.close()
+                    return video_name_, True
 
         entity_client = pyPreservica.EntityAPI(username=self.username, password=self.password, server=self.server,
                                                tenant=self.tenant)
@@ -676,42 +716,46 @@ class UploadAPI(AuthenticatedAPI):
                             media_id_str = med["id_str"]
                             has_video = False
                             if "video_info" in med:
-                                video_info = med["video_info"]
-                                variants = video_info["variants"]
-                                for v in variants:
-                                    video_url = v["url"]
-                                    r = requests.get(video_url)
-                                    if r.status_code == requests.codes.ok:
-                                        video_name = f"{{{media_id_str}}}_[{twitter_user}].mp4"
-                                        video_name_document = open(video_name, "wb")
-                                        video_name_document.write(r.content)
-                                        video_name_document.close()
-                                        content_objects.append(video_name)
-                                        has_video = True
-                                        continue
+                                co, has_video = get_video(med)
+                                content_objects.append(co)
+                                continue
                             if "media_url_https" in med:
-                                media_url_https = med["media_url_https"]
-                                r = requests.get(media_url_https)
-                                if r.status_code == requests.codes.ok:
-                                    if has_video:
-                                        image_name = f"{{{media_id_str}}}_[{twitter_user}]_thumb.jpg"
-                                    else:
-                                        image_name = f"{{{media_id_str}}}_[{twitter_user}].jpg"
-                                    image_name_document = open(image_name, "wb")
-                                    image_name_document.write(r.content)
-                                    image_name_document.close()
-                                    content_objects.append(image_name)
+                                co = get_image(med, has_video)
+                                content_objects.append(co)
                 identifiers = dict()
                 asset_metadata = dict()
                 identifiers["tweet_id"] = id_str
+
+                user = full_tweet._json['user']
+
+                if full_tweet._json.get('retweeted_status'):
+                    retweeted_status = full_tweet._json['retweeted_status']
+                    if retweeted_status.get("extended_entities"):
+                        extended_entities = retweeted_status["extended_entities"]
+                        if "media" in extended_entities:
+                            media = extended_entities["media"]
+                            for med in media:
+                                media_id_str = med["id_str"]
+                                has_video = False
+                                if "video_info" in med:
+                                    co, has_video = get_video(med)
+                                    content_objects.append(co)
+                                    continue
+                                if "media_url_https" in med:
+                                    co = get_image(med, has_video)
+                                    content_objects.append(co)
 
                 xml_object = xml.etree.ElementTree.Element('tweet', {"xmlns": "http://www.preservica.com/tweets/v1"})
                 xml.etree.ElementTree.SubElement(xml_object, "id").text = id_str
                 xml.etree.ElementTree.SubElement(xml_object, "full_text").text = full_text
                 xml.etree.ElementTree.SubElement(xml_object, "created_at").text = str(created_at)
-                xml.etree.ElementTree.SubElement(xml_object, "screen_name_sender").text = twitter_user
+                xml.etree.ElementTree.SubElement(xml_object, "screen_name_sender").text = user.get('screen_name')
                 for h in hashtags:
-                    xml.etree.ElementTree.SubElement(xml_object, "hashtag").text = h
+                    xml.etree.ElementTree.SubElement(xml_object, "hashtag").text = str(h['text'])
+
+                xml.etree.ElementTree.SubElement(xml_object, "name").text = author
+                xml.etree.ElementTree.SubElement(xml_object, "retweet").text = str(full_tweet._json['retweet_count'])
+                xml.etree.ElementTree.SubElement(xml_object, "likes").text = str(full_tweet._json['favorite_count'])
 
                 xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
 
@@ -729,7 +773,7 @@ class UploadAPI(AuthenticatedAPI):
                                           Title=asset_title, Description=asset_description, CustomType="Tweet",
                                           Identifiers=identifiers, Asset_Metadata=asset_metadata,
                                           SecurityTag=security_tag)
-                self.upload_zip_package(p, folder=folder)
+                self.upload_zip_package(p, folder=folder, callback=callback)
                 for ob in content_objects:
                     os.remove(ob)
                 os.remove("metadata.xml")
@@ -756,7 +800,7 @@ class UploadAPI(AuthenticatedAPI):
         if True:
             ydl_opts['writesubtitles'] = True
             ydl_opts['writeautomaticsub'] = True
-            ydl_opts['subtitleslangs'] = 'en'
+            ydl_opts['subtitleslangs'] = ['en']
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             meta = ydl.extract_info(url, download=True)
@@ -789,6 +833,11 @@ class UploadAPI(AuthenticatedAPI):
             else:
                 descriptive_metadata = {}
 
+            if 'callback' in kwargs:
+                callback = kwargs.get("callback")
+            else:
+                callback = None
+
             upload_date = meta.get('upload_date')
             duration = meta.get('duration')
 
@@ -797,7 +846,7 @@ class UploadAPI(AuthenticatedAPI):
                                            Asset_Metadata=descriptive_metadata,
                                            Preservation_Content_Title=title, SecurityTag=security_tag)
 
-            self.upload_zip_package(path_to_zip_package=package, folder=parent_folder)
+            #self.upload_zip_package(path_to_zip_package=package, folder=parent_folder, callback=callback)
 
     def upload_zip_package(self, path_to_zip_package, folder=None, callback=None, delete_after_upload=False):
         bucket = f'{self.tenant.lower()}.package.upload'
