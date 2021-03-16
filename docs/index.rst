@@ -821,7 +821,7 @@ The non-blocking (asynchronous) API call will replace the last active Generation
     >>> file = "C:/book/page421.tiff"
     >>> pid = client.replace_generation_async(content_object, file)
 
- This will return a process id which can be used to monitor the replacement workflow using ::
+This will return a process id which can be used to monitor the replacement workflow using ::
 
     >>> status = client.get_async_progress(pid)
 
