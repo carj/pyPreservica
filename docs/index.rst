@@ -67,6 +67,8 @@ Entity API Features
 -  Fetch lists of changed entities over the last n days
 -  Request information on completed integrity checks   (**New in 6.2**)
 -  Add or remove asset and folder icons   (**New in 6.2**)
+-  Replace existing content objects within an Asset   (**New in 6.2**)
+-  Export OPEX Package   (**New in 6.2**)
 
 Content API Features
 ---------------------
@@ -804,6 +806,76 @@ You can specify the size of the thumbnail by passing a second argument ::
     >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.LARGE)     ## 400×400   pixels
     >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.MEDIUM)    ## 150×150   pixels
     >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.SMALL)     ## 64×64     pixels
+
+
+Replacing Content Objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Preservica now supports replacing individual Content Objects within an Asset. The use case here is you have uploaded
+a large digitised object such as book and you subsequently discover that a page has been digitised incorrectly.
+You would like to replace a single page (Content Object) without having to delete and re-ingest the complete Asset.
+
+The non-blocking (asynchronous) API call will replace the last active Generation of the Content Object ::
+
+    >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> file = "C:/book/page421.tiff"
+    >>> pid = client.replace_generation_async(content_object, file)
+
+ This will return a process id which can be used to monitor the replacement workflow using ::
+
+    >>> status = client.get_async_progress(pid)
+
+By default the API will generate a new fixity value on the client using the same fixity algorithm as the original Generation you are replacing.
+If you want to use a different fixity algorithm or you want to use a pre-calculated or existing fixity value you can specify the
+algorithm and value. ::
+
+    >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> file = "C:/book/page421.tiff"
+    >>> pid = client.replace_generation_async(content_object, file, fixity_algorithm='SHA1', fixity_value='2fd4e1c67a2d28fced849ee1bb76e7391b93eb12')
+
+There is also an synchronous or blocking version which will wait for the replace workflow to complete before returning
+back to the caller. ::
+
+    >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> file = "C:/book/page421.tiff"
+    >>> workflow_status = client.replace_generation_sync(content_object, file)
+
+
+Export OPEX Package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pyPreservica allows clients to request a full package export from the system by folder or asset,
+this will start an export workflow and download the resulting dissemination package when the export workflow has completed.
+
+The resulting package will be a zipped OPEX formatted package containing the digital content and metadata.
+The ``export_opex`` API is a blocking call which will wait for the export workflow to complete before downloading the package. ::
+
+    >>> folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> opex_zip = client.export_opex(folder)
+
+The output is the name of the downloaded zip file in the current working directory.
+
+By default the OPEX package includes metadata, digital content with the latest active generations
+and the parent hierarchy.
+
+The API can be called on either a folder or a single asset.  ::
+
+    >>> asset = client.asset('1f2129f7-728c-4e55-9f92-381ed1260d70')
+    >>> opex_zip = client.export_opex(asset)
+
+The call also takes the following optional arguments
+
+* ``IncludeContent``            "Content" or "NoContent"
+* ``IncludeMetadata``           "Metadata" or "NoMetadata" or "MetadataWithEvents"
+* ``IncludedGenerations``       "LatestActive" or "AllActive" or "All"
+* ``IncludeParentHierarchy``    "true" or "false"
+
+e.g.    ::
+
+
+    >>> folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> opex_zip = client.export_opex(folder, IncludeContent="Content", IncludeMetadata="MetadataWithEvents")
+
 
 
 Content API
