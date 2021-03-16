@@ -704,7 +704,7 @@ class UploadAPI(AuthenticatedAPI):
                 full_text = full_tweet.full_text
                 file_name = f"{{{id_str}}}_[{twitter_user}].json"
                 json_doc = json.dumps(full_tweet._json)
-                json_file = open(file_name, "wt", encoding="UTF-8")
+                json_file = open(file_name, "wt", encoding="utf-8")
                 json_file.write(json_doc)
                 json_file.close()
                 content_objects.append(file_name)
@@ -797,10 +797,10 @@ class UploadAPI(AuthenticatedAPI):
             'progress_hooks': [my_hook],
         }
 
-        if True:
-            ydl_opts['writesubtitles'] = True
-            ydl_opts['writeautomaticsub'] = True
-            ydl_opts['subtitleslangs'] = ['en']
+        #if True:
+        #    ydl_opts['writesubtitles'] = True
+        #    ydl_opts['writeautomaticsub'] = True
+        #    ydl_opts['subtitleslangs'] = ['en']
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             meta = ydl.extract_info(url, download=True)
@@ -846,7 +846,7 @@ class UploadAPI(AuthenticatedAPI):
                                            Asset_Metadata=descriptive_metadata,
                                            Preservation_Content_Title=title, SecurityTag=security_tag)
 
-            #self.upload_zip_package(path_to_zip_package=package, folder=parent_folder, callback=callback)
+            self.upload_zip_package(path_to_zip_package=package, folder=parent_folder, callback=callback)
 
     def upload_zip_package(self, path_to_zip_package, folder=None, callback=None, delete_after_upload=False):
         bucket = f'{self.tenant.lower()}.package.upload'

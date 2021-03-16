@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.tessella.com/sdb/cmis/metadata" xmlns:tns="http://www.tessella.com/sdb/cmis/metadata"
+           targetNamespace="http://www.tessella.com/sdb/cmis/metadata" elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+    <xs:complexType name="Group">
+        <xs:sequence>
+            <xs:element name="title" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:sequence minOccurs="1" maxOccurs="unbounded">
+                <xs:group ref="ItemGroup"/>
+            </xs:sequence>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="Item">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="value" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <!-- The 'type' element is optional. In UA, it is used for the search index field to display filter links.
+               The value of this field should match the form schema-short-name:term-name in custom search index definitions. -->
+            <xs:element name="type" type="xs:string" minOccurs="0" maxOccurs="1"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:group name="ItemGroup">
+        <xs:choice>
+            <xs:element name="group" type="tns:Group"/>
+            <xs:element name="item" type="tns:Item"/>
+        </xs:choice>
+    </xs:group>
+
+    <xs:element name="metadata">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="title" type="xs:string" minOccurs="1" maxOccurs="1"/>
+                <xs:element name="description" type="xs:string" minOccurs="1" maxOccurs="1"/>
+                <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                    <xs:group ref="ItemGroup"/>
+                </xs:sequence>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

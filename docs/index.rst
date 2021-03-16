@@ -84,7 +84,7 @@ Upload API Features
 -  Upload packages to Preservica
 -  Spreadsheet Metadata
 -  Ingest Web Video
--  Ingest Twitter Feeds
+
 
 Background
 -----------
@@ -633,7 +633,7 @@ Metadata can be attached to entities either by passing an XML document as a stri
 
 or by reading the metadata from a file ::
 
-    >>> with open("DublinCore.xml", 'r', encoding="UTF-8") as md:
+    >>> with open("DublinCore.xml", 'r', encoding="utf-8") as md:
     >>>     asset = client.add_metadata(asset, "http://purl.org/dc/elements/1.1/", md)
 
 
@@ -858,11 +858,11 @@ Preservica now supports replacing individual Content Objects within an Asset. Th
 a large digitised object such as book and you subsequently discover that a page has been digitised incorrectly.
 You would like to replace a single page (Content Object) without having to delete and re-ingest the complete Asset.
 
-The API call will replace the last active Generation of the Content Object ::
+The non-blocking (asynchronous) API call will replace the last active Generation of the Content Object ::
 
     >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
     >>> file = "C:/book/page421.tiff"
-    >>> pid = client.replace_generation(content_object, file)
+    >>> pid = client.replace_generation_async(content_object, file)
 
  This will return a process id which can be used to monitor the replacement workflow using ::
 
@@ -874,8 +874,14 @@ algorithm and value. ::
 
     >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
     >>> file = "C:/book/page421.tiff"
-    >>> pid = client.replace_generation(content_object, file, fixity_algorithm='SHA1', fixity_value='2fd4e1c67a2d28fced849ee1bb76e7391b93eb12')
+    >>> pid = client.replace_generation_async(content_object, file, fixity_algorithm='SHA1', fixity_value='2fd4e1c67a2d28fced849ee1bb76e7391b93eb12')
 
+There is also an synchronous or blocking version which will wait for the replace workflow to complete before returning
+back to the caller. ::
+
+    >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    >>> file = "C:/book/page421.tiff"
+    >>> workflow_status = client.replace_generation_sync(content_object, file)
 
 
 Export OPEX Package
@@ -1320,20 +1326,6 @@ identifiers. ::
     >>> upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_map, Title=title, SecurityTag="public")
 
 
-Ingest Twitter Feeds
-^^^^^^^^^^^^^^^^^^^^^^^^
-To use this functionality you need to install the additional Python Project tweepy ::
-
-    $ pip install --upgrade tweepy
-
-The Twitter API is authenticated, this means that unlike youtube you need a set of API credentials to read tweets even
-if the tweets are public and you have a twitter account.
-
-You can apply for API Consumer Keys (The basic ready only set is required) at:
-
-https://developer.twitter.com/
-
-You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully.
 
 Entity API Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

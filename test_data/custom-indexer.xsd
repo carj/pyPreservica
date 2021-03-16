@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<schema id="Custom_Indexer" xmlns="http://www.w3.org/2001/XMLSchema"
+        elementFormDefault="qualified"
+        targetNamespace="http://www.preservica.com/customindex/v1">
+    <element name="index">
+        <complexType>
+            <sequence>
+                <element name="schemaName" type="string"/>
+                <element name="schemaUri" type="anyURI"/>
+                <element name="shortName" type="string"/>
+                <element name="term" maxOccurs="unbounded">
+                    <complexType>
+                        <attribute name="indexName" type="string" use="required"/>
+                        <attribute name="displayName" type="string"/>
+                        <attribute name="xpath" type="string" use="required"/>
+                        <attribute name="indexType" type="string"/>
+                        <attribute name="xipTypes" type="string"/>
+                        <attribute name="sortable" type="boolean" default="true"/>
+						<attribute name="facetable" type="boolean" default="true"/>
+                    </complexType>
+                </element>
+                <element name="namespaceMapping" minOccurs="0" maxOccurs="unbounded">
+                    <complexType>
+                        <attribute name="key" type="string" use="required"/>
+                        <attribute name="value" type="anyURI" use="required"/>
+                    </complexType>
+                </element>
+            </sequence>
+        </complexType>
+    </element>
+</schema>

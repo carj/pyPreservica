@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" version="1.0" targetNamespace="http://preservica.com/XIP/v6.0" xmlns:tns="http://preservica.com/XIP/v6.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:element name="XIP" type="tns:XIPType"/>
+
+  <xs:complexType name="XIPType">
+    <xs:sequence>
+      <xs:element name="StructuralObject" type="tns:StructuralObjectType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="InformationObject" type="tns:InformationObjectType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Representation" type="tns:RepresentationType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="ContentObject" type="tns:ContentObjectType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Generation" type="tns:GenerationType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Bitstream" type="tns:BitstreamType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Identifier" type="tns:IdentifierType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Link" type="tns:LinkType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Restriction" type="tns:RestrictionType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Metadata" type="tns:MetadataType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="EventAction" type="tns:EventActionType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="StructuralObjectType">
+    <xs:all>
+      <xs:element name="Ref" type="xs:string"/>
+      <xs:element name="Title" type="xs:string"/>
+      <xs:element name="Description" type="xs:string" minOccurs="0"/>
+      <xs:element name="SecurityTag" type="xs:string"/>
+      <xs:element name="CustomType" type="xs:string" minOccurs="0"/>
+      <xs:element name="Parent" type="xs:string" minOccurs="0"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="InformationObjectType">
+    <xs:all>
+      <xs:element name="Ref" type="xs:string"/>
+      <xs:element name="Title" type="xs:string"/>
+      <xs:element name="Description" type="xs:string" minOccurs="0"/>
+      <xs:element name="SecurityTag" type="xs:string"/>
+      <xs:element name="CustomType" type="xs:string" minOccurs="0"/>
+      <xs:element name="Parent" type="xs:string" minOccurs="0"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="RepresentationType">
+    <xs:sequence>
+      <xs:element name="InformationObject" type="xs:string"/>
+      <xs:element name="Name" type="xs:string"/>
+      <xs:element name="Type" type="xs:string"/>
+      <xs:element name="ContentObjects" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="ContentObject" type="xs:string" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ContentObjectType">
+    <xs:all>
+      <xs:element name="Ref" type="xs:string"/>
+      <xs:element name="Title" type="xs:string"/>
+      <xs:element name="Description" type="xs:string" minOccurs="0"/>
+      <xs:element name="SecurityTag" type="xs:string"/>
+      <xs:element name="CustomType" type="xs:string" minOccurs="0"/>
+      <xs:element name="Parent" type="xs:string" minOccurs="0"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="GenerationType">
+    <xs:sequence>
+      <xs:element name="ContentObject" type="xs:string"/>
+      <xs:element name="Label" type="xs:string" minOccurs="0"/>
+      <xs:element name="FormatGroup" type="xs:string" minOccurs="0"/>
+      <xs:element name="EffectiveDate" type="xs:dateTime" minOccurs="0"/>
+      <xs:element name="Bitstreams" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Bitstream" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Formats" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Format" type="tns:GenerationFormatType" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Properties" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Property" type="tns:GenerationPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="original" type="xs:boolean" use="optional"/>
+    <xs:attribute name="active" type="xs:boolean" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="GenerationFormatType">
+    <xs:all>
+      <xs:element name="PUID" type="xs:string"/>
+      <xs:element name="Priority" type="xs:short"/>
+      <xs:element name="IdentificationMethod" type="tns:identificationMethod"/>
+      <xs:element name="FormatName" type="xs:string"/>
+      <xs:element name="FormatVersion" type="xs:string" minOccurs="0"/>
+      <xs:element name="Warnings" type="xs:string" minOccurs="0"/>
+    </xs:all>
+    <xs:attribute name="valid" type="xs:boolean" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="GenerationPropertyType">
+    <xs:all>
+      <xs:element name="Group" type="xs:string" minOccurs="0"/>
+      <xs:element name="PUID" type="xs:string"/>
+      <xs:element name="PropertyName" type="xs:string"/>
+      <xs:element name="Value" type="xs:string"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="BitstreamType">
+    <xs:all>
+      <xs:element name="Filename" type="xs:string"/>
+      <xs:element name="FileSize" type="xs:long"/>
+      <xs:element name="PhysicalLocation" type="xs:string"/>
+      <xs:element name="Fixities" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Fixity" type="tns:FixityType" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="FixityType">
+    <xs:all>
+      <xs:element name="FixityAlgorithmRef" type="tns:fixityType"/>
+      <xs:element name="FixityValue" type="xs:string"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="IdentifierType">
+    <xs:all>
+      <xs:element name="Type" type="xs:string"/>
+      <xs:element name="Value" type="xs:string"/>
+      <xs:element name="Entity" type="xs:string"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="LinkType">
+    <xs:all>
+      <xs:element name="Type" type="xs:string"/>
+      <xs:element name="FromEntity" type="xs:string"/>
+      <xs:element name="ToEntity" type="xs:string"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="RestrictionType">
+    <xs:all>
+      <xs:element name="Type" type="tns:restrictionType"/>
+      <xs:element name="Entity" type="xs:string"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="MetadataType">
+    <xs:all>
+      <xs:element name="Ref" type="xs:string"/>
+      <xs:element name="Entity" type="xs:string"/>
+      <xs:element name="Content" type="tns:MetadataContent"/>
+    </xs:all>
+    <xs:attribute name="schemaUri" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="MetadataContent">
+    <xs:sequence>
+      <xs:any processContents="skip" namespace="##other"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="EventActionType">
+    <xs:sequence>
+      <xs:element name="Event" type="tns:EventType"/>
+      <xs:element name="Entity" type="xs:string"/>
+      <xs:element name="SerialisedCommand" type="xs:string"/>
+    </xs:sequence>
+    <xs:attribute name="commandType" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="EventType">
+    <xs:all>
+      <xs:element name="User" type="xs:string" minOccurs="0"/>
+      <xs:element name="WorkflowName" type="xs:string" minOccurs="0"/>
+    </xs:all>
+    <xs:attribute name="type" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:simpleType name="identificationMethod">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Container"/>
+      <xs:enumeration value="Signature"/>
+      <xs:enumeration value="Extension"/>
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Unknown"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="fixityType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="MD5"/>
+      <xs:enumeration value="SHA1"/>
+      <xs:enumeration value="SHA256"/>
+      <xs:enumeration value="SHA512"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="restrictionType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="LOCK"/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>
+

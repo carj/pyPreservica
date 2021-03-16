@@ -465,7 +465,7 @@ class AuthenticatedAPI:
             timestamp = int(time.time())
             to_hash = f"preservica-external-auth{timestamp}{self.username}{self.password}"
             sha1 = hashlib.sha1()
-            sha1.update(to_hash.encode(encoding='UTF-8'))
+            sha1.update(to_hash.encode(encoding='utf-8'))
             data = {"username": self.username, "tenant": self.tenant, "timestamp": timestamp, "hash": sha1.hexdigest()}
             response = self.session.post(f'https://{self.server}/{endpoint}', data=data)
             if response.status_code == requests.codes.ok:

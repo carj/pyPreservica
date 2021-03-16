@@ -603,7 +603,7 @@ class EntityAPI(AuthenticatedAPI):
         request = self.session.put(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}',
                                    data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
-            xml_response = str(request.content.decode('UTF-8'))
+            xml_response = str(request.content.decode('utf-8'))
             response = self.entity_from_string(xml_response)
             if isinstance(entity, Asset):
                 return Asset(response['reference'], response['title'], response['description'],
@@ -745,7 +745,7 @@ class EntityAPI(AuthenticatedAPI):
         request = self.session.post(f'https://{self.server}/api/entity/structural-objects', data=xml_request,
                                     headers=headers)
         if request.status_code == requests.codes.ok:
-            xml_response = str(request.content.decode('UTF-8'))
+            xml_response = str(request.content.decode('utf-8'))
             entity = self.entity_from_string(xml_response)
             return Folder(entity['reference'], entity['title'], entity['description'],
                           entity['security_tag'],
