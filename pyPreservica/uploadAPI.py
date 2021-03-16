@@ -16,11 +16,14 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from pyPreservica.common import *
+from pyPreservica.common import _make_stored_zipfile
 
 logger = logging.getLogger(__name__)
 
 GB = 1024 ** 3
 transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 8))
+
+
 
 
 def prettify(elem):
@@ -378,7 +381,7 @@ def cvs_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename
 
 
 def complex_asset_package(preservation_files_list=None, access_files_list=None, export_folder=None,
-                          parent_folder=None, **kwargs):
+                          parent_folder=None, compress=True, **kwargs):
     """
         optional kwargs map
         'Title'                                 Asset Title
@@ -415,6 +418,9 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
     security_tag = kwargs.get('SecurityTag', "open")
     content_type = kwargs.get('CustomType', "")
+
+    if not compress:
+        shutil.register_archive_format("szip", _make_stored_zipfile, None, "UnCompressed ZIP file")
 
     has_preservation_files = bool((preservation_files_list is not None) and (len(preservation_files_list) > 0))
     has_access_files = bool((access_files_list is not None) and (len(access_files_list) > 0))
@@ -561,12 +567,16 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
             src_file = filename
             dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(filename))
             shutil.copyfile(src_file, dst_file)
-        shutil.make_archive(top_level_folder, 'zip', top_level_folder)
+        if compress:
+            shutil.make_archive(top_level_folder, 'zip', top_level_folder)
+        else:
+            shutil.make_archive(top_level_folder, 'szip', top_level_folder)
         shutil.rmtree(top_level_folder)
         return top_level_folder + ".zip"
 
 
-def simple_asset_package(preservation_file=None, access_file=None, export_folder=None, parent_folder=None, **kwargs):
+def simple_asset_package(preservation_file=None, access_file=None, export_folder=None, parent_folder=None,
+                         compress=True, **kwargs):
     """
         optional kwargs map
         'Title'                             Asset Title
@@ -605,7 +615,7 @@ def simple_asset_package(preservation_file=None, access_file=None, export_folder
         access_file_list.append(access_file)
 
     return complex_asset_package(preservation_files_list=preservation_file_list, access_files_list=access_file_list,
-                                 export_folder=export_folder, parent_folder=parent_folder, **kwargs)
+                                 export_folder=export_folder, parent_folder=parent_folder, compress=compress, **kwargs)
 
 
 class UploadAPI(AuthenticatedAPI):
@@ -797,7 +807,7 @@ class UploadAPI(AuthenticatedAPI):
             'progress_hooks': [my_hook],
         }
 
-        #if True:
+        # if True:
         #    ydl_opts['writesubtitles'] = True
         #    ydl_opts['writeautomaticsub'] = True
         #    ydl_opts['subtitleslangs'] = ['en']
