@@ -1,4 +1,6 @@
 import pytest
+
+from zipfile import ZipFile
 from pyPreservica import *
 
 
@@ -7,7 +9,9 @@ def test_export_file_wait():
     asset = client.asset("c365634e-9fcc-4ea1-b47f-077f55df9d64")
     zip_file = client.export_opex_sync(asset)
     assert os.path.exists(zip_file)
-    assert 1066650 < os.stat(zip_file).st_size < 1066690
+    assert 1066650 < os.stat(zip_file).st_size
+    with ZipFile(zip_file, 'r') as zipObj:
+        assert len(zipObj.namelist()) == 6
     os.remove(zip_file)
 
 
@@ -24,6 +28,9 @@ def test_export_file_no_wait():
 
     zip_file = client.download_opex(pid)
     assert os.path.exists(zip_file)
-    assert 1066650 < os.stat(zip_file).st_size < 1066690
+    assert 1066650 < os.stat(zip_file).st_size
+    with ZipFile(zip_file, 'r') as zipObj:
+        assert len(zipObj.namelist()) == 6
+
     os.remove(zip_file)
 

@@ -945,7 +945,7 @@ class EntityAPI(AuthenticatedAPI):
          """
         headers = {HEADER_TOKEN: self.token}
         if not isinstance(representation, Representation):
-            logger.warn("representation is not of type Representation")
+            logger.warning("representation is not of type Representation")
             return None
         request = self.session.get(f'{representation.url}', headers=headers)
         if request.status_code == requests.codes.ok:
@@ -1266,7 +1266,31 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.add_thumbnail(entity, image_file)
         else:
-            raise RuntimeError(request.status_code, f"add_thumbnail failed: {request.content}")
+            logger.error(request.content.decode('utf-8'))
+            raise RuntimeError(request.status_code, f"add_thumbnail failed: {request.content.decode('utf-8')}")
+
+    def _event_actions(self, entity: Entity, maximum: int):
+        """
+         event actions performed against this entity
+        """
+        if self.major_version < 7 and self.minor_version < 1:
+            logger.error("Entity events is only available when connected to a v6.1 System")
+            raise RuntimeError("Entity events is only available when connected to a v6.1 System")
+
+        headers = {HEADER_TOKEN: self.token}
+        params = {'start': str(0), 'max': str(maximum)}
+
+        request = self.session.get(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/event-actions',
+                                   params=params, headers=headers)
+
+        if request.status_code == requests.codes.ok:
+            pass
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self._event_actions(entity, maximum=maximum)
+        else:
+            logger.error(request.content.decode('utf-8'))
+            raise RuntimeError(request.status_code, f"events failed: {request.content.decode('utf-8')}")
 
     def all_descendants(self, folder_reference: str = None):
         """
@@ -1332,6 +1356,77 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "children failed")
 
+    def _entity_events_page(self, entity: Entity, maximum: int = 25, next_page: str = None) -> PagedSet:
+        """
+         event actions performed against this entity
+        """
+        if self.major_version < 7 and self.minor_version < 1:
+            logger.error("Entity events is only available when connected to a v6.1 System")
+            raise RuntimeError("Entity events is only available when connected to a v6.1 System")
+
+        headers = {HEADER_TOKEN: self.token}
+        params = {'start': str(0), 'max': str(maximum)}
+        if next_page is None:
+            request = self.session.get(
+                f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/event-actions',
+                params=params, headers=headers)
+        else:
+            request = self.session.get(next_page, headers=headers)
+
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            logger.debug(xml_response)
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            event_actions = entity_response.findall(f'.//{{{self.xip_ns}}}EventAction')
+            result_list = list()
+            for event_action in event_actions:
+                result = dict()
+                result['commandType'] = event_action.attrib['commandType']
+                event = event_action.find(f'.//{{{self.xip_ns}}}Event')
+                result['eventType'] = event.attrib['type']
+                result['Date'] = event.find(f'.//{{{self.xip_ns}}}Date').text
+                result['User'] = event.find(f'.//{{{self.xip_ns}}}User').text
+                result['Ref'] = event.find(f'.//{{{self.xip_ns}}}Ref').text
+
+                workflow_name = event.find(f'.//{{{self.xip_ns}}}WorkflowName')
+                if workflow_name is not None:
+                    result['WorkflowName'] = workflow_name.text
+
+                workflow_instance_id = event.find(f'.//{{{self.xip_ns}}}WorkflowInstanceId')
+                if workflow_instance_id is not None:
+                    result['WorkflowInstanceId'] = workflow_instance_id.text
+
+                serialised_command = event_action.find(f'.//{{{self.xip_ns}}}SerialisedCommand')
+                if serialised_command is not None:
+                    result['SerialisedCommand'] = serialised_command.text
+
+                result_list.append(result)
+            next_url = entity_response.find(f'.//{{{self.entity_ns}}}Next')
+            total_hits = entity_response.find(f'.//{{{self.entity_ns}}}TotalResults')
+            has_more = True
+            url = None
+            if next_url is None:
+                has_more = False
+            else:
+                url = next_url.text
+            return PagedSet(result_list, has_more, total_hits.text, url)
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self._entity_events_page(entity)
+        else:
+            logger.error(request.content.decode('utf-8'))
+            raise RuntimeError(request.status_code, f"events failed: {request.content.decode('utf-8')}")
+
+    def entity_events(self, entity: Entity):
+        self.token = self.__token__()
+        paged_set = self._entity_events_page(entity)
+        for entity in paged_set.results:
+            yield entity
+        while paged_set.has_more:
+            paged_set = self._entity_events_page(entity, next_page=paged_set.next_page)
+            for entity in paged_set.results:
+                yield entity
+
     def updated_entities(self, previous_days: int = 1):
         self.token = self.__token__()
         maximum = 50
@@ -1390,17 +1485,17 @@ class EntityAPI(AuthenticatedAPI):
 
     def delete_asset(self, asset: Asset, operator_comment: str, supervisor_comment: str):
         if isinstance(asset, Asset):
-            return self.__delete_entity__(asset, operator_comment, supervisor_comment)
+            return self._delete_entity(asset, operator_comment, supervisor_comment)
         else:
             raise RuntimeError("delete_asset only deletes assets")
 
     def delete_folder(self, folder: Folder, operator_comment: str, supervisor_comment: str):
         if isinstance(folder, Folder):
-            return self.__delete_entity__(folder, operator_comment, supervisor_comment)
+            return self._delete_entity(folder, operator_comment, supervisor_comment)
         else:
             raise RuntimeError("delete_folder only deletes folders")
 
-    def __delete_entity__(self, entity: Entity, operator_comment: str, supervisor_comment: str):
+    def _delete_entity(self, entity: Entity, operator_comment: str, supervisor_comment: str):
         """
         Delete an asset from the repository
 
@@ -1453,14 +1548,17 @@ class EntityAPI(AuthenticatedAPI):
                             if approve.status_code == requests.codes.accepted:
                                 return entity.reference
                             else:
+                                logger.error(approve.content.decode('utf-8'))
                                 raise RuntimeError(approve.status_code, "delete_asset failed during approval")
                         sleep(2.0)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.__delete_entity__(entity, operator_comment, supervisor_comment)
+            return self._delete_entity(entity, operator_comment, supervisor_comment)
         if request.status_code == requests.codes.unprocessable:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "no active workflow context for full deletion exists in the system")
         if request.status_code == requests.codes.forbidden:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "User doesn't have deletion rights on the "
                                                     "entity or the required operator role to evaluate a deletion")
         raise RuntimeError(request.status_code, "delete_asset failed")

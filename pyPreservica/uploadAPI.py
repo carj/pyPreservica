@@ -24,8 +24,6 @@ GB = 1024 ** 3
 transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 8))
 
 
-
-
 def prettify(elem):
     """Return a pretty-printed XML string for the Element.
     """
@@ -122,12 +120,23 @@ def __make_bitstream__(xip, file_name, full_path, callback):
     filesize.text = str(file_stats.st_size)
     physical_location = SubElement(bitstream, "PhysicalLocation")
     fixities = SubElement(bitstream, "Fixities")
-    fixity = SubElement(fixities, "Fixity")
-    fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
-    fixity_value = SubElement(fixity, "FixityValue")
-    fixity = callback(file_name, full_path)
-    fixity_algorithm_ref.text = fixity[0]
-    fixity_value.text = fixity[1]
+    fixity_result = callback(file_name, full_path)
+    if type(fixity_result) == tuple:
+        fixity = SubElement(fixities, "Fixity")
+        fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
+        fixity_value = SubElement(fixity, "FixityValue")
+        fixity_algorithm_ref.text = fixity_result[0]
+        fixity_value.text = fixity_result[1]
+    elif type(fixity_result) == dict:
+        for key, val in fixity_result.items():
+            fixity = SubElement(fixities, "Fixity")
+            fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
+            fixity_value = SubElement(fixity, "FixityValue")
+            fixity_algorithm_ref.text = key
+            fixity_value.text = val
+    else:
+        logger.error("Could Not Find Fixity Value")
+        raise RuntimeError("Could Not Find Fixity Value")
 
 
 def __make_representation_multiple_co__(xip, rep_name, rep_type, rep_files, io_ref):
@@ -380,6 +389,208 @@ def cvs_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename
                 yield name
 
 
+def generic_asset_package(preservation_files_dict=None, access_files_dict=None, export_folder=None,
+                          parent_folder=None, compress=True, **kwargs):
+    # some basic validation
+    if export_folder is None:
+        export_folder = tempfile.gettempdir()
+    if not os.path.isdir(export_folder):
+        logger.error("Export Folder Does Not Exist")
+        raise RuntimeError(export_folder, "Export Folder Does Not Exist")
+    if parent_folder is None:
+        logger.error("You must specify a parent folder for the package asset")
+        raise RuntimeError("You must specify a parent folder for the package asset")
+
+    io_ref = None
+    xip = None
+    default_asset_title = None
+    preservation_representation_refs_dict = dict()
+    access_representation_refs_dict = dict()
+
+    security_tag = kwargs.get('SecurityTag', "open")
+    content_type = kwargs.get('CustomType', "")
+
+    if not compress:
+        shutil.register_archive_format("szip", _make_stored_zipfile, None, "UnCompressed ZIP file")
+
+    has_preservation_files = bool((preservation_files_dict is not None) and (len(preservation_files_dict) > 0))
+    has_access_files = bool((access_files_dict is not None) and (len(access_files_dict) > 0))
+
+    if has_preservation_files:
+        if default_asset_title is None:
+            key = list(preservation_files_dict.keys())[0]
+            preservation_files_list = preservation_files_dict[key]
+            default_asset_title = os.path.splitext(os.path.basename(preservation_files_list[0]))[0]
+
+        # create the asset
+        xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
+
+    if has_access_files:
+        if default_asset_title is None:
+            key = list(access_files_dict.keys())[0]
+            access_files_list = access_files_dict[key]
+            default_asset_title = os.path.splitext(os.path.basename(access_files_list[0]))[0]
+
+        if io_ref is None:
+            xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
+
+    ## loop over preservation_files_map
+
+    if has_preservation_files:
+        for representation_name in preservation_files_dict.keys():
+            preservation_files_list = preservation_files_dict[representation_name]
+            preservation_refs_dict = __make_representation_multiple_co__(xip, rep_name=representation_name,
+                                                                         rep_type="Preservation",
+                                                                         rep_files=preservation_files_list,
+                                                                         io_ref=io_ref)
+            preservation_representation_refs_dict[representation_name] = preservation_refs_dict
+
+    if has_access_files:
+        for representation_name in access_files_dict.keys():
+            access_files_list = access_files_dict[representation_name]
+            access_refs_dict = __make_representation_multiple_co__(xip, rep_name=representation_name, rep_type="Access",
+                                                                   rep_files=access_files_list, io_ref=io_ref)
+            access_representation_refs_dict[representation_name] = access_refs_dict
+
+    if has_preservation_files:
+        for representation_name in preservation_representation_refs_dict.keys():
+            preservation_refs_dict = preservation_representation_refs_dict[representation_name]
+            for content_ref, filename in preservation_refs_dict.items():
+                default_content_objects_title = os.path.splitext(os.path.basename(filename))[0]
+
+                preservation_content_title = kwargs.get('Preservation_Content_Title', default_content_objects_title)
+                preservation_content_description = kwargs.get('Preservation_Content_Description',
+                                                              default_content_objects_title)
+
+                if isinstance(preservation_content_title, dict):
+                    preservation_content_title = preservation_content_title.get("filename",
+                                                                                default_content_objects_title)
+
+                if isinstance(preservation_content_description, dict):
+                    preservation_content_description = preservation_content_description.get("filename",
+                                                                                            default_content_objects_title)
+
+                __make_content_objects__(xip, preservation_content_title, content_ref, io_ref, security_tag,
+                                         preservation_content_description, content_type)
+
+    if has_access_files:
+        for representation_name in access_representation_refs_dict.keys():
+            access_refs_dict = access_representation_refs_dict[representation_name]
+            for content_ref, filename in access_refs_dict.items():
+                default_content_objects_title = os.path.splitext(os.path.basename(filename))[0]
+
+                access_content_title = kwargs.get('Access_Content_Title', default_content_objects_title)
+                access_content_description = kwargs.get('Access_Content_Description', default_content_objects_title)
+
+                if isinstance(access_content_title, dict):
+                    access_content_title = access_content_title.get("filename", default_content_objects_title)
+
+                if isinstance(access_content_description, dict):
+                    access_content_description = access_content_title.get("filename", default_content_objects_title)
+
+                __make_content_objects__(xip, access_content_title, content_ref, io_ref, security_tag,
+                                         access_content_description, content_type)
+
+    if has_preservation_files:
+        for representation_name in preservation_representation_refs_dict.keys():
+            preservation_refs_dict = preservation_representation_refs_dict[representation_name]
+            preservation_generation_label = kwargs.get('Preservation_Generation_Label', "")
+            for content_ref, filename in preservation_refs_dict.items():
+                preservation_file_name = os.path.basename(filename)
+                __make_generation__(xip, preservation_file_name, content_ref, preservation_generation_label)
+
+    if has_access_files:
+        for representation_name in access_representation_refs_dict.keys():
+            access_refs_dict = access_representation_refs_dict[representation_name]
+            access_generation_label = kwargs.get('Access_Generation_Label', "")
+            for content_ref, filename in access_refs_dict.items():
+                access_file_name = os.path.basename(filename)
+                __make_generation__(xip, access_file_name, content_ref, access_generation_label)
+
+    if has_preservation_files:
+
+        if 'Preservation_files_fixity_callback' in kwargs:
+            callback = kwargs.get('Preservation_files_fixity_callback')
+        else:
+            callback = Sha1FixityCallBack()
+        for representation_name in preservation_representation_refs_dict.keys():
+            preservation_refs_dict = preservation_representation_refs_dict[representation_name]
+            for content_ref, filename in preservation_refs_dict.items():
+                preservation_file_name = os.path.basename(filename)
+                __make_bitstream__(xip, preservation_file_name, filename, callback)
+
+    if has_access_files:
+
+        if 'Access_files_fixity_callback' in kwargs:
+            callback = kwargs.get('Access_files_fixity_callback')
+        else:
+            callback = Sha1FixityCallBack()
+
+        for representation_name in access_representation_refs_dict.keys():
+            access_refs_dict = access_representation_refs_dict[representation_name]
+            for content_ref, filename in access_refs_dict.items():
+                access_file_name = os.path.basename(filename)
+                __make_bitstream__(xip, access_file_name, filename, callback)
+
+    if 'Identifiers' in kwargs:
+        identifier_map = kwargs.get('Identifiers')
+        for identifier_key, identifier_value in identifier_map.items():
+            if identifier_key:
+                if identifier_value:
+                    identifier = SubElement(xip, 'Identifier')
+                    id_type = SubElement(identifier, "Type")
+                    id_type.text = identifier_key
+                    id_value = SubElement(identifier, "Value")
+                    id_value.text = identifier_value
+                    id_io = SubElement(identifier, "Entity")
+                    id_io.text = io_ref
+
+    if 'Asset_Metadata' in kwargs:
+        metadata_map = kwargs.get('Asset_Metadata')
+        for metadata_ns, metadata_path in metadata_map.items():
+            if metadata_ns:
+                if metadata_path:
+                    if os.path.exists(metadata_path) and os.path.isfile(metadata_path):
+                        descriptive_metadata = xml.etree.ElementTree.parse(source=metadata_path)
+                        metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
+                        metadata_ref = SubElement(metadata, 'Ref')
+                        metadata_ref.text = str(uuid.uuid4())
+                        entity = SubElement(metadata, 'Entity')
+                        entity.text = io_ref
+                        content = SubElement(metadata, 'Content')
+                        content.append(descriptive_metadata.getroot())
+
+    if xip is not None:
+        export_folder = export_folder
+        top_level_folder = os.path.join(export_folder, io_ref)
+        os.mkdir(top_level_folder)
+        inner_folder = os.path.join(top_level_folder, io_ref)
+        os.mkdir(inner_folder)
+        os.mkdir(os.path.join(inner_folder, "content"))
+        metadata_path = os.path.join(inner_folder, "metadata.xml")
+        metadata = open(metadata_path, "wt", encoding='utf-8')
+        metadata.write(prettify(xip))
+        metadata.close()
+        for representation_name in preservation_representation_refs_dict.keys():
+            preservation_refs_dict = preservation_representation_refs_dict[representation_name]
+            for content_ref, filename in preservation_refs_dict.items():
+                src_file = filename
+                dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(filename))
+                shutil.copyfile(src_file, dst_file)
+        for representation_name in access_representation_refs_dict.keys():
+            access_refs_dict = access_representation_refs_dict[representation_name]
+            for content_ref, filename in access_refs_dict.items():
+                src_file = filename
+                dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(filename))
+                shutil.copyfile(src_file, dst_file)
+        if compress:
+            shutil.make_archive(top_level_folder, 'zip', top_level_folder)
+        else:
+            shutil.make_archive(top_level_folder, 'szip', top_level_folder)
+        shutil.rmtree(top_level_folder)
+        return top_level_folder + ".zip"
+
+
 def complex_asset_package(preservation_files_list=None, access_files_list=None, export_folder=None,
                           parent_folder=None, compress=True, **kwargs):
     """
@@ -399,6 +610,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         'Preservation_files_fixity_callback'    Callback to allow external generated fixity values
         'Access_files_fixity_callback'          Callback to allow external generated fixity values
         'IO_Identifier_callback'                Callback to allow external generated Asset identifier
+        'Preservation_Representation_Name'      Name of the Preservation Representation
+        'Access_Representation_Name'            Name of the Access Representation
     """
     # some basic validation
     if export_folder is None:
@@ -441,12 +654,16 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
     if has_preservation_files:
         # add the content objects
-        preservation_refs_dict = __make_representation_multiple_co__(xip, "Preservation", "Preservation",
-                                                                     preservation_files_list, io_ref)
+        representation_name = kwargs.get('Preservation_Representation_Name', "Preservation")
+        preservation_refs_dict = __make_representation_multiple_co__(xip, rep_name=representation_name,
+                                                                     rep_type="Preservation",
+                                                                     rep_files=preservation_files_list, io_ref=io_ref)
 
     if has_access_files:
         # add the content objects
-        access_refs_dict = __make_representation_multiple_co__(xip, "Access", "Access", access_files_list, io_ref)
+        access_name = kwargs.get('Access_Representation_Name', "Access")
+        access_refs_dict = __make_representation_multiple_co__(xip, rep_name=access_name, rep_type="Access",
+                                                               rep_files=access_files_list, io_ref=io_ref)
 
     if has_preservation_files:
 

@@ -14,6 +14,7 @@ from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
 
+
 class ContentAPI(AuthenticatedAPI):
 
     def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
@@ -146,7 +147,7 @@ class ContentAPI(AuthenticatedAPI):
         else:
             metadata_fields = ','.join(*args)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': query_term}
-        results = requests.post(f'https://{self.server}/api/content/search', data=payload,  headers=headers)
+        results = requests.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = list()
         if results.status_code == requests.codes.ok:
             json = results.json()
