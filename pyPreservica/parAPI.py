@@ -26,8 +26,6 @@ def __get_contents__(document) -> AnyStr:
 class PreservationActionRegistry:
 
     def __init__(self, server: str = None, username: str = None, password: str = None, protocol: str = 'https'):
-        self.username = username
-        self.password = password
         self.protocol = protocol
         self.session = requests.Session()
         self.session.headers.update({'accept': 'application/json;charset=UTF-8'})
@@ -46,6 +44,22 @@ class PreservationActionRegistry:
             raise RuntimeError(msg)
         else:
             self.server = server
+        if not username:
+            username = os.environ.get('PRESERVICA_USERNAME')
+            if username is None:
+                try:
+                    username = config['credentials']['username']
+                except KeyError:
+                    pass
+        self.username = username
+        if not password:
+            password = os.environ.get('PRESERVICA_PASSWORD')
+            if password is None:
+                try:
+                    password = config['credentials']['password']
+                except KeyError:
+                    pass
+        self.password = password
 
     def format_family(self, guid: str) -> str:
         return self.__guid__(guid, "format-families")

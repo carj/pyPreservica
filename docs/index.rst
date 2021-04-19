@@ -21,7 +21,7 @@ This library provides a Python class for working with the Preservica Rest API
 
 https://developers.preservica.com/api-reference
 
-This version of the documentation is for use against a Preservica 6.2 system
+This version of the documentation is for use against a Preservica 6.3/6.2 system
 
 For Preservica 6.0 and 6.1 see `the previous version <https://pypreservica.readthedocs.io/en/v6.1/>`_
 
@@ -69,6 +69,7 @@ Entity API Features
 -  Add or remove asset and folder icons   (**New in 6.2**)
 -  Replace existing content objects within an Asset   (**New in 6.2**)
 -  Export OPEX Package   (**New in 6.2**)
+-  Fetch audit trail events on Entities and across the repository
 
 Content API Features
 ---------------------
@@ -817,6 +818,32 @@ then this call will probably do what you expect. ::
 
 For complex multi-part assets which have been through preservation actions it may be better to use the data model
 and the ``bitstream_content()`` function to fetch the exact bitstream you need.
+
+
+
+Events on Specific Entities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+List actions performed against this entity
+
+``entity_events()`` returns a iterator which contains events on an entity, either an asset or folder
+
+    ::
+
+    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    >>> for event in client.entity_events(self, asset)
+    >>>     print(event)
+
+
+
+Events Across Entities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+List actions performed against all entities within the repository. The event is a dict() object containing the event attributes ::
+
+    >>> for event in client.all_events():
+    >>>     print(event)
+
 
 
 

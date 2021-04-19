@@ -235,7 +235,8 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         Return a list of Workflow instances
 
-        :param workflow_state: The Workflow state: Aborted, Active, Completed, Finished_Mixed_Outcome, Pending, Suspended, Unknown, or Failed
+        :param workflow_state: The Workflow state: Aborted, Active, Completed, Finished_Mixed_Outcome, Pending,
+        Suspended, Unknown, or Failed
         :param workflow_type: The Workflow type: Ingest, Access, Transformation or DataManagement
 
         """
@@ -256,7 +257,8 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         Return a list of Workflow instances
 
-        :param workflow_state: The Workflow state: Aborted, Active, Completed, Finished_Mixed_Outcome, Pending, Suspended, Unknown, or Failed
+        :param workflow_state: The Workflow state: Aborted, Active, Completed, Finished_Mixed_Outcome, Pending,
+        Suspended, Unknown, or Failed
         :param workflow_type: The Workflow type: Ingest, Access, Transformation or DataManagement
 
         """

@@ -1290,7 +1290,7 @@ class EntityAPI(AuthenticatedAPI):
             return self._event_actions(entity, maximum=maximum)
         else:
             logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"events failed: {request.content.decode('utf-8')}")
+            raise RuntimeError(request.status_code, f"event-actions failed: {request.content.decode('utf-8')}")
 
     def all_descendants(self, folder_reference: str = None):
         """
@@ -1355,6 +1355,70 @@ class EntityAPI(AuthenticatedAPI):
             return self.children(folder_reference, maximum=maximum, next_page=next_page)
         else:
             raise RuntimeError(request.status_code, "children failed")
+
+    def all_events(self):
+        self.token = self.__token__()
+        paged_set = self._all_events_page()
+        for entity in paged_set.results:
+            yield entity
+        while paged_set.has_more:
+            paged_set = self._all_events_page(next_page=paged_set.next_page)
+            for entity in paged_set.results:
+                yield entity
+
+    def _all_events_page(self, maximum: int = 25, next_page: str = None, **kwargs) -> PagedSet:
+        """
+          event actions performed against this repository
+         """
+        headers = {HEADER_TOKEN: self.token}
+        params = {'start': str(0), 'max': str(maximum)}
+        if next_page is None:
+            request = self.session.get(f'https://{self.server}/api/entity/events', params=params, headers=headers)
+        else:
+            request = self.session.get(next_page, headers=headers)
+
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            logger.debug(xml_response)
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            events = entity_response.findall(f'.//{{{self.xip_ns}}}Event')
+            result_list = list()
+            for e in events:
+                result = dict()
+                result['eventType'] = e.attrib['type']
+                result['Date'] = e.find(f'.//{{{self.xip_ns}}}Date').text
+                result['User'] = e.find(f'.//{{{self.xip_ns}}}User').text
+                result['Ref'] = e.find(f'.//{{{self.xip_ns}}}Ref').text
+
+                workflow_name = e.find(f'.//{{{self.xip_ns}}}WorkflowName')
+                if workflow_name is not None:
+                    result['WorkflowName'] = workflow_name.text
+
+                workflow_instance_id = e.find(f'.//{{{self.xip_ns}}}WorkflowInstanceId')
+                if workflow_instance_id is not None:
+                    result['WorkflowInstanceId'] = workflow_instance_id.text
+
+                serialised_command = e.find(f'.//{{{self.xip_ns}}}SerialisedCommand')
+                if serialised_command is not None:
+                    result['SerialisedCommand'] = serialised_command.text
+
+                result_list.append(result)
+            next_url = entity_response.find(f'.//{{{self.entity_ns}}}Next')
+            total_hits = entity_response.find(f'.//{{{self.entity_ns}}}TotalResults')
+            has_more = True
+            url = None
+            if next_url is None:
+                has_more = False
+            else:
+                url = next_url.text
+            return PagedSet(result_list, has_more, total_hits.text, url)
+
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self._all_events_page(maximum, next_page, **kwargs)
+        else:
+            logger.error(request.content.decode('utf-8'))
+            raise RuntimeError(request.status_code, f"events failed: {request.content.decode('utf-8')}")
 
     def _entity_events_page(self, entity: Entity, maximum: int = 25, next_page: str = None) -> PagedSet:
         """

@@ -312,12 +312,12 @@ def csv_to_search_xml(csv_file, xml_namespace, root_element, title="Metadata Tit
 
     short_name = "csv"
 
-    xml_schemaName = xml.etree.ElementTree.SubElement(xml_index, "schemaName")
-    xml_schemaName.text = title
-    xml_schemaUri = xml.etree.ElementTree.SubElement(xml_index, "schemaUri")
-    xml_schemaUri.text = xml_namespace
-    xml_shortName = xml.etree.ElementTree.SubElement(xml_index, "shortName")
-    xml_shortName.text = short_name
+    xml_schema_name = xml.etree.ElementTree.SubElement(xml_index, "schemaName")
+    xml_schema_name.text = title
+    xml_schema_uri = xml.etree.ElementTree.SubElement(xml_index, "schemaUri")
+    xml_schema_uri.text = xml_namespace
+    xml_short_name = xml.etree.ElementTree.SubElement(xml_index, "shortName")
+    xml_short_name.text = short_name
 
     for header in headers:
         if ":" in header:
@@ -434,7 +434,7 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
         if io_ref is None:
             xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
 
-    ## loop over preservation_files_map
+    # loop over preservation_files_map
 
     if has_preservation_files:
         for representation_name in preservation_files_dict.keys():
@@ -468,7 +468,7 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
 
                 if isinstance(preservation_content_description, dict):
                     preservation_content_description = preservation_content_description.get("filename",
-                                                                                            default_content_objects_title)
+                                                                        default_content_objects_title)
 
                 __make_content_objects__(xip, preservation_content_title, content_ref, io_ref, security_tag,
                                          preservation_content_description, content_type)

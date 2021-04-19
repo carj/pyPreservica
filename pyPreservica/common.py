@@ -65,7 +65,7 @@ class FileHash:
         return hash_algorithm.hexdigest()
 
 
-def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0, logger=None):
+def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0, zlogger=None):
     """Create a zip file from all the files under 'base_dir'.
 
     The output zip file will be named 'base_name' + ".zip".  Returns the
@@ -77,34 +77,34 @@ def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0
     archive_dir = os.path.dirname(base_name)
 
     if archive_dir and not os.path.exists(archive_dir):
-        if logger is not None:
-            logger.info("creating %s", archive_dir)
+        if zlogger is not None:
+            zlogger.info("creating %s", archive_dir)
         if not dry_run:
             os.makedirs(archive_dir)
 
-    if logger is not None:
-        logger.info("creating '%s' and adding '%s' to it",
-                    zip_filename, base_dir)
+    if zlogger is not None:
+        zlogger.info("creating '%s' and adding '%s' to it",
+                     zip_filename, base_dir)
 
     if not dry_run:
         with zipfile.ZipFile(zip_filename, "w", compression=zipfile.ZIP_STORED) as zf:
             path = os.path.normpath(base_dir)
             if path != os.curdir:
                 zf.write(path, path)
-                if logger is not None:
-                    logger.info("adding '%s'", path)
+                if zlogger is not None:
+                    zlogger.info("adding '%s'", path)
             for dirpath, dirnames, filenames in os.walk(base_dir):
                 for name in sorted(dirnames):
                     path = os.path.normpath(os.path.join(dirpath, name))
                     zf.write(path, path)
-                    if logger is not None:
-                        logger.info("adding '%s'", path)
+                    if zlogger is not None:
+                        zlogger.info("adding '%s'", path)
                 for name in filenames:
                     path = os.path.normpath(os.path.join(dirpath, name))
                     if os.path.isfile(path):
                         zf.write(path, path)
-                        if logger is not None:
-                            logger.info("adding '%s'", path)
+                        if zlogger is not None:
+                            zlogger.info("adding '%s'", path)
 
     return zip_filename
 
