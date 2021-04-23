@@ -209,7 +209,7 @@ Preservica user and an optional Tenant identifier along with the server hostname
 
 Include the user credentials as arguments to the EntityAPI Class
 
-.. code-block::
+.. code-block:: python
     from pyPreservica import *
     client = EntityAPI(username="test@test.com", password="123444",
                        tenant="PREVIEW", server="preview.preservica.com")
