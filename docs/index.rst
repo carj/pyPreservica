@@ -199,16 +199,20 @@ Authentication
 -----------------
 
 pyPreservica provides 4 different methods for authentication. The library requires the username and password of a
-Preservica user and a Tenant identifier along with the server hostname.
+Preservica user and an optional Tenant identifier along with the server hostname.
+
+.. note::
+    The Tenant ID parameter is now optional when connecting to a Preservica 6.3 system.
 
 
 1 **Method Arguments**
 
-Include the user credentials as arguments to the EntityAPI Class ::
+Include the user credentials as arguments to the EntityAPI Class
 
+.. code-block:: python
     >>> from pyPreservica import *
     >>> client = EntityAPI(username="test@test.com", password="123444",
-                           tenant="PREVIEW", server="preview.preservica.com")
+                            tenant="PREVIEW", server="preview.preservica.com")
 
 
 If you don't want to include your Preservica credentials within your python script then the following two methods should
@@ -894,7 +898,7 @@ The non-blocking (asynchronous) API call will replace the last active Generation
     >>> file = "C:/book/page421.tiff"
     >>> pid = client.replace_generation_async(content_object, file)
 
- This will return a process id which can be used to monitor the replacement workflow using ::
+This will return a process id which can be used to monitor the replacement workflow using ::
 
     >>> status = client.get_async_progress(pid)
 
@@ -1025,6 +1029,22 @@ or to include everything except the full text index value ::
     >>> client.simple_search_csv("%", "results.csv", everything)
 
 
+There is an equivalent call which does not write the output to CSV, but returns a list of dictionary objects. This is useful if you want
+to process the results within the script and not generate a report directly. ::
+
+    >>> client = ContentAPI()
+    >>> results = simple_search_list("History of Oxford")
+
+and ::
+
+    >>> client = ContentAPI()
+    >>> metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type", "xip.parent_ref", "xip.security_descriptor"]
+    >>> results = simple_search_list("History of Oxford", metadata_fields)
+
+
+If you want to do searches with advanced filter terms then the following calls can be used. ::
+
+    >>> client = ContentAPI()
 
 
 Upload API
@@ -1354,7 +1374,7 @@ identifiers. ::
     >>> url = "https://www.youtube.com/watch?v=4GCr9gljY7s"
     >>> title = "Preservica Cloud Edition: Keeping your digital assets safe and accessible"
     >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_map, Title=title, SecurityTag="public")
+    >>> upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_dict, Title=title, SecurityTag="public")
 
 
 
@@ -1371,7 +1391,16 @@ You can apply for API Consumer Keys (The basic ready only set is required) at:
 
 https://developer.twitter.com/
 
-You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully.
+You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully. ::
+
+    >>> twitter_name = "Preservica"
+    >>> number_tweets = 25
+    >>> folder_id = "77802d22-ee48-4e46-9b29-46118246cad1"
+    >>> folder = entity.folder(folder_id)
+    >>>
+    >>> upload.ingest_twitter_feed(twitter_user=twitter_name, num_tweets=number_tweets, folder=folder, twitter_consumer_key="xxxx", twitter_secret_key="zzzz")
+
+
 
 Preservation Action Registry API
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
