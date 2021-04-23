@@ -3,10 +3,14 @@ import sphinx_rtd_theme
 master_doc = 'index'
 
 extensions = [
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinxcontrib.httpdomain',
     'sphinx_rtd_theme',
 ]
 
 html_theme = "sphinx_rtd_theme"
 
-pygments_style = 'sphinx'
+pygments_style = 'default'
