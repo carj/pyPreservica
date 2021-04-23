@@ -27,6 +27,8 @@ For Preservica 6.0 and 6.1 see `the previous version <https://pypreservica.readt
 
 -------------------
 
+
+
 .. default-domain:: py
 .. py:module:: pyPreservica
 
@@ -201,8 +203,8 @@ Authentication
 pyPreservica provides 4 different methods for authentication. The library requires the username and password of a
 Preservica user and an optional Tenant identifier along with the server hostname.
 
-.. note::
-    The Tenant ID parameter is now optional when connecting to a Preservica 6.3 system.
+.. tip::
+    The Tenant parameter is now optional when connecting to a Preservica 6.3 system.
 
 
 1 **Method Arguments**
@@ -216,12 +218,16 @@ Include the user credentials as arguments to the EntityAPI Class
                        tenant="PREVIEW", server="preview.preservica.com")
 
 
+
+
 If you don't want to include your Preservica credentials within your python script then the following two methods should
 be used.
 
 2 **Environment Variable**
 
-Export the credentials as environment variables as part of the session ::
+Export the credentials as environment variables as part of the session
+
+.. code-block:: bash
 
     $ export PRESERVICA_USERNAME="test@test.com"
     $ export PRESERVICA_PASSWORD="123444"
@@ -230,8 +236,10 @@ Export the credentials as environment variables as part of the session ::
 
     $ python3
 
-    >>> from pyPreservica import *
-    >>> client = EntityAPI()
+.. code-block:: python
+
+    from pyPreservica import *
+    client = EntityAPI()
     
 3 **Properties File**
 
