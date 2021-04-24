@@ -178,7 +178,10 @@ forum https://groups.google.com/g/pypreservica
 Example
 ------------
 
-Create the entity API client object and request an Asset (Information Object) by its unique identifier ::
+Create the entity API client object and request an Asset (Information Object) by its unique identifier
+
+
+.. code-block:: python
 
     >>> from pyPreservica import *
     >>> client = EntityAPI()
@@ -228,7 +231,6 @@ be used.
 Export the credentials as environment variables as part of the session
 
 .. code-block:: bash
-
     $ export PRESERVICA_USERNAME="test@test.com"
     $ export PRESERVICA_PASSWORD="123444"
     $ export PRESERVICA_TENANT="PREVIEW"
@@ -237,7 +239,6 @@ Export the credentials as environment variables as part of the session
     $ python3
 
 .. code-block:: python
-
     from pyPreservica import *
     client = EntityAPI()
     
@@ -251,16 +252,18 @@ Create a properties file called "credentials.properties" and save to the working
     tenant=PREVIEW
     server=preview.preservica.com
     
-    >>> from pyPreservica import *
-    >>> client = EntityAPI()
+    
+.. code-block:: python
+    from pyPreservica import *
+    client = EntityAPI()
 
+You can create a new credentials.properties file automatically using the ``save_config()`` method
 
-You can create a new credentials.properties file automatically using the ``save_config()`` method ::
-
-   >>> from pyPreservica import *
-   >>> client = EntityAPI(username="test@test.com", password="123444",
+.. code-block:: python
+    from pyPreservica import *
+    client = EntityAPI(username="test@test.com", password="123444",
                           tenant="PREVIEW", server="preview.preservica.com")
-   >>> client.save_config()
+    client.save_config()
 
 
 
@@ -273,16 +276,18 @@ without having to use a set of login credentials.
 To use the shared secret authentication you need to add a secure secret key to your Preservica system.
 
 The username, password, tenant and server attributes are used as normal, the password field now holds the shared
-secret and not the users password. ::
+secret and not the users password.
 
-   >>> from pyPreservica import *
-   >>> client = EntityAPI(username="test@test.com", password="shared-secret", tenant="PREVIEW",
+.. code-block:: python
+   from pyPreservica import *
+   client = EntityAPI(username="test@test.com", password="shared-secret", tenant="PREVIEW",
                           server="preview.preservica.com", use_shared_secret=True)
 
+If you are using a credentials.properties file then 
 
-
-   >>> from pyPreservica import *
-   >>> client = EntityAPI(use_shared_secret=True)
+.. code-block:: python
+   from pyPreservica import *
+   client = EntityAPI(use_shared_secret=True)
 
 
 
@@ -306,12 +311,12 @@ For on-premise deployments the trusted CAs can be specified through the ``REQUES
 Application Logging
 -------------------
 
-You can add logging to your pyPreservica scripts by simply including the following ::
+You can add logging to your pyPreservica scripts by simply including the following
 
-
+.. code-block:: python
     import logging
     from pyPreservica import *
-
+    
     logging.basicConfig(level=logging.DEBUG)
 
     client = EntityAPI()
@@ -324,7 +329,9 @@ While Python provides its own file rotation handler, it is best to leave log rot
 The WatchedFileHandler will keep track of the log file and reopen it if it is rotated,
 making it work well with logrotate without requiring any specific signals.
 
-Here’s a sample implementation. ::
+Here’s a sample implementation.
+
+.. code-block:: python
 
     import logging
     import logging.handlers
@@ -341,8 +348,6 @@ Here’s a sample implementation. ::
 
     client = EntityAPI()
 
-
-
 The User Guide
 --------------
 
@@ -351,60 +356,67 @@ Entity API
 
 Making a call to the Preservica repository is very simple.
 
-Begin by importing the pyPreservica module ::
+Begin by importing the pyPreservica module
 
-    >>> from pyPreservica import *
+.. code-block:: python
+    from pyPreservica import *
     
-Now, let's create the ``EntityAPI`` class ::
+Now, let's create the ``EntityAPI`` class
 
-    >>> client = EntityAPI()
+.. code-block:: python
+    client = EntityAPI()
 
 Fetching Entities (Assets, Folders & Content Objects)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
-Fetch an Asset and print its attributes ::
+Fetch an Asset and print its attributes
 
-    >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
-    >>> print(asset.reference)
-    >>> print(asset.title)
-    >>> print(asset.description)
-    >>> print(asset.security_tag)
-    >>> print(asset.parent)
-    >>> print(asset.entity_type)
+.. code-block:: python
+    asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    print(asset.reference)
+    print(asset.title)
+    print(asset.description)
+    print(asset.security_tag)
+    print(asset.parent)
+    print(asset.entity_type)
     
 
-We can also fetch the same attributes for both Folders  ::
+We can also fetch the same attributes for both Folders
 
-    >>> folder = client.folder("0b0f0303-6053-4d4e-a638-4f6b81768264")
-    >>> print(folder.reference)
-    >>> print(folder.title)
-    >>> print(folder.description)
-    >>> print(folder.security_tag)
-    >>> print(folder.parent)
-    >>> print(folder.entity_type)
+.. code-block:: python
+    folder = client.folder("0b0f0303-6053-4d4e-a638-4f6b81768264")
+    print(folder.reference)
+    print(folder.title)
+    print(folder.description)
+    print(folder.security_tag)
+    print(folder.parent)
+    print(folder.entity_type)
 
-and Content Objects ::
+and Content Objects
 
-    >>> content_object = client.content_object("1a2a2101-6053-4d4e-a638-4f6b81768264")
-    >>> print(content_object.reference)
-    >>> print(content_object.title)
-    >>> print(content_object.description)
-    >>> print(content_object.security_tag)
-    >>> print(content_object.parent)
-    >>> print(content_object.entity_type)
+.. code-block:: python
+    content_object = client.content_object("1a2a2101-6053-4d4e-a638-4f6b81768264")
+    print(content_object.reference)
+    print(content_object.title)
+    print(content_object.description)
+    print(content_object.security_tag)
+    print(content_object.parent)
+    print(content_object.entity_type)
 
-We can fetch any of Assets, Folders and Content Objects using the entity type and the unique reference ::
+We can fetch any of Assets, Folders and Content Objects using the entity type and the unique reference
 
-    >>> asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
-    >>> folder = client.entity(EntityType.FOLDER, asset.parent)
+.. code-block:: python
+    asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    folder = client.entity(EntityType.FOLDER, asset.parent)
 
-To get a list of parent Folders of an Asset all the way to the root of the repository ::
+To get a list of parent Folders of an Asset all the way to the root of the repository
 
-    >>> folder = client.folder(asset.parent)
-    >>> print(folder.title)
-    >>> while folder.parent is not None:
-    >>>     folder = client.folder(folder.parent)
-    >>>     print(folder.title)
+.. code-block:: python
+    folder = client.folder(asset.parent)
+    print(folder.title)
+    while folder.parent is not None:
+        folder = client.folder(folder.parent)
+        print(folder.title)
 
 
 Fetching Children of Entities
@@ -412,37 +424,40 @@ Fetching Children of Entities
 
 The immediate children of a Folder can also be retrieved using the library.
 
-To get a set of all the root Folders use ::
+To get a set of all the root Folders use
 
-    >>> root_folders = client.children(None)
+.. code-block:: python
+    root_folders = client.children(None)
 
-or ::
+or
 
-    >>> root_folders = client.children()
+.. code-block:: python
+    root_folders = client.children()
 
+To get a set of children of a particular Folder use
 
+.. code-block:: python
+     entities = client.children(folder.reference)
 
-To get a set of children of a particular Folder use ::
+To get the siblings of an Asset you can use
 
-    >>> entities = client.children(folder.reference)
-
-To get the siblings of an Asset you can use ::
-
-    >>> entities = client.children(asset.parent)
+.. code-block:: python
+     entities = client.children(asset.parent)
 
 The set of entities returned may contain both Assets and other Folders.
 The default size of the result set is 50 items. The size can be configured and for large result sets
-paging is available. ::
+paging is available.
 
-    >>> next_page = None
-    >>> while True:
-    >>>     root_folders = client.children(None, maximum=10, next_page=next_page)
-    >>>     for e in root_folders.results:
-    >>>         print(f'{e.title} : {e.reference} : {e.entity_type}')
-    >>>         if not root_folders.has_more:
-    >>>             break
-    >>>         else:
-    >>>             next_page = root_folders.next_page
+.. code-block:: python
+     next_page = None
+     while True:
+         root_folders = client.children(None, maximum=10, next_page=next_page)
+         for e in root_folders.results:
+             print(f'{e.title} : {e.reference} : {e.entity_type}')
+             if not root_folders.has_more:
+                 break
+             else:
+                 next_page = root_folders.next_page
 
 
 
