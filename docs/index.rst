@@ -242,6 +242,7 @@ Export the credentials as environment variables as part of the session
     $ python3
 
 .. code-block:: python
+
     from pyPreservica import *
     client = EntityAPI()
     
@@ -249,7 +250,8 @@ Export the credentials as environment variables as part of the session
 
 Create a properties file called "credentials.properties" and save to the working directory
 
-.. code-block:: console
+.. code-block::
+
     [credentials]
     username=test@test.com
     password=123444
@@ -258,12 +260,14 @@ Create a properties file called "credentials.properties" and save to the working
     
     
 .. code-block:: python
+
     from pyPreservica import *
     client = EntityAPI()
 
 You can create a new credentials.properties file automatically using the ``save_config()`` method
 
 .. code-block:: python
+
     from pyPreservica import *
     client = EntityAPI(username="test@test.com", password="123444",
                           tenant="PREVIEW", server="preview.preservica.com")
@@ -442,6 +446,7 @@ To get a set of all the root Folders use
     root_folders = client.children(None)
 
 or
+
 .. code-block:: python
 
     root_folders = client.children()
