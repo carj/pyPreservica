@@ -244,13 +244,14 @@ Export the credentials as environment variables as part of the session
 .. code-block:: python
 
     from pyPreservica import *
+
     client = EntityAPI()
     
 3 **Properties File**
 
 Create a properties file called "credentials.properties" and save to the working directory
 
-.. code-block::
+    ::
 
     [credentials]
     username=test@test.com
@@ -262,6 +263,7 @@ Create a properties file called "credentials.properties" and save to the working
 .. code-block:: python
 
     from pyPreservica import *
+
     client = EntityAPI()
 
 You can create a new credentials.properties file automatically using the ``save_config()`` method
@@ -269,6 +271,7 @@ You can create a new credentials.properties file automatically using the ``save_
 .. code-block:: python
 
     from pyPreservica import *
+
     client = EntityAPI(username="test@test.com", password="123444",
                           tenant="PREVIEW", server="preview.preservica.com")
     client.save_config()
@@ -289,6 +292,7 @@ secret and not the users password.
 .. code-block:: python
 
     from pyPreservica import *
+
     client = EntityAPI(username="test@test.com", password="shared-secret", tenant="PREVIEW",
                           server="preview.preservica.com", use_shared_secret=True)
 
@@ -297,6 +301,7 @@ If you are using a credentials.properties file then
 .. code-block:: python
 
     from pyPreservica import *
+
     client = EntityAPI(use_shared_secret=True)
 
 
@@ -310,10 +315,11 @@ pyPreservica uses the Certifi project to provide SSL certificate validation.
 Self-signed certificates used by on-premise deployments are not part of the Certifi CA bundle and need to be set
 explicitly.
 
-For on-premise deployments the trusted CAs can be specified through the ``REQUESTS_CA_BUNDLE`` environment variable. e.g. ::
+For on-premise deployments the trusted CAs can be specified through the ``REQUESTS_CA_BUNDLE`` environment variable. e.g.
 
-    export REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/my-server.cert
+.. code-block:: console
 
+    $ export REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/my-server.cert
 
 
 Application Logging
@@ -484,11 +490,13 @@ paging is available.
 
 A version of this method is also available as a generator function which does not require explicit paging.
 This version returns a lazy iterator which does the paging internally.
-It will default to 50 items between server requests ::
+It will default to 50 items between server requests 
 
-    >>> for entity in client.descendants():
-    >>>     print(entity.title)
-    >>>
+.. code-block:: python
+
+    for entity in client.descendants():
+        print(entity.title)
+    
 
 You can pass a parent reference to get the children of any folder in the same way as the explict paging version ::
 
