@@ -250,8 +250,8 @@ Export the credentials as environment variables as part of the session
     
 3 **Properties File**
 
-Create a properties file called "credentials.properties" and save to the working directory
-    ::
+Create a properties file called "credentials.properties" with the following property names
+and save to the working directory ::
 
     [credentials]
     username=test@test.com
