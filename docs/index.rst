@@ -161,7 +161,9 @@ Get the Source Code
 pyPreservica is developed on GitHub, where the code is
 `always available <https://github.com/carj/pyPreservica>`_.
 
-You can clone the public repository::
+You can clone the public repository
+
+.. code-block:: console
 
     $ git clone git://github.com/carj/pyPreservica.git
 
@@ -230,7 +232,8 @@ be used.
 
 Export the credentials as environment variables as part of the session
 
-.. code-block:: bash
+.. code-block:: console
+
     $ export PRESERVICA_USERNAME="test@test.com"
     $ export PRESERVICA_PASSWORD="123444"
     $ export PRESERVICA_TENANT="PREVIEW"
@@ -244,8 +247,9 @@ Export the credentials as environment variables as part of the session
     
 3 **Properties File**
 
-Create a properties file called "credentials.properties" and save to the working directory ::
+Create a properties file called "credentials.properties" and save to the working directory
 
+.. code-block:: console
     [credentials]
     username=test@test.com
     password=123444
@@ -359,11 +363,13 @@ Making a call to the Preservica repository is very simple.
 Begin by importing the pyPreservica module
 
 .. code-block:: python
+
     from pyPreservica import *
     
 Now, let's create the ``EntityAPI`` class
 
 .. code-block:: python
+
     client = EntityAPI()
 
 Fetching Entities (Assets, Folders & Content Objects)
@@ -372,6 +378,7 @@ Fetching Entities (Assets, Folders & Content Objects)
 Fetch an Asset and print its attributes
 
 .. code-block:: python
+
     asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     print(asset.reference)
     print(asset.title)
@@ -384,6 +391,7 @@ Fetch an Asset and print its attributes
 We can also fetch the same attributes for both Folders
 
 .. code-block:: python
+
     folder = client.folder("0b0f0303-6053-4d4e-a638-4f6b81768264")
     print(folder.reference)
     print(folder.title)
@@ -395,6 +403,7 @@ We can also fetch the same attributes for both Folders
 and Content Objects
 
 .. code-block:: python
+
     content_object = client.content_object("1a2a2101-6053-4d4e-a638-4f6b81768264")
     print(content_object.reference)
     print(content_object.title)
@@ -406,12 +415,14 @@ and Content Objects
 We can fetch any of Assets, Folders and Content Objects using the entity type and the unique reference
 
 .. code-block:: python
+
     asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     folder = client.entity(EntityType.FOLDER, asset.parent)
 
 To get a list of parent Folders of an Asset all the way to the root of the repository
 
 .. code-block:: python
+
     folder = client.folder(asset.parent)
     print(folder.title)
     while folder.parent is not None:
@@ -427,21 +438,24 @@ The immediate children of a Folder can also be retrieved using the library.
 To get a set of all the root Folders use
 
 .. code-block:: python
+
     root_folders = client.children(None)
 
 or
-
 .. code-block:: python
+
     root_folders = client.children()
 
 To get a set of children of a particular Folder use
 
 .. code-block:: python
+
      entities = client.children(folder.reference)
 
 To get the siblings of an Asset you can use
 
 .. code-block:: python
+
      entities = client.children(asset.parent)
 
 The set of entities returned may contain both Assets and other Folders.
@@ -449,6 +463,7 @@ The default size of the result set is 50 items. The size can be configured and f
 paging is available.
 
 .. code-block:: python
+
      next_page = None
      while True:
          root_folders = client.children(None, maximum=10, next_page=next_page)
