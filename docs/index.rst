@@ -310,12 +310,13 @@ SSL Certificates
 
 pyPreservica will only connect to servers which use the https:// protocol and will always validate certificates.
 
-pyPreservica uses the Certifi project to provide SSL certificate validation.
+pyPreservica uses the `Certifi <https://pypi.org/project/certifi/>`_  project to provide SSL certificate validation.
 
-Self-signed certificates used by on-premise deployments are not part of the Certifi CA bundle and need to be set
-explicitly.
+Self-signed certificates used by on-premise deployments are not part of the Certifi CA bundle and therefore
+need to be set explicitly.
 
-For on-premise deployments the trusted CAs can be specified through the ``REQUESTS_CA_BUNDLE`` environment variable. e.g.
+For on-premise deployments the trusted CAs can be specified through the ``REQUESTS_CA_BUNDLE``
+environment variable. e.g.
 
 .. code-block:: console
 
