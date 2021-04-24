@@ -219,6 +219,7 @@ Include the user credentials as arguments to the EntityAPI Class
 .. code-block:: python
 
     from pyPreservica import *
+
     client = EntityAPI(username="test@test.com", password="123444",
                        tenant="PREVIEW", server="preview.preservica.com")
 
@@ -250,7 +251,6 @@ Export the credentials as environment variables as part of the session
 3 **Properties File**
 
 Create a properties file called "credentials.properties" and save to the working directory
-
     ::
 
     [credentials]
@@ -258,7 +258,7 @@ Create a properties file called "credentials.properties" and save to the working
     password=123444
     tenant=PREVIEW
     server=preview.preservica.com
-    
+
     
 .. code-block:: python
 
