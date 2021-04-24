@@ -287,17 +287,17 @@ The username, password, tenant and server attributes are used as normal, the pas
 secret and not the users password.
 
 .. code-block:: python
-   from pyPreservica import *
-   client = EntityAPI(username="test@test.com", password="shared-secret", tenant="PREVIEW",
+
+    from pyPreservica import *
+    client = EntityAPI(username="test@test.com", password="shared-secret", tenant="PREVIEW",
                           server="preview.preservica.com", use_shared_secret=True)
 
 If you are using a credentials.properties file then 
 
 .. code-block:: python
-   from pyPreservica import *
-   client = EntityAPI(use_shared_secret=True)
 
-
+    from pyPreservica import *
+    client = EntityAPI(use_shared_secret=True)
 
 
 SSL Certificates
