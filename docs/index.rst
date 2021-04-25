@@ -967,21 +967,24 @@ List actions performed against this entity
 
 ``entity_events()`` returns a iterator which contains events on an entity, either an asset or folder
 
-    ::
+.. code-block:: python
 
-    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> for event in client.entity_events(self, asset)
-    >>>     print(event)
+    asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    for event in client.entity_events(self, asset)
+        print(event)
 
 
 
 Events Across Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-List actions performed against all entities within the repository. The event is a dict() object containing the event attributes ::
+List actions performed against all entities within the repository. The event is a dict() object containing 
+the event attributes
 
-    >>> for event in client.all_events():
-    >>>     print(event)
+.. code-block:: python
+
+    for event in client.all_events():
+        print(event)
 
 
 
@@ -990,32 +993,40 @@ Add or remove asset and folder icons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now add and remove icons on assets and folders using the API. The icons will be displayed in the Explorer and
-Universal Access interfaces. ::
-
-    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>>> client.add_thumbnail(folder, "../my-icon.png")
-
-    >>> client.remove_thumbnail(folder)
-
-and for assets ::
-
-    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> client.add_thumbnail(asset, "../my-icon.png")
-
-    >>> client.remove_thumbnail(asset)
+Universal Access interfaces. 
+.. code-block:: python
 
 
-We also have a function to fetch the thumbnail image for an asset or folder ::
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    client.add_thumbnail(folder, "../my-icon.png")
+    
+    client.remove_thumbnail(folder)
 
-    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> filename = client.thumbnail(asset, "thumbnail.jpg")
+and for assets 
 
-You can specify the size of the thumbnail by passing a second argument ::
+.. code-block:: python
 
-    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.LARGE)     ## 400×400   pixels
-    >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.MEDIUM)    ## 150×150   pixels
-    >>> filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.SMALL)     ## 64×64     pixels
+    asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    client.add_thumbnail(asset, "../my-icon.png")
+    
+    client.remove_thumbnail(asset)
+
+
+We also have a function to fetch the thumbnail image for an asset or folder
+
+.. code-block:: python
+
+    asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    filename = client.thumbnail(asset, "thumbnail.jpg")
+
+You can specify the size of the thumbnail by passing a second argument
+
+.. code-block:: python
+
+    asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.LARGE)     ## 400×400   pixels
+    filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.MEDIUM)    ## 150×150   pixels
+    filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.SMALL)     ## 64×64     pixels
 
 
 
