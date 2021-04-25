@@ -180,7 +180,8 @@ forum https://groups.google.com/g/pypreservica
 Example
 ------------
 
-Create the entity API client object and request an Asset (Information Object) by its unique identifier
+Using the python console, create the entity API client object and request an Asset
+(Information Object) by its unique identifier and display some of its attributes
 
 
 .. code-block:: python
@@ -499,22 +500,28 @@ It will default to 50 items between server requests
         print(entity.title)
     
 
-You can pass a parent reference to get the children of any folder in the same way as the explict paging version ::
+You can pass a parent reference to get the children of any folder in the same way as the explict paging version
 
-    >>> for entity in client.descendants(folder.parent):
-    >>>     print(entity.title)
+.. code-block:: python
+
+    for entity in client.descendants(folder.parent):
+        print(entity.title)
 
 This is the preferred way to get children of folders as the paging is managed automatically.
 
-If you only need the folders or Assets from a parent you can filter the results using a pre-defined filter ::
+If you only need the folders or Assets from a parent you can filter the results using a pre-defined filter
 
-    >>> for asset in filter(only_assets, client.descendants(asset.parent)):
-    >>>     print(asset.title)
+.. code-block:: python
 
-or ::
+    for asset in filter(only_assets, client.descendants(asset.parent)):
+        print(asset.title)
 
-    >>> for folders in filter(only_folders, client.descendants(asset.parent)):
-    >>>     print(folders.title)
+or
+
+.. code-block:: python
+
+    for folders in filter(only_folders, client.descendants(asset.parent)):
+        print(folders.title)
 
 
 
@@ -528,15 +535,19 @@ If you want **all** the entities below a point in the hierarchy, i.e a recursive
 call ``all_descendants()`` this is a generator function which returns a lazy iterator which will make
 repeated calls to the server for each page of results.
 
-The following will return all entities within the repository from the root folders down ::
+The following will return all entities within the repository from the root folders down
 
-    >>> for e in client.all_descendants():
-    >>>     print(e.title)
+.. code-block:: python
 
-again if you need a list of every Asset in the system you can filter using ::
+    for e in client.all_descendants():
+        print(e.title)
 
-    >>> for asset in filter(only_assets, client.all_descendants()):
-    >>>     print(asset.title)
+again if you need a list of every Asset in the system you can filter using
+
+.. code-block:: python
+
+    for asset in filter(only_assets, client.all_descendants()):
+        print(asset.title)
 
 
 
