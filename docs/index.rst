@@ -555,56 +555,71 @@ Creating new Folders
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Folder objects can be created directly in the repository, the ``create_folder()`` function takes 3
-mandatory parameters, folder title, description and security tag. ::
+mandatory parameters, folder title, description and security tag.
 
-    >>> new_folder = client.create_folder("title", "description", "open")
-    >>> print(new_folder.reference)
+.. code-block:: python
 
-This will create a folder at the top level of the repository. You can create child folders by passing the reference of the parent as the
-last argument. ::
+    new_folder = client.create_folder("title", "description", "open")
+    print(new_folder.reference)
 
-    >>> new_folder = client.create_folder("title", "description", "open", folder.reference)
-    >>> print(new_folder.reference)
-    >>> assert  new_folder.parent == folder.reference
+This will create a folder at the top level of the repository. You can create child folders by passing the 
+reference of the parent as the last argument. 
+
+.. code-block:: python
+
+    new_folder = client.create_folder("title", "description", "open", folder.reference)
+    print(new_folder.reference)
+    assert  new_folder.parent == folder.reference
 
 
 Updating Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-We can update either the title or description attribute for assets, folders and content objects using the ``save()`` method ::
+We can update either the title or description attribute for assets, 
+folders and content objects using the ``save()`` method
 
-    >>> asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
-    >>> asset.title = "New Asset Title"
-    >>> asset.description = "New Asset Description"
-    >>> asset = client.save(asset)
+.. code-block:: python
 
-    >>> folder = client.folder("0b0f0303-6053-4d4e-a638-4f6b81768264")
-    >>> folder.title = "New Folder Title"
-    >>> folder.description = "New Folder Description"
-    >>> folder = client.save(folder)
-
-    >>> content_object = client.content_object("1a2a2101-6053-4d4e-a638-4f6b81768264")
-    >>> content_object.title = "New Content Object Title"
-    >>> content_object.description = "New Content Object Description"
-    >>> content_object = client.save(content_object)
+    asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    asset.title = "New Asset Title"
+    asset.description = "New Asset Description"
+    asset = client.save(asset)
+    
+    folder = client.folder("0b0f0303-6053-4d4e-a638-4f6b81768264")
+    folder.title = "New Folder Title"
+    folder.description = "New Folder Description"
+    folder = client.save(folder)
+    
+    content_object = client.content_object("1a2a2101-6053-4d4e-a638-4f6b81768264")
+    content_object.title = "New Content Object Title"
+    content_object.description = "New Content Object Description"
+    content_object = client.save(content_object)
 
 To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running process.
 You can choose either a asynchronous (non-blocking) call which returns immediately or synchronous (blocking call) which
 waits for the security tag to be changed before returning.
 
-This is the asynchronous call which returns immediately returning a process id ::
+This is the asynchronous call which returns immediately returning a process id
 
-    >>> pid = client.security_tag_async(entity, new_tag)
+.. code-block:: python
 
-You can determine the current status of the asynchronous call by passing the argument to ``get_async_progress`` ::
+    pid = client.security_tag_async(entity, new_tag)
+    
 
-    >>> status = client.get_async_progress(pid)
+You can determine the current status of the asynchronous call by passing the argument to ``get_async_progress`` 
+
+.. code-block:: python
+
+    status = client.get_async_progress(pid)
 
 
 The synchronous version will block until the security tag has been updated on the entity.
-This call does not recursively change entities within a folder. It only applies to the named entity passed as an argument. ::
+This call does not recursively change entities within a folder.
+It only applies to the named entity passed as an argument.
 
-    >>> entity = client.security_tag_sync(entity, new_tag)
+.. code-block:: python
+
+    entity = client.security_tag_sync(entity, new_tag)
 
 
 3rd Party External Identifiers
