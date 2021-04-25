@@ -777,48 +777,57 @@ Representations, Content Objects & Generations
 
 Each asset in Preservica contains one or more representations, such as Preservation or Access etc.
 
-To get a list of all the representations of an Asset ::
+To get a list of all the representations of an Asset 
 
-    >>> for representation in client.representations(asset):
-    >>>     print(representation.rep_type)
-    >>>     print(representation.name)
-    >>>     print(representation.asset.title)
+.. code-block:: python
+
+    for representation in client.representations(asset):
+        print(representation.rep_type)
+        print(representation.name)
+        print(representation.asset.title)
 
 Each Representation will contain one or more Content Objects.
 Simple Assets contain a single Content Object whereas more complex objects such as 3D models, books, multi-page documents
-may have several content objects. ::
+may have several content objects.
 
-    >>> for content_object in client.content_objects(representation):
-    >>>     print(content_object.reference)
-    >>>     print(content_object.title)
-    >>>     print(content_object.description)
-    >>>     print(content_object.parent)
-    >>>     print(content_object.metadata)
-    >>>     print(content_object.asset.title)
+.. code-block:: python
 
-Each content object will contain a least one Generation, migrated content may have multiple Generations. ::
+    for content_object in client.content_objects(representation):
+        print(content_object.reference)
+        print(content_object.title)
+        print(content_object.description)
+        print(content_object.parent)
+        print(content_object.metadata)
+        print(content_object.asset.title)
 
-    >>> for generation in client.generations(content_object):
-    >>>     print(generation.original)
-    >>>     print(generation.active)
-    >>>     print(generation.content_object)
-    >>>     print(generation.format_group)
-    >>>     print(generation.effective_date)
-    >>>     print(generation.bitstreams)
+Each content object will contain a least one Generation, migrated content may have multiple Generations.
+
+.. code-block:: python
+
+    for generation in client.generations(content_object):
+        print(generation.original)
+        print(generation.active)
+        print(generation.content_object)
+        print(generation.format_group)
+        print(generation.effective_date)
+        print(generation.bitstreams)
 
 Each Generation has a list of BitStream ids which can be used to fetch the actual content from the server or
-fetch technical metadata about the bitstream itself::
+fetch technical metadata about the bitstream itself
 
-    >>> for bitstream in generation.bitstreams:
-    >>>     print(bitstream.filename)
-    >>>     print(bitstream.length)
-    >>>     for algorithm,value in bitstream.fixity.items():
-    >>>         print(algorithm,  value)
+.. code-block:: python
 
-The actual content files can be download using ``bitstream_content()`` ::
+    for bitstream in generation.bitstreams:
+        print(bitstream.filename)
+        print(bitstream.length)
+        for algorithm,value in bitstream.fixity.items():
+            print(algorithm,  value)
 
-    >>> client.bitstream_content(bitstream, bitstream.filename)
+The actual content files can be download using ``bitstream_content()``
 
+.. code-block:: python
+
+    client.bitstream_content(bitstream, bitstream.filename)
 
 
 Integrity Check History
