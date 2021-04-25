@@ -833,11 +833,13 @@ The actual content files can be download using ``bitstream_content()``
 Integrity Check History
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can request the history of all integrity checks which have been carried out on a bitstream ::
+You can request the history of all integrity checks which have been carried out on a bitstream
 
-    >>> for bitstream in generation.bitstreams:
-    >>>     for check in client.integrity_checks(bitstream):
-    >>>         print(check)
+.. code-block:: python
+
+    for bitstream in generation.bitstreams:
+        for check in client.integrity_checks(bitstream):
+            print(check)
 
 The list of returned checks includes both full and quick integrity checks.
 
@@ -847,29 +849,39 @@ The list of returned checks includes both full and quick integrity checks.
 Moving Entities
 ^^^^^^^^^^^^^^^^
 
-We can move entities between folders using the ``move`` call ::
+We can move entities between folders using the ``move`` call
 
-    >>> client.move(entity, dest_folder)
+.. code-block:: python
+
+    client.move(entity, dest_folder)
 
 Where entity is the object to move either an Asset or Folder and the second argument is
 destination folder where the entity is moved to.
 
-Folders can be moved to the root of the repository by passing None as the second argument. ::
+Folders can be moved to the root of the repository by passing None as the second argument.
 
-    >>> entity = client.move(folder, None)
+.. code-block:: python
 
-The ``move()`` call is an alias for ``move_sync()`` which is a synchronous (blocking call)::
+    entity = client.move(folder, None)
 
-    >>> entity = client.move_sync(entity, dest_folder)
+The ``move()`` call is an alias for ``move_sync()`` which is a synchronous (blocking call)
 
-An asynchronous (non-blocking) version is also available which returns a progress id. ::
+.. code-block:: python
 
-    >>> pid = client.move_async(entity, dest_folder)
+    entity = client.move_sync(entity, dest_folder)
+
+An asynchronous (non-blocking) version is also available which returns a progress id.
+
+.. code-block:: python
+
+    pid = client.move_async(entity, dest_folder)
 
 You can determine the completed status of the asynchronous move call by passing the
-argument to ``get_async_progress`` ::
+argument to ``get_async_progress``
 
-    >>> status = client.get_async_progress(pid)
+.. code-block:: python
+
+    status = client.get_async_progress(pid)
 
 
 Deleting Entities
@@ -897,15 +909,19 @@ Add manager.username and manager.password to the credentials file. ::
     manager.password=
 
 
-Deleting an asset ::
+Deleting an asset 
 
-    >>> asset_ref = client.delete_asset(asset, "operator comments", "supervisor comments")
-    >>> print(asset_ref)
+.. code-block:: python
 
-Deleting a folder ::
+    asset_ref = client.delete_asset(asset, "operator comments", "supervisor comments")
+    print(asset_ref)
 
-    >>> folder_ref = client.delete_folder(folder, "operator comments", "supervisor comments")
-    >>> print(folder_ref)
+Deleting a folder 
+
+.. code-block:: python
+
+    folder_ref = client.delete_folder(folder, "operator comments", "supervisor comments")
+    print(folder_ref)
 
 
 .. warning::
@@ -913,14 +929,15 @@ Deleting a folder ::
     and therefore must be used with care.
 
 
-
 Finding Updated Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We can query Preservica for entities which have changed over the last n days using ::
+We can query Preservica for entities which have changed over the last n days using 
 
-    >>> for e in client.updated_entities(previous_days=30):
-    >>>     print(e)
+.. code-block:: python
+
+    for e in client.updated_entities(previous_days=30):
+        print(e)
 
 The argument is the number of previous days to check for changes. This call does paging internally.
 
@@ -931,10 +948,12 @@ Representation of an Asset. If the asset does not have an Access Representation 
 Preservation Representation is used.
 
 For very simple assets which comprise a single digital file in a single Representation
-then this call will probably do what you expect. ::
+then this call will probably do what you expect.
 
-    >>> asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> filename = client.download(asset, "asset.jpg")
+.. code-block:: python
+
+    asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    filename = client.download(asset, "asset.jpg")
 
 For complex multi-part assets which have been through preservation actions it may be better to use the data model
 and the ``bitstream_content()`` function to fetch the exact bitstream you need.
