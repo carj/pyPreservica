@@ -647,40 +647,52 @@ The same external identifiers can be added to multiple entities to form sets of 
     client.add_identifier(asset, "URN", "urn:isan:0000-0000-2CEA-0000-1-0000-0000-Y")
 
 
-Fetch external identifiers on an entity. This call returns a set of tuples (identifier_type, identifier_value) ::
+Fetch external identifiers on an entity. This call returns a set of tuples (identifier_type, identifier_value)
 
-    >>> identifiers = client.identifiers_for_entity(folder)
-    >>> for identifier in identifiers:
-    >>>     identifier_type = identifier[0]
-    >>>     identifier_value = identifier[1]
+.. code-block:: python
+
+    identifiers = client.identifiers_for_entity(folder)
+    for identifier in identifiers:
+         identifier_type = identifier[0]
+         identifier_value = identifier[1]
 
 You can search the repository for entities with matching external identifiers. The call returns a set of objects
-which may include any type of entity. ::
+which may include any type of entity. 
 
-    >>> for e in client.identifier("ISBN", "978-3-16-148410-0"):
-    >>>     print(e.entity_type, e.reference, e.title)
+.. code-block:: python
+
+    for e in client.identifier("ISBN", "978-3-16-148410-0"):
+        print(e.entity_type, e.reference, e.title)
 
 .. note::
     Entities within the set only contain the attributes (type, reference and title). If you need the full object you have to request it.
 
-For example ::
+For example
 
-    >>> for e in client.identifier("DOI", "urn:nbn:de:1111-20091210269"):
-    >>>     o = client.entity(e.entity_type, e.reference)
-    >>>     print(o.title)
-    >>>     print(o.description)
+.. code-block:: python
 
-To delete identifiers attached to an entity ::
+    for ident in client.identifier("DOI", "urn:nbn:de:1111-20091210269"):
+        entity = client.entity(ident.entity_type, ident.reference)
+        print(entity.title)
+        print(entity.description)
 
-    >>> client.delete_identifiers(entity)
+To delete identifiers attached to an entity
 
-Will delete all identifiers on the entity ::
+.. code-block:: python
 
-    >>> client.delete_identifiers(entity, identifier_type="ISBN")
+    client.delete_identifiers(entity)
 
-Will delete all identifiers which have type "ISBN" ::
+Will delete all identifiers on the entity
 
-     >>> client.delete_identifiers(entity, identifier_type="ISBN", identifier_value="978-3-16-148410-0")
+.. code-block:: python
+
+    client.delete_identifiers(entity, identifier_type="ISBN")
+
+Will delete all identifiers which have type "ISBN"
+
+.. code-block:: python
+
+    client.delete_identifiers(entity, identifier_type="ISBN", identifier_value="978-3-16-148410-0")
 
 Will only delete identifiers which match the type and value
 
@@ -689,61 +701,75 @@ Descriptive Metadata
 
 You can query an entity to determine if it has any attached descriptive metadata using the metadata attribute.
 This returns a dictionary object the dictionary key is a url which can be used to the fetch metadata
-and the value is the schema name::
+and the value is the schema name
 
-    >>> for url, schema in entity.metadata.items():
-    >>>     print(url, schema)
+.. code-block:: python
+
+    for url, schema in entity.metadata.items():
+        print(url, schema)
 
 The descriptive XML metadata document can be returned as a string by passing the key of the map (url)
-to the ``metadata()`` method ::
+to the ``metadata()`` method 
 
-    >>> for url in entity.metadata:
-    >>>     xml_document = client.metadata(url)
+.. code-block:: python
 
-An alternative is to call the ``metadata_for_entity``  directly ::
+    for url in entity.metadata:
+        xml_document = client.metadata(url)
 
-    >>> xml_document = client.metadata_for_entity(entity, "https://www.person.com/person")
+An alternative is to call the ``metadata_for_entity``  directly
+
+.. code-block:: python
+
+    xml_document = client.metadata_for_entity(entity, "https://www.person.com/person")
 
 this will fetch the first metadata document which matches the schema argument on the entity
 
 
-Metadata can be attached to entities either by passing an XML document as a string::
+Metadata can be attached to entities either by passing an XML document as a string
 
-    >>> folder = entity.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
+.. code-block:: python
 
-    >>>  xml = "<person:Person  xmlns:person='https://www.person.com/person'>" \
-            "<person:Name>Bob Smith</person:Name>" \
-            "<person:Phone>01234 100 100</person:Phone>" \
-            "<person:Email>test@test.com</person:Email>" \
-            "<person:Address>Abingdon, UK</person:Address>" \
-            "</person:Person>"
+    folder = entity.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
+    
+    xml = "<person:Person  xmlns:person='https://www.person.com/person'>" \
+        "<person:Name>Bob Smith</person:Name>" \
+        "<person:Phone>01234 100 100</person:Phone>" \
+        "<person:Email>test@test.com</person:Email>" \
+        "<person:Address>Abingdon, UK</person:Address>" \
+        "</person:Person>"
+    
+    folder = client.add_metadata(folder, "https://www.person.com/person", xml)
 
-    >>> folder = client.add_metadata(folder, "https://www.person.com/person", xml)
+or by reading the metadata from a file
 
-or by reading the metadata from a file ::
+.. code-block:: python
 
-    >>> with open("DublinCore.xml", 'r', encoding="utf-8") as md:
-    >>>     asset = client.add_metadata(asset, "http://purl.org/dc/elements/1.1/", md)
+    with open("DublinCore.xml", 'r', encoding="utf-8") as md:
+        asset = client.add_metadata(asset, "http://purl.org/dc/elements/1.1/", md)
 
 
 Descriptive metadata can also be updated to amend values or change the document structure
-To update an existing metadata document call ::
+To update an existing metadata document call
 
-    >>>  client.update_metadata(entity, schema, xml_string)
+.. code-block:: python
 
-For example the following python fragment appends a new element to an existing document. ::
+    client.update_metadata(entity, schema, xml_string)
 
-    >>> folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")   # call into the API
-    >>>
-    >>> for url, schema in folder.metadata.items():
-    >>>     if schema == "https://www.person.com/person":
-    >>>         xml_string = client.metadata(url)                    # call into the API
-    >>>         xml_document = ElementTree.fromstring(xml_string)
-    >>>         postcode = ElementTree.Element('{https://www.person.com/person}Postcode')
-    >>>         postcode.text = "OX14 3YS"
-    >>>         xml_document.append(postcode)
-    >>>         xml_string = ElementTree.tostring(xml_document, encoding='UTF-8').decode("utf-8")
-    >>>         entity.update_metadata(folder, schema, xml_string)   # call into the API
+For example the following python fragment appends a new element to an existing document.
+
+.. code-block:: python
+
+    folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")   # call into the API
+
+    for url, schema in folder.metadata.items():
+        if schema == "https://www.person.com/person":
+            xml_string = client.metadata(url)                    # call into the API
+            xml_document = ElementTree.fromstring(xml_string)
+            postcode = ElementTree.Element('{https://www.person.com/person}Postcode')
+            postcode.text = "OX14 3YS"
+            xml_document.append(postcode)
+            xml_string = ElementTree.tostring(xml_document, encoding='UTF-8').decode("utf-8")
+            entity.update_metadata(folder, schema, xml_string)   # call into the API
 
 
 Representations, Content Objects & Generations
