@@ -637,12 +637,14 @@ Each Preservica entity can hold as many external identifiers as you need.
 
 We can add external identifiers to either Assets, Folders or Content Objects. External identifiers have a name or type
 and a value. External identifiers do not have to be unique in the same way as internal identifiers.
-The same external identifiers can be added to multiple entities to form sets of objects. ::
+The same external identifiers can be added to multiple entities to form sets of objects. 
 
-    >>> asset = client.asset("9bad5acf-e7ce-458a-927d-2d1e7f15974d")
-    >>> client.add_identifier(asset, "ISBN", "978-3-16-148410-0")
-    >>> client.add_identifier(asset, "DOI", "https://doi.org/10.1109/5.771073")
-    >>> client.add_identifier(asset, "URN", "urn:isan:0000-0000-2CEA-0000-1-0000-0000-Y")
+.. code-block:: python
+
+    asset = client.asset("9bad5acf-e7ce-458a-927d-2d1e7f15974d")
+    client.add_identifier(asset, "ISBN", "978-3-16-148410-0")
+    client.add_identifier(asset, "DOI", "https://doi.org/10.1109/5.771073")
+    client.add_identifier(asset, "URN", "urn:isan:0000-0000-2CEA-0000-1-0000-0000-Y")
 
 
 Fetch external identifiers on an entity. This call returns a set of tuples (identifier_type, identifier_value) ::
