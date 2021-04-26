@@ -978,7 +978,7 @@ List actions performed against this entity
 Events Across Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-List actions performed against all entities within the repository. The event is a dict() object containing 
+List actions performed against all entities within the repository. The event is a ``dict()`` object containing
 the event attributes
 
 .. code-block:: python
@@ -986,16 +986,13 @@ the event attributes
     for event in client.all_events():
         print(event)
 
-
-
-
 Add or remove asset and folder icons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now add and remove icons on assets and folders using the API. The icons will be displayed in the Explorer and
-Universal Access interfaces. 
-.. code-block:: python
+Universal Access interfaces.
 
+.. code-block:: python
 
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
     client.add_thumbnail(folder, "../my-icon.png")
@@ -1038,30 +1035,38 @@ Preservica now supports replacing individual Content Objects within an Asset. Th
 a large digitised object such as book and you subsequently discover that a page has been digitised incorrectly.
 You would like to replace a single page (Content Object) without having to delete and re-ingest the complete Asset.
 
-The non-blocking (asynchronous) API call will replace the last active Generation of the Content Object ::
+The non-blocking (asynchronous) API call will replace the last active Generation of the Content Object
 
-    >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
-    >>> file = "C:/book/page421.tiff"
-    >>> pid = client.replace_generation_async(content_object, file)
+.. code-block:: python
 
-This will return a process id which can be used to monitor the replacement workflow using ::
+    content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    file = "C:/book/page421.tiff"
+    pid = client.replace_generation_async(content_object, file)
 
-    >>> status = client.get_async_progress(pid)
+This will return a process id which can be used to monitor the replacement workflow using
+
+.. code-block:: python
+
+    status = client.get_async_progress(pid)
 
 By default the API will generate a new fixity value on the client using the same fixity algorithm as the original Generation you are replacing.
 If you want to use a different fixity algorithm or you want to use a pre-calculated or existing fixity value you can specify the
-algorithm and value. ::
+algorithm and value. 
 
-    >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
-    >>> file = "C:/book/page421.tiff"
-    >>> pid = client.replace_generation_async(content_object, file, fixity_algorithm='SHA1', fixity_value='2fd4e1c67a2d28fced849ee1bb76e7391b93eb12')
+.. code-block:: python
+
+    content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    file = "C:/book/page421.tiff"
+    pid = client.replace_generation_async(content_object, file, fixity_algorithm='SHA1', fixity_value='2fd4e1c67a2d28fced849ee1bb76e7391b93eb12')
 
 There is also an synchronous or blocking version which will wait for the replace workflow to complete before returning
-back to the caller. ::
+back to the caller.
 
-    >>> content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
-    >>> file = "C:/book/page421.tiff"
-    >>> workflow_status = client.replace_generation_sync(content_object, file)
+.. code-block:: python
+
+    content_object = client.content_object('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    file = "C:/book/page421.tiff"
+    workflow_status = client.replace_generation_sync(content_object, file)
 
 
 Export OPEX Package
@@ -1071,20 +1076,24 @@ pyPreservica allows clients to request a full package export from the system by 
 this will start an export workflow and download the resulting dissemination package when the export workflow has completed.
 
 The resulting package will be a zipped OPEX formatted package containing the digital content and metadata.
-The ``export_opex`` API is a blocking call which will wait for the export workflow to complete before downloading the package. ::
+The ``export_opex`` API is a blocking call which will wait for the export workflow to complete before downloading the package. 
 
-    >>> folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
-    >>> opex_zip = client.export_opex(folder)
+.. code-block:: python
+
+    folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    opex_zip = client.export_opex(folder)
 
 The output is the name of the downloaded zip file in the current working directory.
 
 By default the OPEX package includes metadata, digital content with the latest active generations
 and the parent hierarchy.
 
-The API can be called on either a folder or a single asset.  ::
+The API can be called on either a folder or a single asset.  
 
-    >>> asset = client.asset('1f2129f7-728c-4e55-9f92-381ed1260d70')
-    >>> opex_zip = client.export_opex(asset)
+.. code-block:: python
+
+    asset = client.asset('1f2129f7-728c-4e55-9f92-381ed1260d70')
+    opex_zip = client.export_opex(asset)
 
 The call also takes the following optional arguments
 
@@ -1093,14 +1102,12 @@ The call also takes the following optional arguments
 * ``IncludedGenerations``       "LatestActive" or "AllActive" or "All"
 * ``IncludeParentHierarchy``    "true" or "false"
 
-e.g.    ::
+e.g.  
 
+.. code-block:: python
 
-    >>> folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
-    >>> opex_zip = client.export_opex(folder, IncludeContent="Content", IncludeMetadata="MetadataWithEvents")
-
-
-
+    folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
+    opex_zip = client.export_opex(folder, IncludeContent="Content", IncludeMetadata="MetadataWithEvents")
 
 
 Content API
@@ -1113,84 +1120,104 @@ https://us.preservica.com/api/content/documentation.html
 The content API is a readonly interface which returns json documents rather than XML and which has some duplication
 with the entity API, but it does contain search capabilities.
 
-The content API client is created using ::
+The content API client is created using
 
-    >>> from pyPreservica import *
-    >>> client = ContentAPI()
+.. code-block:: python
+
+    from pyPreservica import *
+    client = ContentAPI()
 
 
 object-details
 ^^^^^^^^^^^^^^^^^
 
-Get the details for a Asset or Folder as a raw json document::
+Get the details for a Asset or Folder as a raw json document
 
-    >>> client = ContentAPI()
-    >>> client.object_details("IO", "uuid")
-    >>> client.object_details("SO", "uuid")
+.. code-block:: python
+
+    client = ContentAPI()
+    client.object_details("IO", "uuid")
+    client.object_details("SO", "uuid")
 
 
 indexed-fields
 ^^^^^^^^^^^^^^^^^
 
 Get a list of all the indexed metadata fields within the solr server. This includes the default
-xip.* fields and any custom indexes which have been created through custom index files. ::
+xip.* fields and any custom indexes which have been created through custom index files.
 
-    >>> client = ContentAPI()
-    >>> client.indexed_fields():
+.. code-block:: python
+
+    client = ContentAPI()
+    client.indexed_fields():
 
 Search
 ^^^^^^^^^
 
-Search the repository using a single expression which matches on any indexed field. ::
+Search the repository using a single expression which matches on any indexed field. 
 
-    >>> client = ContentAPI()
-    >>> client.simple_search_csv()
+.. code-block:: python
+
+    client = ContentAPI()
+    client.simple_search_csv()
 
 Searches for everything and writes the results to a csv file called "search.csv", by default the csv
 columns contain reference, title, description, document_type, parent_ref, security_tag.
 
 You can pass the query term as the first argument (% is the wildcard character) and
-the csv file name as the second argument. ::
+the csv file name as the second argument. 
 
-    >>> client = ContentAPI()
-    >>> client.simple_search_csv("%", "results.csv")
+.. code-block:: python
 
-    >>> client = ContentAPI()
-    >>> client.simple_search_csv("Oxford", "oxford.csv")
+    client = ContentAPI()
+    client.simple_search_csv("%", "results.csv")
+    
+    client = ContentAPI()
+    client.simple_search_csv("Oxford", "oxford.csv")
+    
+    client = ContentAPI()
+    client.simple_search_csv("History of Oxford", "history.csv")
 
-    >>> client = ContentAPI()
-    >>> client.simple_search_csv("History of Oxford", "history.csv")
+The last argument is an optional list of indexed fields which are the csv file columns. 
 
-The last argument is an optional list of indexed fields which are the csv file columns. ::
+.. code-block:: python
 
-    >>> client = ContentAPI()
-    >>> metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type", "xip.parent_ref", "xip.security_descriptor"]
-    >>> client.simple_search_csv("%", "results.csv", metadata_fields)
+    client = ContentAPI()
+    metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type", "xip.parent_ref", "xip.security_descriptor"]
+    client.simple_search_csv("%", "results.csv", metadata_fields)
 
 
-or to include everything except the full text index value ::
+or to include everything except the full text index value 
 
-    >>> client = ContentAPI()
-    >>> everything = list(filter(lambda x: x != "xip.full_text", client.indexed_fields()))
-    >>> client.simple_search_csv("%", "results.csv", everything)
+.. code-block:: python
+
+    client = ContentAPI()
+    everything = list(filter(lambda x: x != "xip.full_text", client.indexed_fields()))
+    client.simple_search_csv("%", "results.csv", everything)
 
 
 There is an equivalent call which does not write the output to CSV, but returns a list of dictionary objects. This is useful if you want
-to process the results within the script and not generate a report directly. ::
+to process the results within the script and not generate a report directly.
 
-    >>> client = ContentAPI()
-    >>> results = simple_search_list("History of Oxford")
+.. code-block:: python
 
-and ::
+    client = ContentAPI()
+    results = simple_search_list("History of Oxford")
 
-    >>> client = ContentAPI()
-    >>> metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type", "xip.parent_ref", "xip.security_descriptor"]
-    >>> results = simple_search_list("History of Oxford", metadata_fields)
+and 
+
+.. code-block:: python
+
+    client = ContentAPI()
+    metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type", "xip.parent_ref", "xip.security_descriptor"]
+    results = simple_search_list("History of Oxford", metadata_fields)
 
 
-If you want to do searches with advanced filter terms then the following calls can be used. ::
+If you want to do searches with advanced filter terms then the following calls can be used.
 
-    >>> client = ContentAPI()
+.. code-block:: python
+
+    client = ContentAPI()
 
 
 Upload API
@@ -1210,14 +1237,18 @@ The package can also be a regular zip file containing just folders and files wit
 Uploading Packages
 ^^^^^^^^^^^^^^^^^^^^^
 
-The upload API client is created using ::
+The upload API client is created using
 
-    >>> from pyPreservica import *
-    >>> upload = UploadAPI()
+.. code-block:: python
 
-Once you have a client you can use it to upload packages.::
+    from pyPreservica import *
+    upload = UploadAPI()
 
-    >>> upload.upload_zip_package("my-package.zip")
+Once you have a client you can use it to upload packages.
+
+.. code-block:: python
+
+    upload.upload_zip_package("my-package.zip")
 
 Will upload the local zip file and start an ingest workflow if one is enabled.
 
@@ -1233,12 +1264,14 @@ The zip file can be any of the following:
 
 If the package is a simple zipped folder without a manifest XML then you will want to pass information to the
 ingest to specify which folder the content should be ingested into.
-To specify the parent folder of the ingest pass a folder object as the second argument. ::
+To specify the parent folder of the ingest pass a folder object as the second argument. 
 
-    >>> upload = UploadAPI()
-    >>> client = EntityAPI()
-    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> upload.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder)
+.. code-block:: python
+
+    upload = UploadAPI()
+    client = EntityAPI()
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    upload.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder)
 
 
 Monitoring Upload Progress
@@ -1251,27 +1284,29 @@ pyPreservica executes the class's ``__call__`` method. For each invocation, the 
 number of bytes transferred up to that point. This information can be used to implement a progress monitor.
 
 The following Callback setting instructs pyPreservica to create an instance of the UploadProgressCallback class.
-During the upload, the instance's ``__call__`` method will be invoked intermittently.::
+During the upload, the instance's ``__call__`` method will be invoked intermittently.
 
- >>> from pyPreservica import UploadProgressCallback
- >>> my_callback=UploadProgressCallback("my-package.zip")
- >>> client.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder, callback=my_callback)
+.. code-block:: python
+
+    from pyPreservica import UploadProgressCallback
+    my_callback=UploadProgressCallback("my-package.zip")
+    client.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder, callback=my_callback)
 
 The default pyPreservica ``UploadProgressCallback`` looks like
 
-.. code:: python
+.. code-block:: python
 
     import os
     import sys
     import threading
-
+    
     class ProgressPercentage(object):
         def __init__(self, filename):
             self._filename = filename
             self._size = float(os.path.getsize(filename))
             self._seen_so_far = 0
             self._lock = threading.Lock()
-
+    
         def __call__(self, bytes_amount):
             with self._lock:
                 self._seen_so_far += bytes_amount
@@ -1287,34 +1322,44 @@ Creating Packages
 The UploadAPI module also contains functions for creating XIPv6 packages directly from content files.
 
 To create a package containing a single preservation Content Object (file) as part of an Asset which will
-be a child of specified folder ::
+be a child of specified folder
 
-    >>> package_path = simple_asset_package(preservation_file="my-image.tiff",  parent_folder=folder)
+.. code-block:: python
 
-The output is a path to the zip file which can be passed directly to the ``upload_zip_package`` method::
+    package_path = simple_asset_package(preservation_file="my-image.tiff",  parent_folder=folder)
 
-    >>> client.upload_zip_package(path_to_zip_package=package_path)
+The output is a path to the zip file which can be passed directly to the ``upload_zip_package`` method
+
+.. code-block:: python
+
+    client.upload_zip_package(path_to_zip_package=package_path)
 
 By default the Asset title and description will be taken from the file name.
 
 If you don't specify an export folder the new package will be created in the system TEMP folder.
 If you want to override this behaviour and explicitly specify the output folder for the package
-use the ``export_folder`` argument ::
+use the ``export_folder`` argument
 
-    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder,
-                                            export_folder="/mnt/export/packages")
+.. code-block:: python
+
+    package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder, 
+                                        export_folder="/mnt/export/packages")
 
 
-You can specify the Asset title and description using additional keyword arguments. ::
+You can specify the Asset title and description using additional keyword arguments. 
 
-    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder,
-                                            Title="Asset Title", Description="Asset Description")
+.. code-block:: python
+
+    package_path = simple_asset_package(preservation_file="my-image.tiff", parent_folder=folder,
+                                        Title="Asset Title", Description="Asset Description")
 
 You can also add a second Access content object to the asset. This will create an asset
-with two representations (Preservation & Access) ::
+with two representations (Preservation & Access)
 
-    >>> package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg"
-                                            parent_folder=folder)
+.. code-block:: python
+
+    package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg"
+                                        parent_folder=folder)
 
 It is possible to configure the asset within the package using the following additional keyword arguments.
 
@@ -1338,11 +1383,13 @@ The package will contain an asset with the following structure.
 .. image:: images/simple_asset_package.png
 
 
-For example to add descriptive metadata and two 3rd party identifiers use the following ::
+For example to add descriptive metadata and two 3rd party identifiers use the following
 
-   >>> metadata = {"http://purl.org/dc/elements/1.1/": "dublin_core.xml"}
-   >>> identifiers = {"DOI": "doi:10.1038/nphys1170", "ISBN": "978-3-16-148410-0"}
-   >>> package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg"
+.. code-block:: python
+
+    metadata = {"http://purl.org/dc/elements/1.1/": "dublin_core.xml"}
+    identifiers = {"DOI": "doi:10.1038/nphys1170", "ISBN": "978-3-16-148410-0"}
+    package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg"
                                            parent_folder=folder, Asset_Metadata=metadata, Identifiers=identifiers)
 
 
@@ -1354,19 +1401,20 @@ The ``complex_asset_package`` function takes a collection of preservation files 
 It creates a single asset package with multiple content objects per Representation.
 
 Use a **list** collection to preserve the ordering of the content objects within the asset. For example the first
-page of a book should be the first item added to the list. ::
+page of a book should be the first item added to the list. 
 
+.. code-block:: python
 
-    >>> preservation_files = list()
-    >>> preservation_files.append("page-1.tiff")
-    >>> preservation_files.append("page-2.tiff")
-    >>> preservation_files.append("page-3.tiff")
+    preservation_files = list()
+    preservation_files.append("page-1.tiff")
+    preservation_files.append("page-2.tiff")
+    preservation_files.append("page-3.tiff")
 
-    >>> access_files = list()
-    >>> access_files.append("book.pdf")
+    access_files = list()
+    access_files.append("book.pdf")
 
-    >>> package_path = complex_asset_package(preservation_files_list=preservation_files, access_files_list=access_files,
-                                             parent_folder=folder)
+    package_path = complex_asset_package(preservation_files_list=preservation_files, access_files_list=access_files,
+                                         parent_folder=folder)
 
 
 
@@ -1383,20 +1431,24 @@ default callbacks for SHA-1, SHA256 & SHA512
 * ``Sha256FixityCallBack``
 * ``Sha512FixityCallBack``
 
-To use one of the default callbacks::
+To use one of the default callbacks
 
-    >>> package_path = complex_asset_package(preservation_files_list=preservation_files, access_files_list=access_files,
+.. code-block:: python
+
+    package_path = complex_asset_package(preservation_files_list=preservation_files, access_files_list=access_files,
                                              parent_folder=folder, Preservation_files_fixity_callback=Sha512FixityCallBack())
 
 If you want to re-use existing externally generated fixity values for performance or integrity reasons then you can create a custom callback.
 The callback takes the filename and the path of the file and should return a tuple containing the algorithm name
-and fixity value ::
+and fixity value
 
-    >>> class MyFixityCallback:
-    >>>     def __call__(self, filename, full_path):
-    >>>         ...
-    >>>         ...
-    >>>         return "SHA1", value
+.. code-block:: python
+
+    class MyFixityCallback:
+        def __call__(self, filename, full_path):
+        ...
+        ...
+        return "SHA1", value
 
 
 
@@ -1416,14 +1468,18 @@ CSV to XML works by extracting each row of a spreadsheet and creating a single X
 The spreadsheet columns are the XML attributes.
 
 The XML namespace and root element need to be provided. You also need to specify which column should be used to name the
-XML files. ::
+XML files.
 
-    >>> cvs_to_xml(csv_file="my-spreadsheet.csv", root_element="Metadata", file_name_column="filename", xml_namespace="https://test.com/Metadata")
+.. code-block:: python
+
+    cvs_to_xml(csv_file="my-spreadsheet.csv", root_element="Metadata", file_name_column="filename", xml_namespace="https://test.com/Metadata")
 
 This will read the ``my-spreadsheet.csv`` csv file and create a set of XML documents, one for each row in the csv file.
 The XML files will be named after the value in the filename column.
 
-The resulting XML documents will look like ::
+The resulting XML documents will look like
+
+.. code-block:: XML
 
     <?xml version='1.0' encoding='utf-8'?>
     <Metadata xmlns="https://test.com/Metadata">
@@ -1434,11 +1490,15 @@ The resulting XML documents will look like ::
     </Metadata>
 
 
-You can create a XSD schema for the documents by calling ::
+You can create a XSD schema for the documents by calling
 
-    >>> cvs_to_xsd(csv_file="my-spreadsheet.csv", root_element="Metadata", xml_namespace="https://test.com/Metadata")
+.. code-block:: python
 
-Which will generate a document ``Metadata.xsd`` ::
+    cvs_to_xsd(csv_file="my-spreadsheet.csv", root_element="Metadata", xml_namespace="https://test.com/Metadata")
+
+Which will generate a document ``Metadata.xsd``
+
+.. code-block:: XML
 
     <?xml version='1.0' encoding='utf-8'?>
     <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" attributeFormDefault="unqualified" elementFormDefault="qualified"
@@ -1456,16 +1516,19 @@ Which will generate a document ``Metadata.xsd`` ::
     </xs:schema>
 
 To display the resulting metadata in the UA portal you will need a CMIS transform to tell Preservica which attributes to
-display. You can generate one by calling  ::
+display. You can generate one by calling
 
-    >>> cvs_to_cmis_xslt(csv_file="my-spreadsheet.csv", root_element="Metadata", title="My Metadata Title",
+.. code-block:: python
+
+    cvs_to_cmis_xslt(csv_file="my-spreadsheet.csv", root_element="Metadata", title="My Metadata Title",
            xml_namespace="https://test.com/Metadata")
 
-You can also auto-generate a custom search index document which will add indexes for each column in the spreadsheet ::
+You can also auto-generate a custom search index document which will add indexes for each column in the spreadsheet
 
-    >>> csv_to_search_xml(csv_file="my-spreadsheet.csv", root_element="Metadata",
+.. code-block:: python
+
+    csv_to_search_xml(csv_file="my-spreadsheet.csv", root_element="Metadata",
            xml_namespace="https://test.com/Metadata")
-
 
 
 Ingest Web Video
