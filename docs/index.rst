@@ -1242,6 +1242,7 @@ The upload API client is created using
 .. code-block:: python
 
     from pyPreservica import *
+
     upload = UploadAPI()
 
 Once you have a client you can use it to upload packages.
@@ -1270,6 +1271,7 @@ To specify the parent folder of the ingest pass a folder object as the second ar
 
     upload = UploadAPI()
     client = EntityAPI()
+
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
     upload.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder)
 
@@ -1535,19 +1537,24 @@ Ingest Web Video
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 pyPreservica now contains the ability to ingest web video directly from video hosting sites such as YouTube and others.
-To use this functionality you need to install the additional Python Project youtube_dl ::
+To use this functionality you need to install the additional Python Project youtube_dl
+
+.. code-block:: console
 
     $ pip install --upgrade youtube_dl
 
 
 You can ingest video's directly with only the video site URL
-You also need to tell Preservica which folder the new video asset will be ingested into.::
+You also need to tell Preservica which folder the new video asset will be ingested into.
 
-    >>> upload = UploadAPI()
-    >>> client = EntityAPI()
-    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>>
-    >>> upload.ingest_web_video(url="https://www.youtube.com/watch?v=4GCr9gljY7s", parent_folder=folder):
+.. code-block:: python
+
+    upload = UploadAPI()
+    client = EntityAPI()
+    
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+   
+    upload.ingest_web_video(url="https://www.youtube.com/watch?v=4GCr9gljY7s", parent_folder=folder):
 
 The new asset will get the title and description from youtube metadata. The asset will be given the default
 security tag of "open".
@@ -1555,41 +1562,57 @@ security tag of "open".
 The video is downloaded from the web hosting platform to the local client running the Python script and then uploaded
 to Preservica.
 
-It will work with most sites that host video, for example using c-span::
+It will work with most sites that host video, for example using c-span.
 
-    >>> upload = UploadAPI()
-    >>> client = EntityAPI()
-    >>> cspan_url = "https://www.c-span.org/video/?508691-1/ceremonial-swearing-democratic-senator-padilla"
-    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> upload.ingest_web_video(url=cspan_url, parent_folder=folder):
+.. code-block:: python
+
+    upload = UploadAPI()
+    client = EntityAPI()
+    
+    cspan_url = "https://www.c-span.org/video/?508691-1/ceremonial-swearing-democratic-senator-padilla"
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    
+    upload.ingest_web_video(url=cspan_url, parent_folder=folder):
 
 
-or UK parliament ::
+or UK parliament 
 
-    >>> upload = UploadAPI()
-    >>> client = EntityAPI()
-    >>> uk_url = "https://parliamentlive.tv/event/index/b886f44b-0e65-47bc-b506-d0e805c01f4b"
-    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> upload.ingest_web_video(url=uk_url, parent_folder=folder):
+.. code-block:: python
+
+    upload = UploadAPI()
+    client = EntityAPI()
+    
+    uk_url = "https://parliamentlive.tv/event/index/b886f44b-0e65-47bc-b506-d0e805c01f4b"
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    
+    upload.ingest_web_video(url=uk_url, parent_folder=folder):
 
 The asset will automatically have a title and description pulled from the original site.
 
 You can override the default title, description and security tag with optional arguments and add 3rd party
-identifiers. ::
+identifiers. 
 
-    >>> upload = UploadAPI()
-    >>> client = EntityAPI()
-    >>> identifier_map = {"Type": "youtube.com"}
-    >>> url = "https://www.youtube.com/watch?v=4GCr9gljY7s"
-    >>> title = "Preservica Cloud Edition: Keeping your digital assets safe and accessible"
-    >>> folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    >>> upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_dict, Title=title, SecurityTag="public")
+.. code-block:: python
+
+    upload = UploadAPI()
+    client = EntityAPI()
+
+    identifier_map = {"Type": "youtube.com"}
+
+    url = "https://www.youtube.com/watch?v=4GCr9gljY7s"
+    title = "Preservica Cloud Edition: Keeping your digital assets safe and accessible"
+
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+
+    upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_dict, Title=title, SecurityTag="public")
 
 
 
 Ingest Twitter Feeds
 ^^^^^^^^^^^^^^^^^^^^^^^^
-To use this functionality you need to install the additional Python Project tweepy ::
+To use this functionality you need to install the additional Python Project tweepy 
+
+.. code-block:: console
 
     $ pip install --upgrade tweepy
 
@@ -1600,14 +1623,18 @@ You can apply for API Consumer Keys (The basic ready only set is required) at:
 
 https://developer.twitter.com/
 
-You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully. ::
+You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully. 
 
-    >>> twitter_name = "Preservica"
-    >>> number_tweets = 25
-    >>> folder_id = "77802d22-ee48-4e46-9b29-46118246cad1"
-    >>> folder = entity.folder(folder_id)
-    >>>
-    >>> upload.ingest_twitter_feed(twitter_user=twitter_name, num_tweets=number_tweets, folder=folder, twitter_consumer_key="xxxx", twitter_secret_key="zzzz")
+.. code-block:: python
+
+    upload = UploadAPI()
+
+    twitter_name = "Preservica"
+    number_tweets = 25
+    folder_id = "77802d22-ee48-4e46-9b29-46118246cad1"
+    folder = entity.folder(folder_id)
+
+    upload.ingest_twitter_feed(twitter_user=twitter_name, num_tweets=number_tweets, folder=folder, twitter_consumer_key="xxxx", twitter_secret_key="zzzz")
 
 
 
@@ -1630,116 +1657,114 @@ required. All the interfaces for reading information return JSON documents.
 
 * Format Families
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.format_families()
->>> dict_obj = json.loads(json_document)
+.. code-block:: python
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.format_family('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
->>> dict_obj = json.loads(json_document)
+     par = PreservationActionRegistry(server="par-server.com")
+     json_document = par.format_families()
+     dict_obj = json.loads(json_document)
+    
+     json_document = par.format_family('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
+     dict_obj = json.loads(json_document)
 
 * Preservation Action Types
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.preservation_action_types()
->>> dict_obj = json.loads(json_document)
+.. code-block:: python
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.preservation_action_type('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
->>> dict_obj = json.loads(json_document)
+    par = PreservationActionRegistry(server="par-server.com")
+    json_document = par.preservation_action_types()
+    dict_obj = json.loads(json_document)
+    
+    
+    json_document = par.preservation_action_type('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
+    dict_obj = json.loads(json_document)
 
 * Properties
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.properties()
->>> dict_obj = json.loads(json_document)
+.. code-block:: python
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.property('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
->>> dict_obj = json.loads(json_document)
+     par = PreservationActionRegistry(server="par-server.com")
+     json_document = par.properties()
+     dict_obj = json.loads(json_document)
+    
+     json_document = par.property('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
+     dict_obj = json.loads(json_document)
 
 
 * Representation Formats
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.representation_format()
->>> dict_obj = json.loads(json_document)
+.. code-block:: python
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.representation_formats('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
->>> dict_obj = json.loads(json_document)
+     par = PreservationActionRegistry(server="par-server.com")
+     json_document = par.representation_format()
+     dict_obj = json.loads(json_document)
+    
+    
+     json_document = par.representation_formats('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
+     dict_obj = json.loads(json_document)
 
 
 * File Formats
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.file_formats()
->>> dict_obj = json.loads(json_document)
+.. code-block:: python
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.file_format('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
->>> dict_obj = json.loads(json_document)
+    par = PreservationActionRegistry(server="par-server.com")
+    json_document = par.file_formats()
+    dict_obj = json.loads(json_document)
+    
+
+    json_document = par.file_format('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
+    dict_obj = json.loads(json_document)
 
 * Tools
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.tools()
->>> dict_obj = json.loads(json_document)
+.. code-block:: python
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.tool('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
->>> dict_obj = json.loads(json_document)
+     par = PreservationActionRegistry(server="par-server.com")
+     json_document = par.tools()
+     dict_obj = json.loads(json_document)
+    
+    
+     json_document = par.tool('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
+     dict_obj = json.loads(json_document)
 
 * Preservation Action
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.preservation_actions()
->>> dict_obj = json.loads(json_document)
+.. code-block:: python
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.preservation_action('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
->>> dict_obj = json.loads(json_document)
+     par = PreservationActionRegistry(server="par-server.com")
+     json_document = par.preservation_actions()
+     dict_obj = json.loads(json_document)
+    
+    
+     json_document = par.preservation_action('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
+     dict_obj = json.loads(json_document)
 
 
 * Business Rules
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.business_rules()
->>> dict_obj = json.loads(json_document)
+.. code-block:: python
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.business_rule('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
->>> dict_obj = json.loads(json_document)
+     par = PreservationActionRegistry(server="par-server.com")
+     json_document = par.business_rules()
+     dict_obj = json.loads(json_document)
+
+
+     json_document = par.business_rule('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
+     dict_obj = json.loads(json_document)
 
 
 
 * Rule Sets
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.rule_sets()
->>> dict_obj = json.loads(json_document)
+.. code-block:: python
 
-    ::
->>> par = PreservationActionRegistry(server="par-server.com")
->>> json_document = par.rule_set('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
->>> dict_obj = json.loads(json_document)
+    par = PreservationActionRegistry(server="par-server.com")
+    json_document = par.rule_sets()
+    dict_obj = json.loads(json_document)
+
+
+    json_document = par.rule_set('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
+    dict_obj = json.loads(json_document)
 
 
 Workflow API
