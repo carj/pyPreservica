@@ -106,7 +106,7 @@ class EntityAPI(AuthenticatedAPI):
 
     """
 
-    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
+    def __init__(self, username=None, password=None, tenant="%", server=None, use_shared_secret=False):
         super().__init__(username, password, tenant, server, use_shared_secret)
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")

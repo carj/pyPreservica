@@ -463,8 +463,9 @@ class AuthenticatedAPI:
             RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.2 Compatible) " \
-               f"Connected to: {self.server} Preservica version: {self.version} as {self.username}"
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.3 Compatible) " \
+               f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
+               f"in tenancy {self.tenant}"
 
     def __repr__(self):
         return self.__str__()
@@ -492,11 +493,13 @@ class AuthenticatedAPI:
         logger.debug("Token Expired Requesting New Token")
         if self.shared_secret is False:
             if self.tenant == "%":
-                data = {'username': self.username, 'password': self.password}
+                data = {'username': self.username, 'password': self.password, 'includeUserDetails': 'true'}
             else:
                 data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
             response = self.session.post(f'https://{self.server}/api/accesstoken/login', data=data)
             if response.status_code == requests.codes.ok:
+                if self.tenant == "%":
+                    self.tenant = response.json()['tenant']
                 return response.json()['token']
             else:
                 msg = "Failed to create a password based authentication token. Check your credentials are correct"
@@ -519,7 +522,7 @@ class AuthenticatedAPI:
                 logger.error(msg)
                 raise RuntimeError(response.status_code, msg)
 
-    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
+    def __init__(self, username=None, password=None, tenant="%", server=None, use_shared_secret=False):
         config = configparser.ConfigParser()
         config.read('credentials.properties')
         self.session = requests.Session()

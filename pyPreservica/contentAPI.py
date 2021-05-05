@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class ContentAPI(AuthenticatedAPI):
 
-    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
+    def __init__(self, username=None, password=None, tenant="%", server=None, use_shared_secret=False):
         super().__init__(username, password, tenant, server, use_shared_secret)
         self.callback = None
 
@@ -35,7 +35,7 @@ class ContentAPI(AuthenticatedAPI):
     def object_details(self, entity_type, reference):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
         params = {'id': f'sdb:{entity_type.value}|{reference}'}
-        request = requests.get(f'https://{self.server}/api/content/object-details', params=params, headers=headers)
+        request = self.session.get(f'https://{self.server}/api/content/object-details', params=params, headers=headers)
         if request.status_code == requests.codes.ok:
             return request.json()["value"]
         elif request.status_code == requests.codes.not_found:
@@ -51,8 +51,8 @@ class ContentAPI(AuthenticatedAPI):
     def download(self, reference, filename):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:IO|{reference}'}
-        with requests.get(f'https://{self.server}/api/content/download', params=params, headers=headers,
-                          stream=True) as req:
+        with self.session.get(f'https://{self.server}/api/content/download', params=params, headers=headers,
+                              stream=True) as req:
             if req.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
                     for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
@@ -71,26 +71,21 @@ class ContentAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, f"download failed with error code: {req.status_code}")
 
     def thumbnail(self, entity_type, reference, filename, size=Thumbnail.LARGE):
-        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
-        if entity_type == "IO":
-            params = {'id': f'sdb:IO|{reference}', 'size': f'{size.value}'}
-        elif entity_type == "SO":
-            params = {'id': f'sdb:SO|{reference}', 'size': f'{size.value}'}
-        else:
-            print(f"entity_type must be a folder or asset, IO or SO")
-            raise SystemExit
-        with requests.get(f'https://{self.server}/api/content/thumbnail', params=params, headers=headers) as req:
+        headers = {HEADER_TOKEN: self.token,  'accept': 'image/png'}
+        params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
+        with self.session.get(f'https://{self.server}/api/content/thumbnail', params=params, headers=headers,
+                              stream=True) as req:
             if req.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
                     for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
                         file.write(chunk)
                         file.flush()
-                file.close()
                 return filename
             elif req.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.thumbnail(entity_type, reference, filename, size)
             elif req.status_code == requests.codes.not_found:
+                logger.error(req.content.decode("utf-8"))
                 logger.error(f"The requested reference is not found in the repository: {reference}")
                 raise RuntimeError(reference, "The requested reference is not found in the repository")
             else:
@@ -99,7 +94,7 @@ class ContentAPI(AuthenticatedAPI):
 
     def indexed_fields(self):
         headers = {HEADER_TOKEN: self.token}
-        results = requests.get(f'https://{self.server}/api/content/indexed-fields', headers=headers)
+        results = self.session.get(f'https://{self.server}/api/content/indexed-fields', headers=headers)
         if results.status_code == requests.codes.ok:
             fields = list()
             for ob in results.json()["value"]:
@@ -147,7 +142,7 @@ class ContentAPI(AuthenticatedAPI):
         else:
             metadata_fields = ','.join(*args)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': query_term}
-        results = requests.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
+        results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = list()
         if results.status_code == requests.codes.ok:
             json = results.json()
@@ -192,7 +187,7 @@ class ContentAPI(AuthenticatedAPI):
             writer.writeheader()
             writer.writerows(self.search_index_filter_list(query, page_size, map_fields))
 
-    def search_index_filter_list(self, query: str = "%", page_size: int = 10, map_fields=None):
+    def search_index_filter_list(self, query: str = "%", page_size: int = 25, map_fields=None):
         search_result = self.search_index_filter(query, 0, page_size, map_fields)
         for e in search_result.results_list:
             yield e
@@ -203,7 +198,7 @@ class ContentAPI(AuthenticatedAPI):
                 yield e
             found = found + len(search_result.results_list)
 
-    def search_index_filter(self, query: str = "%", start_index: int = 0, page_size: int = 10, map_fields=None):
+    def search_index_filter(self, query: str = "%", start_index: int = 0, page_size: int = 25, map_fields=None):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
 
@@ -219,7 +214,7 @@ class ContentAPI(AuthenticatedAPI):
         query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
 
         payload = {'start': start_from, 'max': str(page_size), 'metadata': list(map_fields.keys()), 'q': query_term}
-        results = requests.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
+        results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = list()
         if results.status_code == requests.codes.ok:
             json = results.json()
