@@ -2138,30 +2138,30 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
 
     .. py:method::  replace_generation_sync(content_object: ContentObject, file_name, fixity_algorithm=None,
-                                fixity_value=None) -> str:
+                                fixity_value=None)
 
     Replace the last active generation of a content object with a new digital file.
 
     Starts the workflow and blocks until the workflow completes.
 
     :param ContentObject content_object: The content object to replace
-    :param file_name str: The path to the new content object
-    :param fixity_algorithm str: Optional fixity algorithm
-    :param fixity_value str: Optional fixity value
+    :param str file_name: The path to the new content object
+    :param str fixity_algorithm: Optional fixity algorithm
+    :param str fixity_value: Optional fixity value
     :return: Completed workflow status
     :rtype: str
 
     .. py:method::  replace_generation_async(content_object: ContentObject, file_name, fixity_algorithm=None,
-                                fixity_value=None) -> str:
+                                fixity_value=None)
 
     Replace the last active generation of a content object with a new digital file.
 
     Starts the workflow and returns
 
-    :param content_object ContentObject: The content object to replace
-    :param file_name str: The path to the new content object
-    :param fixity_algorithm str: Optional fixity algorithm
-    :param fixity_value str: Optional fixity value
+    :param ContentObject content_object: The content object to replace
+    :param str file_name: The path to the new content object
+    :param str fixity_algorithm: Optional fixity algorithm
+    :param str fixity_value: Optional fixity value
     :return:  Process ID
     :rtype: str
 
@@ -2179,11 +2179,11 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     Initiates export of the entity and downloads the opex package
 
-    :param entity Entity: The entity to export Asset or Folder
-    :param IncludeContent str: "Content", "NoContent"
-    :param IncludeMetadata str: "Metadata", "NoMetadata", "MetadataWithEvents"
-    :param IncludedGenerations str: "LatestActive", "AllActive", "All"
-    :param IncludeParentHierarchy str: "true", "false"
+    :param Entity entity: The entity to export Asset or Folder
+    :param str IncludeContent: "Content", "NoContent"
+    :param str IncludeMetadata: "Metadata", "NoMetadata", "MetadataWithEvents"
+    :param str IncludedGenerations: "LatestActive", "AllActive", "All"
+    :param str IncludeParentHierarchy: "true", "false"
     :return: The path to the opex ZIP file
     :rtype: str
 

@@ -12,4 +12,11 @@ extensions = [
 
 html_theme = "sphinx_rtd_theme"
 
-pygments_style = 'sphinx'
+pygments_style = 'default'
+
+source_suffix = ".rst"
+
+master_doc = "index"
+
+project = u"pyPreservica"
+author = u"James Carr"
