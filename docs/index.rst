@@ -1643,7 +1643,7 @@ Preservation Action Registry API
 
 PyPreservica provides a python interface for using the Preservation Action Registry API
 
-https://developers.preservica.com/api-reference/3-upload-content-s3-compatible
+https://demo.preservica.com/Registry/par/documentation.html
 
 For more information on PAR see: https://parcore.org/
 
@@ -1655,9 +1655,14 @@ Non-Authenticated Read Access
 The interfaces for reading information from the PAR are non-authenticated calls. Only a server address is
 required. All the interfaces for reading information return JSON documents.
 
+The JSON documents can be converted into Python Dictionaries using the standard json library.
+
+
 * Format Families
 
 .. code-block:: python
+
+     import json
 
      par = PreservationActionRegistry(server="par-server.com")
      json_document = par.format_families()
@@ -1770,6 +1775,7 @@ required. All the interfaces for reading information return JSON documents.
 Workflow API
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+https://preview.preservica.com/sdb/rest/workflow/documentation.html
 
 
 Entity API Developer Interface
@@ -2092,6 +2098,94 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :param int previous_days: The number of days to check for changes.
     :return: A list of entities
     :rtype: list
+
+
+    .. py:method::  all_events()
+
+    Returns a list of events for the user's tenancy
+
+    This method uses a generator function to make repeated calls to the server for every page of results.
+
+    :return: A list of events
+    :rtype: list
+
+    .. py:method::  entity_events(entity: Entity)
+
+    Returns a list of event actions performed against this entity
+
+    This method uses a generator function to make repeated calls to the server for every page of results.
+
+    :param Entity entity: The entity
+    :return: A list of events
+    :rtype: list
+
+
+    .. py:method::  add_thumbnail(entity: Entity, image_file: str)
+
+    Set the thumbnail for the entity to the uploaded image
+
+    Supported image formats are png, jpeg, tiff, gif and bmp. The image must be 10MB or less in size.
+
+    :param Entity entity: The entity
+    :param str image_file: The path to the image
+
+
+    .. py:method::  remove_thumbnail(entity: Entity)
+
+    Remove the thumbnail for the entity to the uploaded image
+
+    :param str image_file: The path to the image
+
+
+    .. py:method::  replace_generation_sync(content_object: ContentObject, file_name, fixity_algorithm=None,
+                                fixity_value=None) -> str:
+
+    Replace the last active generation of a content object with a new digital file.
+
+    Starts the workflow and blocks until the workflow completes.
+
+    :param ContentObject content_object: The content object to replace
+    :param file_name str: The path to the new content object
+    :param fixity_algorithm str: Optional fixity algorithm
+    :param fixity_value str: Optional fixity value
+    :return: Completed workflow status
+    :rtype: str
+
+    .. py:method::  replace_generation_async(content_object: ContentObject, file_name, fixity_algorithm=None,
+                                fixity_value=None) -> str:
+
+    Replace the last active generation of a content object with a new digital file.
+
+    Starts the workflow and returns
+
+    :param content_object ContentObject: The content object to replace
+    :param file_name str: The path to the new content object
+    :param fixity_algorithm str: Optional fixity algorithm
+    :param fixity_value str: Optional fixity value
+    :return:  Process ID
+    :rtype: str
+
+
+   .. py:method::  get_async_progress(pid: str)
+
+    Return the status of a running process
+
+
+    :param pid str: The progress ID
+    :return:  Workflow status
+    :rtype: str
+
+   .. py:method::  def export_opex(entity: Entity, **kwargs)
+
+    Initiates export of the entity and downloads the opex package
+
+    :param entity Entity: The entity to export Asset or Folder
+    :param IncludeContent str: "Content", "NoContent"
+    :param IncludeMetadata str: "Metadata", "NoMetadata", "MetadataWithEvents"
+    :param IncludedGenerations str: "LatestActive", "AllActive", "All"
+    :param IncludeParentHierarchy str: "true", "false"
+    :return: The path to the opex ZIP file
+    :rtype: str
 
 
 .. py:class:: Generation
