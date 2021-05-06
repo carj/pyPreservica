@@ -1,5 +1,5 @@
 import sphinx_rtd_theme
-import alabaster
+
 
 master_doc = 'index'
 
@@ -12,8 +12,7 @@ extensions = [
     'sphinx.ext.todo',
 ]
 
-#html_theme = "sphinx_rtd_theme"
-html_theme = 'alabaster'
+html_theme = "sphinx_rtd_theme"
 
 pygments_style = 'default'
 

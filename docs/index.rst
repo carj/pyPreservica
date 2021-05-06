@@ -970,7 +970,7 @@ List actions performed against this entity
 .. code-block:: python
 
     asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    for event in client.entity_events(self, asset)
+    for event in client.entity_events(asset)
         print(event)
 
 
@@ -1989,7 +1989,8 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :return: The updated Entity
     :rtype: Entity
 
-    .. py:method::  move_sync(entity, dest_folder)
+
+   .. py:method::  move_sync(entity, dest_folder)
 
     Move an entity (asset or folder) to a new folder
     This call blocks until the move is complete
@@ -2000,7 +2001,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :rtype: Entity
 
 
-    .. py:method::  move_async(entity, dest_folder)
+   .. py:method::  move_async(entity, dest_folder)
 
     Move an entity (asset or folder) to a new folder
     This call returns immediately and does not block
@@ -2011,7 +2012,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :rtype: str
 
 
-   .. py:method::  move(entity, dest_folder)
+   .. py:method::   move(entity, dest_folder)
 
     Move an entity (asset or folder) to a new folder
     This call is an alias for the move_sync (blocking) method.
