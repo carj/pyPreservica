@@ -1623,7 +1623,15 @@ You can apply for API Consumer Keys (The basic ready only set is required) at:
 
 https://developer.twitter.com/
 
-You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully. 
+You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully.
+
+You can harvest and ingest tweets using a single call on the upload class using ``ingest_twitter_feed`` method.
+
+You should pass the name of the twitter feed you want to crawl and the number of tweets as the first two arguments.
+You also need to tell the call which folder you want the tweet assets to be ingested into.
+
+The twitter API Consumer Keys can either be passed as arguments to the call or be specified in the credential.properties
+file or an environment variable using the keys:  ``TWITTER_CONSUMER_KEY`` and ``TWITTER_SECRET_KEY``
 
 .. code-block:: python
 
@@ -2472,8 +2480,8 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :param str Title: Optional asset title
     :param str Description: Optional asset description
     :param str SecurityTag: Optional asset security tag
-    :param str Identifiers: Optional asset 3rd party identifiers
-    :param str Asset_Metadata: Optional asset additional descriptive metadata
+    :param dict Identifiers: Optional asset 3rd party identifiers
+    :param dict Asset_Metadata: Optional asset additional descriptive metadata
     :param callback callback: Optional upload progress callback
     :raises RuntimeError:
 
