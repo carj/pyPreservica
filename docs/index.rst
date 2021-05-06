@@ -1772,10 +1772,6 @@ The JSON documents can be converted into Python Dictionaries using the standard 
     dict_obj = json.loads(json_document)
 
 
-Workflow API
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-https://preview.preservica.com/sdb/rest/workflow/documentation.html
 
 
 Entity API Developer Interface
@@ -2137,8 +2133,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :param str image_file: The path to the image
 
 
-    .. py:method::  replace_generation_sync(content_object: ContentObject, file_name, fixity_algorithm=None,
-                                fixity_value=None)
+    .. py:method::  replace_generation_sync(content_object: ContentObject, file_name: str, fixity_algorithm, fixity_value)
 
     Replace the last active generation of a content object with a new digital file.
 
@@ -2151,12 +2146,11 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :return: Completed workflow status
     :rtype: str
 
-    .. py:method::  replace_generation_async(content_object: ContentObject, file_name, fixity_algorithm=None,
-                                fixity_value=None)
+    .. py:method::  replace_generation_async(content_object: ContentObject, file_name: str, fixity_algorithm, fixity_value)
 
     Replace the last active generation of a content object with a new digital file.
 
-    Starts the workflow and returns
+    Starts the workflow and returns a process ID
 
     :param ContentObject content_object: The content object to replace
     :param str file_name: The path to the new content object
@@ -2175,7 +2169,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :return:  Workflow status
     :rtype: str
 
-   .. py:method::  def export_opex(entity: Entity, **kwargs)
+   .. py:method::   export_opex(entity: Entity, **kwargs)
 
     Initiates export of the entity and downloads the opex package
 
@@ -2405,6 +2399,52 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 Content API Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+This part of the documentation covers all the interfaces of pyPreservica :class:`UploadAPI <ContentAPI>` object.
+
+.. py:class:: ContentAPI
+
+
+
+
+   .. py:method:: object_details(entity_type, reference)
+
+    Return a list of all the indexed fields in the Preservica search index.
+
+    :param str entity_type: Entity type, either "IO" or "SO"
+    :param str reference:   Entity reference
+    :return: object attributes
+    :rtype: dict
+
+
+   .. py:method:: indexed_fields()
+
+    Return a list of all the indexed fields in the Preservica search index.
+
+    :return: list of index field names
+    :rtype: list
+
+
+   .. py:method:: simple_search_list(query: str = "%", page_size: int = 10, *args)
+
+    Search Preservica using a simple search term across all indexed fields, the results are returned as generator
+
+    :param str query: Query term
+    :param int page_size: Number of results fetched between server calls
+    :param tuple args: index names to include in the result
+    :return: list of search result hits
+    :rtype: list
+
+
+   .. py:method:: simple_search_csv(self, query: str = "%", csv_file="search.csv", *args)
+
+    Search Preservica using a simple search term across all indexed fields, output the results to a csv file.
+
+    :param str query: Query term
+    :param int page_size: Number of results fetched between server calls
+    :param tuple args: index names to include in the result
+
+
+
 Upload API Developer Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -2419,9 +2459,32 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :param str path_to_zip_package: Path to the package
     :param Folder folder: The folder to ingest the package into
     :param str callback: Optional callback to allow the callee to monitor the upload progress
-    :param bool delete_after_upload: Delete the package after the upload has completed
+    :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
     :raises RuntimeError:
 
+
+   .. py:method:: ingest_web_video(self, url, parent_folder, **kwargs)
+
+    Ingest a web video such as YouTube etc based on the URL
+
+    :param str url: URL to the youtube video
+    :param Folder parent_folder: The folder to ingest the video into
+    :param str Title: Optional asset title
+    :param str Description: Optional asset description
+    :param str SecurityTag: Optional asset security tag
+    :param str Identifiers: Optional asset 3rd party identifiers
+    :param str Asset_Metadata: Optional asset additional descriptive metadata
+    :param callback callback: Optional upload progress callback
+    :raises RuntimeError:
+
+
+Workflow API
+~~~~~~~~~~~~~~~~
+
+https://preview.preservica.com/sdb/rest/workflow/documentation.html
+
+.. todo::
+    Workflow API
 
 Example Applications
 ~~~~~~~~~~~~~~~~~~~~~~

@@ -8,6 +8,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx_rtd_theme',
+    'sphinx.ext.todo',
 ]
 
 html_theme = "sphinx_rtd_theme"
