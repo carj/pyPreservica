@@ -22,87 +22,12 @@ logger = logging.getLogger(__name__)
 
 class EntityAPI(AuthenticatedAPI):
     """
-            A client library for the Preservica Repository web services Entity API
+            A class for the Preservica Repository web services Entity API
+
             https://us.preservica.com/api/entity/documentation.html
 
+            The EntityAPI allows users to interact with the Preservica repository
 
-            Methods
-            -------
-            asset(reference):
-                Fetches the main XIP attributes for an asset by its reference
-
-            folder(reference):
-                Fetches the main XIP attributes for a folder by its reference
-
-            content_object(reference):
-                Fetches the main XIP attributes for a content_object by its reference
-
-            entity(entity_type, reference):
-                Get an entity by its type and reference
-
-            metadata(uri):
-                Return the descriptive metadata attached to an entity.
-
-            metadata_for_entity(entity, schema):
-                Return the metadata fragment for the entity by schema
-
-            save(entity):
-                Updates the title and description of an asset or folder
-
-            create_folder(title, description, security_tag, parent=None):
-                creates a new structural object in the repository
-
-            children(reference, maximum=100, next_page=None):
-                returns a list of children from the folder
-
-            identifier(identifier_type, identifier_value):
-                returns an asset or folder based on external identifiers
-
-            identifiers_for_entity(entity):
-                returns a set of identifiers on the entity
-
-            add_identifier(entity, identifier_type, identifier_value):
-                adds a new external identifier to an entity
-
-            delete_identifier(entity, identifier_type=None, identifier_value=None):
-                deletes identifiers which belong to an entity
-
-            add_metadata(entity, namespace, data):
-                Add new descriptive metadata to an entity
-
-            update_metadata(entity, namespace, data):
-                Update the descriptive metadata attached to an entity
-
-            delete_metadata(entity, schema):
-                Delete all the metadata fragments on an entity with the schema
-                Tests - Yes
-
-            download(entity, filename):
-                Download the first content object of the access representation to the file given by filename
-
-            thumbnail(entity, filename, size=Thumbnail.LARGE):
-                Download the thumbnail image for an entity
-
-            move(entity, dest_folder):
-                Move an entity into the folder given by dest_folder
-
-            bitstream_content(bitstream, filename):
-                Download a bitstream and save to filename
-
-            security_tag_async(entity, new_tag):
-                Non-blocking call to change security tag
-
-            security_tag_sync(self, entity, new_tag):
-                Blocking call to change security tag
-
-            representations(asset):
-                Return a set of representations for the asset
-
-            content_objects(representation):
-                Returns an ordered list of content objects in the representation
-
-            generations(content_object)
-                Returns a list of generations for the content object
 
     """
 

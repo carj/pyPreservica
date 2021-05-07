@@ -51,8 +51,13 @@ class WorkflowContext:
 
 class WorkflowAPI(AuthenticatedAPI):
     """
-              A client library for the Preservica Workflow API
+              A class for calling the Preservica Workflow API
+
               https://preview.preservica.com/sdb/rest/workflow/documentation.html
+
+              The Workflow API is available for Enterprise Preservica users
+
+
 
     """
 
