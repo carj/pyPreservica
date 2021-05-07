@@ -1,7 +1,7 @@
 import sphinx_rtd_theme
 import os
 import sys
-
+from pyPreservica import WorkflowAPI
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -13,7 +13,6 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.autodoc',
     'sphinx_rtd_theme',
     'sphinx.ext.todo',
 ]

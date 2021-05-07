@@ -333,6 +333,7 @@ Application Logging
 You can add logging to your pyPreservica scripts by simply including the following
 
 .. code-block:: python
+
     import logging
     from pyPreservica import *
     
