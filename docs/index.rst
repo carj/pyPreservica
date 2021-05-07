@@ -313,8 +313,11 @@ pyPreservica will only connect to servers which use the https:// protocol and wi
 
 pyPreservica uses the `Certifi <https://pypi.org/project/certifi/>`_  project to provide SSL certificate validation.
 
-Self-signed certificates used by on-premise deployments are not part of the Certifi CA bundle and therefore
-need to be set explicitly.
+Self-signed certificates used by on-premise deployments are not part of the Certifi certification authority (CA)
+bundle and therefore need to be set explicitly.
+
+The CA bundle is a file that contains root and intermediate certificates.
+The end-entity certificate along with a CA bundle constitutes the certificate chain.
 
 For on-premise deployments the trusted CAs can be specified through the ``REQUESTS_CA_BUNDLE``
 environment variable. e.g.
@@ -2043,7 +2046,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :return: A set of entity objects (Folders and Assets)
     :rtype: set(Entity)
 
-  .. py:method::  all_descendants(folder_reference)
+   .. py:method::   all_descendants(folder_reference)
 
     Return all child entities recursively of a folder or repository down to the assets using a lazy iterator.
     The paging is done internally using a default page
@@ -2105,7 +2108,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :rtype: list
 
 
-    .. py:method::  all_events()
+   .. py:method::  all_events()
 
     Returns a list of events for the user's tenancy
 
@@ -2114,7 +2117,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :return: A list of events
     :rtype: list
 
-    .. py:method::  entity_events(entity: Entity)
+   .. py:method::  entity_events(entity: Entity)
 
     Returns a list of event actions performed against this entity
 
@@ -2125,7 +2128,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :rtype: list
 
 
-    .. py:method::  add_thumbnail(entity: Entity, image_file: str)
+   .. py:method::  add_thumbnail(entity: Entity, image_file: str)
 
     Set the thumbnail for the entity to the uploaded image
 
@@ -2135,14 +2138,14 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :param str image_file: The path to the image
 
 
-    .. py:method::  remove_thumbnail(entity: Entity)
+   .. py:method::  remove_thumbnail(entity: Entity)
 
     Remove the thumbnail for the entity to the uploaded image
 
     :param str image_file: The path to the image
 
 
-    .. py:method::  replace_generation_sync(content_object: ContentObject, file_name: str, fixity_algorithm, fixity_value)
+   .. py:method::  replace_generation_sync(content_object: ContentObject, file_name: str, fixity_algorithm, fixity_value)
 
     Replace the last active generation of a content object with a new digital file.
 
@@ -2155,7 +2158,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :return: Completed workflow status
     :rtype: str
 
-    .. py:method::  replace_generation_async(content_object: ContentObject, file_name: str, fixity_algorithm, fixity_value)
+   .. py:method::  replace_generation_async(content_object: ContentObject, file_name: str, fixity_algorithm, fixity_value)
 
     Replace the last active generation of a content object with a new digital file.
 
@@ -2492,8 +2495,7 @@ Workflow API
 
 https://preview.preservica.com/sdb/rest/workflow/documentation.html
 
-.. todo::
-    Workflow API
+.. autoclass:: WorkflowAPI
 
 Example Applications
 ~~~~~~~~~~~~~~~~~~~~~~
