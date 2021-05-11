@@ -1,3 +1,5 @@
+.. py:currentmodule:: pyPreservica
+
 Developer Interface
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -6,7 +8,7 @@ Entity API
 
 This part of the documentation covers all the interfaces of pyPreservica :class:`EntityAPI <EntityAPI>` object.
 
-.. py:class:: EntityAPI
+.. autoclass:: pyPreservica.EntityAPI
 
    .. py:method:: asset(reference)
 
@@ -678,38 +680,40 @@ Upload API
 
 This part of the documentation covers all the interfaces of pyPreservica :class:`UploadAPI <UploadAPI>` object.
 
-.. py:class:: UploadAPI
-
-   .. py:method:: upload_zip_package(path_to_zip_package, folder, callback, delete_after_upload)
-
-    Uploads a zip file package and starts an ingest workflow
-
-    :param str path_to_zip_package: Path to the package
-    :param Folder folder: The folder to ingest the package into
-    :param str callback: Optional callback to allow the callee to monitor the upload progress
-    :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
-    :raises RuntimeError:
+.. py:currentmodule:: pyPreservica
+.. autofunction:: simple_asset_package
+.. autofunction:: complex_asset_package
+.. autofunction:: cvs_to_xml
+.. autoclass:: UploadAPI
+    :members:
 
 
-   .. py:method:: ingest_web_video(url, parent_folder, **kwargs)
 
-    Ingest a web video such as YouTube etc based on the URL
+Retention API
+^^^^^^^^^^^^^^
 
-    :param str url: URL to the youtube video
-    :param Folder parent_folder: The folder to ingest the video into
-    :param str Title: Optional asset title
-    :param str Description: Optional asset description
-    :param str SecurityTag: Optional asset security tag
-    :param dict Identifiers: Optional asset 3rd party identifiers
-    :param dict Asset_Metadata: Optional asset additional descriptive metadata
-    :param callback callback: Optional upload progress callback
-    :raises RuntimeError:
+https://eu.preservica.com/api/entity/documentation.html
+
+.. py:currentmodule:: pyPreservica
+.. autoclass:: RetentionPolicy
+.. autoclass:: RetentionAssignment
+.. autoclass:: RetentionAPI
+     :members:
+
+
 
 
 Workflow API
 ^^^^^^^^^^^^^^
 
+.. note::
+    The Workflow API is available for Enterprise Preservica users
+
 https://preview.preservica.com/sdb/rest/workflow/documentation.html
 
-.. autoclass:: pyPreservica.WorkflowAPI
+.. py:currentmodule:: pyPreservica
+.. autoclass:: WorkflowContext
+.. autoclass:: WorkflowInstance
+.. autoclass:: WorkflowAPI
+     :members:
 

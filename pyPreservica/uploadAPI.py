@@ -347,7 +347,14 @@ def csv_to_search_xml(csv_file, xml_namespace, root_element, title="Metadata Tit
 def cvs_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename", export_folder=None,
                additional_namespaces=None):
     """
-    Export the rows of a CSV file as XML metadata documents which can be added to Preservica assets
+        Export the rows of a CSV file as XML metadata documents which can be added to Preservica assets
+
+        :param str csv_file: Path to the csv file
+        :param str xml_namespace: The XML namespace for the created XML documents
+        :param str root_element: The root element for the XML documents
+        :param str file_name_column: The CSV column which should be used to name the xml files
+        :param str export_folder: The path to the export folder
+        :param dict additional_namespaces: A map of prefix, uris to use as additional namespaces
 
     """
     headers = list()
@@ -594,6 +601,32 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
 def complex_asset_package(preservation_files_list=None, access_files_list=None, export_folder=None,
                           parent_folder=None, compress=True, **kwargs):
     """
+
+            Create a Preservica package containing a single Asset from a multiple preservation files
+            and optional access files.
+            The Asset contains multiple Content Objects within each representation.
+
+            If only the preservation files are provided the asset has one representation
+
+
+            :param list preservation_files_list: Paths to the preservation files
+            :param list access_files_list: Paths to the access files
+            :param str export_folder: The package location folder
+            :param Folder parent_folder: The folder to ingest the asset into
+            :param bool compress: Compress the ZIP file
+            :param str Title: Asset Title
+            :param str Description: Asset Description
+            :param str SecurityTag: Asset SecurityTag
+            :param str CustomType: Asset CustomType
+            :param str Preservation_Content_Title: Title of the Preservation Representation Content Object
+            :param str Preservation_Content_Description: Description of the Preservation Representation Content Object
+            :param str Access_Content_Title: Title of the Access Representation Content Object
+            :param str Access_Content_Description: Description of the Access Representation Content Object
+            :param dict Asset_Metadata: Dictionary of Asset metadata documents
+            :param dict Identifiers: Dictionary of Asset rd party identifiers
+
+
+
         optional kwargs map
         'Title'                                 Asset Title
         'Description'                           Asset Description
@@ -795,21 +828,32 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 def simple_asset_package(preservation_file=None, access_file=None, export_folder=None, parent_folder=None,
                          compress=True, **kwargs):
     """
-        optional kwargs map
-        'Title'                             Asset Title
-        'Description'                       Asset Description
-        'SecurityTag'                       Asset Security Tag
-        'CustomType'                        Asset Type
-        'Preservation_Content_Title'        Content Object Title of the Preservation Object
-        'Preservation_Content_Description'  Content Object Description of the Preservation Object
-        'Access_Content_Title'              Content Object Title of the Access Object
-        'Access_Content_Description'        Content Object Description of the Access Object
-        'Preservation_Generation_Label'     Generation Label for the Preservation Object
-        'Access_Generation_Label'           Generation Label for the Access Object
-        'Asset_Metadata'                    Map of metadata schema/documents to add to asset
-        'Identifiers'                       Map of asset identifiers
-        'Preservation_files_fixity_callback'    Callback to allow external generated fixity values
-        'Access_files_fixity_callback'    Callback to allow external generated fixity values
+            Create a Preservica package containing a single Asset from a single preservation file
+            and an optional access file.
+            The Asset contains one Content Object for each representation.
+
+            If only the preservation file is provided the asset has one representation
+
+
+            :param str preservation_file: Path to the preservation file
+            :param str access_file: Path to the access file
+            :param str export_folder: The package location folder
+            :param Folder parent_folder: The folder to ingest the asset into
+            :param bool compress: Compress the ZIP file
+            :param str Title: Asset Title
+            :param str Description: Asset Description
+            :param str SecurityTag: Asset SecurityTag
+            :param str CustomType: Asset CustomType
+            :param str Preservation_Content_Title: Title of the Preservation Representation Content Object
+            :param str Preservation_Content_Description: Description of the Preservation Representation Content Object
+            :param str Access_Content_Title: Title of the Access Representation Content Object
+            :param str Access_Content_Description: Description of the Access Representation Content Object
+            :param dict Asset_Metadata: Dictionary of Asset metadata documents
+            :param dict Identifiers: Dictionary of Asset rd party identifiers
+
+
+
+
     """
 
     # some basic validation
@@ -839,6 +883,20 @@ class UploadAPI(AuthenticatedAPI):
 
     def ingest_twitter_feed(self, twitter_user=None, num_tweets: int = 25, twitter_consumer_key=None,
                             twitter_secret_key=None, folder=None, callback=None, **kwargs):
+
+        """
+            Ingest tweets from a twitter stream by twitter username
+
+            :param str twitter_user: Twitter Username
+            :param int num_tweets: The number of tweets from the stream
+            :param str twitter_consumer_key: Optional asset title
+            :param str twitter_secret_key: Optional asset description
+            :param str folder: Folder to ingest into
+            :param callback callback: Optional upload progress callback
+            :raises RuntimeError:
+
+
+        """
 
         def get_image(m, has_video_element):
             media_url_https_ = m["media_url_https"]
@@ -1007,6 +1065,21 @@ class UploadAPI(AuthenticatedAPI):
                 sleep(2)
 
     def ingest_web_video(self, url=None, parent_folder=None, **kwargs):
+        """
+            Ingest a web video such as YouTube etc based on the URL
+
+            :param str url: URL to the youtube video
+            :param Folder parent_folder: The folder to ingest the video into
+            :param str Title: Optional asset title
+            :param str Description: Optional asset description
+            :param str SecurityTag: Optional asset security tag
+            :param dict Identifiers: Optional asset 3rd party identifiers
+            :param dict Asset_Metadata: Optional asset additional descriptive metadata
+            :param callback callback: Optional upload progress callback
+            :raises RuntimeError:
+
+
+        """
         try:
             import youtube_dl
         except ImportError:
@@ -1076,6 +1149,17 @@ class UploadAPI(AuthenticatedAPI):
             self.upload_zip_package(path_to_zip_package=package, folder=parent_folder, callback=callback)
 
     def upload_zip_package(self, path_to_zip_package, folder=None, callback=None, delete_after_upload=False):
+        """
+        Uploads a zip file package and starts an ingest workflow
+
+        :param str path_to_zip_package: Path to the package
+        :param Folder folder: The folder to ingest the package into
+        :param str callback: Optional callback to allow the callee to monitor the upload progress
+        :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
+        :raises RuntimeError:
+
+
+        """
         bucket = f'{self.tenant.lower()}.package.upload'
         endpoint = f'https://{self.server}/api/s3/buckets'
         self.token = self.__token__()

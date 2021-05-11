@@ -72,7 +72,11 @@ class EntityAPI(AuthenticatedAPI):
 
     def download_opex(self, pid: str):
         """
-        Download DIP request
+        Download a completed OPEX export using the workflow process ID
+
+
+        :param pid:str process id
+
         """
         headers = {HEADER_TOKEN: self.__token__(), 'Content-Type': 'application/xml;charset=UTF-8'}
         download = self.session.get(f'https://{self.server}/api/entity/actions/exports/{pid}/content',

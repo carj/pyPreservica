@@ -30,21 +30,21 @@ def test_download_folder():
 
 def test_get_thumbnail_small():
     client = ContentAPI()
-    small = client.thumbnail("IO", ASSET_ID, "filename.img", Thumbnail.SMALL)
+    small = client.thumbnail("IO", "464444f7-8a6e-40f3-86c3-1dd2a51cfeeb", "filename.img", Thumbnail.SMALL)
     assert os.path.exists(small)
     os.remove(small)
 
 
 def test_get_thumbnail_med():
     client = ContentAPI()
-    med = client.thumbnail("IO", ASSET_ID, "filename.img", Thumbnail.MEDIUM)
+    med = client.thumbnail("IO", "8d268bed-93d7-449b-91e4-2e7e86562a07", "filename.img", Thumbnail.MEDIUM)
     assert os.path.exists(med)
     os.remove(med)
 
 
 def test_get_thumbnail_large():
     client = ContentAPI()
-    large = client.thumbnail("IO", ASSET_ID, "filename.img", Thumbnail.LARGE)
+    large = client.thumbnail("IO", "d5048e76-79c5-4ca7-99c9-a202c8f6dc8b", "filename.img", Thumbnail.LARGE)
     assert os.path.exists(large)
     os.remove(large)
 

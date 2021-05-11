@@ -17,6 +17,16 @@ def prettify(elem):
 
 
 class WorkflowInstance:
+    """
+        Defines a workflow Instance.
+        The workflow Instance is context which has been executed
+
+
+        :param instance_id: The Workflow instance Id
+        :type instance_id: int
+
+    """
+
     def __init__(self, instance_id: int):
         self.instance_id = instance_id
         self.started = None
@@ -37,7 +47,20 @@ class WorkflowInstance:
 
 
 class WorkflowContext:
-    def __init__(self, workflow_id, workflow_name):
+    """
+        Defines a workflow context.
+        The workflow context is the pre-defined workflow which is ready to run
+
+
+        :param workflow_name: The Workflow context name
+        :type workflow_name: str
+
+        :param workflow_id: The Workflow context id
+        :type workflow_id: str
+
+    """
+
+    def __init__(self, workflow_id, workflow_name: str):
         self.workflow_id = workflow_id
         self.workflow_name = workflow_name
 
@@ -51,13 +74,11 @@ class WorkflowContext:
 
 class WorkflowAPI(AuthenticatedAPI):
     """
-              A class for calling the Preservica Workflow API
+        A class for calling the Preservica Workflow API
 
-              https://preview.preservica.com/sdb/rest/workflow/documentation.html
+        This API can be used to programmatically manage the Preservica Workflows.
 
-              The Workflow API is available for Enterprise Preservica users
-
-
+        https://preview.preservica.com/sdb/rest/workflow/documentation.html
 
     """
 
@@ -65,7 +86,8 @@ class WorkflowAPI(AuthenticatedAPI):
                        'Failed']
     workflow_types = ['Ingest', 'Access', 'Transformation', 'DataManagement']
 
-    def __init__(self, username=None, password=None, tenant="%", server=None, use_shared_secret=False):
+    def __init__(self, username: str = None, password: str = None, tenant: str = "%", server: str = None,
+                 use_shared_secret: bool = False):
         super().__init__(username, password, tenant, server, use_shared_secret)
         self.base_url = "sdb/rest/workflow"
 
@@ -73,8 +95,11 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         Return a list of Workflow Contexts which have the same Workflow type
 
-        :param workflow_type: The Workflow type:
-        Ingest, Access, Transformation or DataManagement
+        :param workflow_type: The Workflow type  Ingest, Access, Transformation or DataManagement
+        :type workflow_type: str
+
+        :return: List of Workflow Contexts
+        :rtype: list
 
         """
         headers = {HEADER_TOKEN: self.token}
@@ -100,9 +125,13 @@ class WorkflowAPI(AuthenticatedAPI):
 
     def get_workflow_contexts(self, definition: str):
         """
-        Return a list of Workflow Contexts which have the same Workflow Definition ID
+        Return a list of Workflow Contexts which have the same Workflow Definition
 
         :param definition: The Workflow Definition ID
+        :type definition: str
+
+        :return: List of Workflow Contexts
+        :rtype: list
 
         """
         headers = {HEADER_TOKEN: self.token}
@@ -126,15 +155,19 @@ class WorkflowAPI(AuthenticatedAPI):
             logger.error(request.content)
             raise RuntimeError(request.status_code, "get_workflow_contexts")
 
-    def start_workflow_instance(self, workflow_context, **kwargs):
+    def start_workflow_instance(self, workflow_context: WorkflowContext, **kwargs):
         """
-
         Start a workflow context
 
         Returns a Correlation Id which is used to monitor the workflow progress
 
         :param workflow_context: The workflow context to start
-        :param kwargs:           Key/Values to pass to the workflow instance
+        :type workflow_context: WorkflowContext
+
+        :param kwargs:      Key/Values to pass to the workflow instance
+
+        :return: correlation_id
+        :rtype: str
 
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -169,7 +202,8 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         Terminate a workflow by its instance id
 
-        :param instance_ids: The Workflow instance:
+        :param instance_ids: The Workflow instance
+        :type instance_ids: int or a list of int
 
         """
         if isinstance(instance_ids, list):
@@ -195,11 +229,17 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         Return a workflow instance by its Id
 
-        :param instance_id: The Workflow instance:
+        :param instance_id: The Workflow instance
+        :type instance_id: int
+
+
+        :return: workflow_instance
+        :rtype: WorkflowInstance
 
         """
         headers = {HEADER_TOKEN: self.token}
-        request = self.session.get(f'https://{self.server}/{self.base_url}/instances/{str(instance_id)}', headers=headers)
+        request = self.session.get(f'https://{self.server}/{self.base_url}/instances/{str(instance_id)}',
+                                   headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -241,9 +281,8 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         Return a list of Workflow instances
 
-        :param workflow_state: The Workflow state: Aborted, Active, Completed, Finished_Mixed_Outcome, Pending,
-        Suspended, Unknown, or Failed
-        :param workflow_type: The Workflow type: Ingest, Access, Transformation or DataManagement
+        :param workflow_state: The Workflow state Aborted, Active, Completed, Finished_Mixed_Outcome, Pending, Suspended, Unknown, or Failed
+        :param workflow_type: The Workflow type Ingest, Access, Transformation or DataManagement
 
         """
         start_value = int(0)
@@ -263,8 +302,7 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         Return a list of Workflow instances
 
-        :param workflow_state: The Workflow state: Aborted, Active, Completed, Finished_Mixed_Outcome, Pending,
-        Suspended, Unknown, or Failed
+        :param workflow_state: The Workflow state: Aborted, Active, Completed, Finished_Mixed_Outcome, Pending, Suspended, Unknown, or Failed
         :param workflow_type: The Workflow type: Ingest, Access, Transformation or DataManagement
 
         """

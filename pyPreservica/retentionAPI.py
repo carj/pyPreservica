@@ -1,3 +1,15 @@
+"""
+pyPreservica EntityAPI module definition
+
+A client library for the Preservica Repository web services Entity API
+https://us.preservica.com/api/entity/documentation.html
+
+author:     James Carr
+licence:    Apache License 2.0
+
+"""
+
+
 import xml.etree.ElementTree
 from typing import Set
 
@@ -50,8 +62,15 @@ class RetentionAPI(AuthenticatedAPI):
 
     def policy(self, reference: str) -> RetentionPolicy:
         """
-           Return a retention policy by its reference
-        """
+         Return a retention policy by reference
+
+        :param reference: The policy reference
+        :type reference: str
+
+        :return: The retention policy
+        :rtype: RetentionPolicy
+
+         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f'https://{self.server}/api/entity/retention-policies/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
@@ -92,6 +111,18 @@ class RetentionAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "policy failed")
 
     def assignable_policy(self, reference: str, status: bool):
+        """
+        Make a policy assignable
+
+        :param reference:  The policy ID
+        :type reference: str
+
+        :param status:     The assignable status
+        :type status: bool
+
+
+        :return:
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain;charset=UTF-8'}
         data = str(status)
         request = self.session.put(f'https://{self.server}/api/entity/retention-policies/{reference}/assignable',
@@ -304,6 +335,10 @@ class RetentionAPI(AuthenticatedAPI):
     def delete_policy(self, reference: str):
         """
         Delete a retention policy
+
+        :param reference: The policy reference
+        :type reference: str
+
         """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.delete(f'https://{self.server}/api/entity/retention-policies/{reference}',
@@ -320,6 +355,13 @@ class RetentionAPI(AuthenticatedAPI):
     def policy_by_name(self, name: str) -> RetentionPolicy:
         """
          Return a retention policy by name
+
+        :param name: The policy name
+        :type name: str
+
+        :return: The retention policy
+        :rtype: RetentionPolicy
+
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         data = {'start': str(0), 'max': "250"}
@@ -343,6 +385,11 @@ class RetentionAPI(AuthenticatedAPI):
         """
         Return a list of all retention policies
         Only returns the first 250 policies in the system
+
+
+        :return: Set of retention policies
+        :rtype: Set[RetentionPolicy]
+
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         data = {'start': str(0), 'max': "250"}
@@ -369,7 +416,16 @@ class RetentionAPI(AuthenticatedAPI):
 
     def add_assignments(self, entity: Entity, policy: RetentionPolicy) -> RetentionAssignment:
         """
-            assign a retention policy to an asset.
+        Assign a retention policy to an Asset.
+
+        :param entity: The Preservica Entity to assign a policy to
+        :type entity: Entity
+
+        :param policy: The RetentionAssignment
+        :type policy: RetentionPolicy
+
+        :return: The RetentionAssignment
+        :rtype: RetentionAssignment
 
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -404,8 +460,16 @@ class RetentionAPI(AuthenticatedAPI):
 
     def remove_assignments(self, retention_assignment: RetentionAssignment):
         """
-           Delete a retention policy from an asset
-         """
+        Delete a retention policy from an asset
+
+        :param retention_assignment: The Preservica Entity to assign a policy to
+        :type retention_assignment: RetentionAssignment
+
+
+        :return: The Asset Reference
+        :rtype: str
+
+        """
 
         headers = {HEADER_TOKEN: self.token}
 
@@ -423,6 +487,13 @@ class RetentionAPI(AuthenticatedAPI):
     def assignments(self, entity: Entity) -> Set[RetentionAssignment]:
         """
           Return a list of retention policies for an entity.
+
+          :param entity: The entity to fetch assignments for
+          :type entity: class:`Entity`
+
+          :return: Set of policy assignments
+          :rtype: Set[RetentionAssignment]
+
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(
