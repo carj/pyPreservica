@@ -1,6 +1,8 @@
 """
 Base class for authenticated API calls used by Entity, Content and Upload
 
+Manages the authentication token lifetime and namespace versions.
+
 author:     James Carr
 licence:    Apache License 2.0
 
@@ -66,7 +68,8 @@ class FileHash:
 
 
 def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0, zlogger=None):
-    """Create a zip file from all the files under 'base_dir'.
+    """
+    Create a non compressed zip file from all the files under 'base_dir'.
 
     The output zip file will be named 'base_name' + ".zip".  Returns the
     name of the output zip file.
@@ -208,24 +211,6 @@ class IntegrityCheck:
         return self.success
 
 
-class Representation:
-    """
-        Class to represent the Representation Object in the Preservica data model
-    """
-
-    def __init__(self, asset, rep_type, name, url):
-        self.asset = asset
-        self.rep_type = rep_type
-        self.name = name
-        self.url = url
-
-    def __str__(self):
-        return f"Type:\t\t\t{self.rep_type}\n" \
-               f"Name:\t\t\t{self.name}\n" \
-               f"URL:\t{self.url}"
-
-    def __repr__(self):
-        return self.__str__()
 
 
 class Bitstream:
@@ -276,7 +261,7 @@ class Entity:
         Base Class of Assets, Folders and Content Objects
     """
 
-    def __init__(self, reference, title, description, security_tag, parent, metadata):
+    def __init__(self, reference: str, title: str, description: str, security_tag: str, parent: str, metadata: dict):
         self.reference = reference
         self.title = title
         self.description = description
@@ -327,13 +312,33 @@ class ContentObject(Entity):
        Class to represent the Content Object in the Preservica data model
     """
 
-    def __init__(self, reference, title, description, security_tag, parent, metadata):
+    def __init__(self, reference: str, title: str, description: str, security_tag: str, parent: str, metadata: dict):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.CONTENT_OBJECT
         self.representation_type = None
         self.asset = None
         self.path = CO_PATH
         self.tag = "ContentObject"
+
+
+class Representation:
+    """
+        Class to represent the Representation Object in the Preservica data model
+    """
+
+    def __init__(self, asset: Asset, rep_type: str, name: str, url: str):
+        self.asset = asset
+        self.rep_type = rep_type
+        self.name = name
+        self.url = url
+
+    def __str__(self):
+        return f"Type:\t\t\t{self.rep_type}\n" \
+               f"Name:\t\t\t{self.name}\n" \
+               f"URL:\t{self.url}"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 def content_api_identifier_to_type(ref):
