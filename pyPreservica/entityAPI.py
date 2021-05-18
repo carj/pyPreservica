@@ -31,7 +31,8 @@ class EntityAPI(AuthenticatedAPI):
 
     """
 
-    def __init__(self, username=None, password=None, tenant="%", server=None, use_shared_secret=False):
+    def __init__(self, username: str = None, password: str = None, tenant: str = "%", server: str = None,
+                 use_shared_secret: bool = False):
         super().__init__(username, password, tenant, server, use_shared_secret)
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
@@ -44,7 +45,14 @@ class EntityAPI(AuthenticatedAPI):
         Returns None if the file does not contain the correct number of bytes
 
         :param bitstream: A Bitstream object
+        :type bitstream: Bitstream
+
         :param filename: The filename to write the bytes to
+        :type filename: str
+
+        :return: The size of the file in bytes
+        :rtype: int
+
         """
 
         if not isinstance(bitstream, Bitstream):
@@ -75,7 +83,11 @@ class EntityAPI(AuthenticatedAPI):
         Download a completed OPEX export using the workflow process ID
 
 
-        :param pid:str process id
+        :param pid: A process id which identifiers the export workflow
+        :type pid: str
+
+        :return: The downloaded zip file name
+        :rtype: str
 
         """
         headers = {HEADER_TOKEN: self.__token__(), 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -1499,7 +1511,7 @@ class EntityAPI(AuthenticatedAPI):
 
         # check manager password is available:
         config = configparser.ConfigParser()
-        config.read('credentials.properties')
+        config.read('credentials.properties', encoding='utf-8')
         try:
             manager_username = config['credentials']['manager.username']
             manager_password = config['credentials']['manager.password']

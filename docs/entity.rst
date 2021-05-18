@@ -18,7 +18,7 @@ Now, let's create the ``EntityAPI`` class
 Fetching Entities (Assets, Folders & Content Objects)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Fetch an Asset and print its attributes
+Fetch an Asset by its reference and print its attributes
 
 .. code-block:: python
 
@@ -159,6 +159,14 @@ or
 .. note::
     Entities within the returned set only contain the attributes (type, reference and title).
     If you need the full object you have to request it.
+
+    You can request the entity back without knowing exactly what type it is by using the ``entity()`` call
+
+.. code-block:: python
+
+    for f in client.descendants():
+        e = client.entity(f.entity_type, f.reference)
+        print(e)
 
 
 
@@ -345,13 +353,13 @@ to the ``metadata()`` method
 .. code-block:: python
 
     for url in entity.metadata:
-        xml_document = client.metadata(url)
+        xml_string = client.metadata(url)
 
 An alternative is to call the ``metadata_for_entity``  directly
 
 .. code-block:: python
 
-    xml_document = client.metadata_for_entity(entity, "https://www.person.com/person")
+    xml_string = client.metadata_for_entity(entity, "https://www.person.com/person")
 
 this will fetch the first metadata document which matches the schema argument on the entity
 

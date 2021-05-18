@@ -11,9 +11,15 @@ from datetime import datetime
 from xml.dom import minidom
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
-from boto3.s3.transfer import TransferConfig
+
+import six
+from boto3.s3.transfer import TransferConfig, S3Transfer
 from botocore.config import Config
 from botocore.exceptions import ClientError
+
+import s3transfer.upload
+import s3transfer.tasks
+from s3transfer import S3UploadFailedError
 
 from pyPreservica.common import *
 from pyPreservica.common import _make_stored_zipfile
@@ -21,7 +27,60 @@ from pyPreservica.common import _make_stored_zipfile
 logger = logging.getLogger(__name__)
 
 GB = 1024 ** 3
-transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 8))
+transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 16))
+
+
+def upload_file(self, filename, bucket, key,
+                callback=None, extra_args=None):
+    """Upload a file to an S3 object.
+
+    Variants have also been injected into S3 client, Bucket and Object.
+    You don't have to use S3Transfer.upload_file() directly.
+
+    .. seealso::
+        :py:meth:`S3.Client.upload_file`
+        :py:meth:`S3.Client.upload_fileobj`
+    """
+    if not isinstance(filename, six.string_types):
+        raise ValueError('Filename must be a string')
+
+    subscribers = self._get_subscribers(callback)
+    future = self._manager.upload(
+        filename, bucket, key, extra_args, subscribers)
+    try:
+        return future.result()
+    # If a client error was raised, add the backwards compatibility layer
+    # that raises a S3UploadFailedError. These specific errors were only
+    # ever thrown for upload_parts but now can be thrown for any related
+    # client error.
+    except ClientError as e:
+        raise S3UploadFailedError(
+            "Failed to upload %s to %s: %s" % (
+                filename, '/'.join([bucket, key]), e))
+
+
+class PutObjectTask(s3transfer.tasks.Task):
+    # Copied from s3transfer/upload.py, changed to return the result of client.put_object.
+    def _main(self, client, fileobj, bucket, key, extra_args):
+        with fileobj as body:
+            response = client.put_object(Bucket=bucket, Key=key, Body=body, **extra_args)
+            return response
+
+
+class CompleteMultipartUploadTask(s3transfer.tasks.Task):
+    # Copied from s3transfer/tasks.py, changed to return a result.
+    def _main(self, client, bucket, key, upload_id, parts, extra_args):
+        return client.complete_multipart_upload(
+            Bucket=bucket,
+            Key=key,
+            UploadId=upload_id,
+            MultipartUpload={"Parts": parts},
+            **extra_args,
+        )
+
+
+s3transfer.upload.PutObjectTask = PutObjectTask
+s3transfer.upload.CompleteMultipartUploadTask = CompleteMultipartUploadTask
 
 
 def prettify(elem):
@@ -475,7 +534,7 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
 
                 if isinstance(preservation_content_description, dict):
                     preservation_content_description = preservation_content_description.get("filename",
-                                                                        default_content_objects_title)
+                                                                                            default_content_objects_title)
 
                 __make_content_objects__(xip, preservation_content_title, content_ref, io_ref, security_tag,
                                          preservation_content_description, content_type)
@@ -879,6 +938,10 @@ def simple_asset_package(preservation_file=None, access_file=None, export_folder
                                  export_folder=export_folder, parent_folder=parent_folder, compress=compress, **kwargs)
 
 
+def upload_config():
+    return transfer_config
+
+
 class UploadAPI(AuthenticatedAPI):
 
     def ingest_twitter_feed(self, twitter_user=None, num_tweets: int = 25, twitter_consumer_key=None,
@@ -1156,6 +1219,11 @@ class UploadAPI(AuthenticatedAPI):
         :param Folder folder: The folder to ingest the package into
         :param str callback: Optional callback to allow the callee to monitor the upload progress
         :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
+
+        :return: preservica-progress-token to allow the workflow progress to be monitored
+        :rtype: str
+
+
         :raises RuntimeError:
 
 
@@ -1177,36 +1245,20 @@ class UploadAPI(AuthenticatedAPI):
         if os.path.exists(path_to_zip_package) and os.path.isfile(path_to_zip_package):
             try:
                 key_id = str(uuid.uuid4()) + ".zip"
-                s3_client.upload_file(path_to_zip_package, bucket, key_id, ExtraArgs=metadata,
-                                      Callback=callback, Config=transfer_config)
-                if delete_after_upload:
-                    os.remove(path_to_zip_package)
-            except ClientError as e:
-                raise e
 
-    def upload_zip_package_progress_token(self, path_to_zip_package, folder=None, delete_after_upload=False):
-        bucket = f'{self.tenant.lower()}.package.upload'
-        endpoint = f'https://{self.server}/api/s3/buckets'
-        self.token = self.__token__()
-        s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=self.token,
-                                 aws_secret_access_key="NOT_USED",
-                                 config=Config(s3={'addressing_style': 'path'}))
+                transfer = S3Transfer(client=s3_client, config=transfer_config)
 
-        metadata = dict()
-        if folder is not None:
-            if hasattr(folder, "reference"):
-                metadata = {'structuralobjectreference': folder.reference}
-            elif isinstance(folder, str):
-                metadata = {'structuralobjectreference': folder}
+                transfer.PutObjectTask = PutObjectTask
+                transfer.CompleteMultipartUploadTask = CompleteMultipartUploadTask
+                transfer.upload_file = upload_file
 
-        if os.path.exists(path_to_zip_package) and os.path.isfile(path_to_zip_package):
-            try:
-                key_id = str(uuid.uuid4()) + ".zip"
-                with open(path_to_zip_package, 'rb') as fd:
-                    response = s3_client.put_object(Body=fd, Bucket=bucket, Key=key_id, Metadata=metadata)
+                response = transfer.upload_file(self=transfer, filename=path_to_zip_package, bucket=bucket, key=key_id,
+                                                extra_args=metadata, callback=callback)
 
                 if delete_after_upload:
                     os.remove(path_to_zip_package)
+
                 return response['ResponseMetadata']['HTTPHeaders']['preservica-progress-token']
+
             except ClientError as e:
                 raise e

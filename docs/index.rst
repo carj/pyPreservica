@@ -15,9 +15,11 @@ Welcome to pyPreservica's documentation
     :target: https://pypi.org/project/pyPreservica/
 
 
-pyPreservica is a Python client for the Preservica API Services
 
-This library provides a Python class for working with the Preservica Rest API
+pyPreservica is the Preservica API Software Development Kit (SDK) for Python,
+which allows Python developers to write software that makes use of the Preservica repository services.
+
+This library provides classes for working with a range of the Preservica APIs.
 
 https://developers.preservica.com/api-reference
 

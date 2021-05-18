@@ -1,4 +1,4 @@
-Preservation Action Registry API
+Registry API
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 PyPreservica provides a python interface for using the Preservation Action Registry API
@@ -7,7 +7,7 @@ https://demo.preservica.com/Registry/par/documentation.html
 
 For more information on PAR see: https://parcore.org/
 
-This PyPreservica PAR client will work with any PAR implementation which uses HTTP Basic Auth.
+This pyPreservica PAR client will work with any PAR implementation which uses HTTP Basic Auth.
 
 Non-Authenticated Read Access
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

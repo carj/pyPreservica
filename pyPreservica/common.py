@@ -14,6 +14,8 @@ import threading
 import time
 import xml.etree.ElementTree
 from enum import Enum
+from typing import Union
+
 import requests
 import logging
 import unicodedata
@@ -109,21 +111,13 @@ def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0
     return zip_filename
 
 
-def only_assets(entity):
-    return bool(entity.entity_type is EntityType.ASSET)
-
-
-def only_folders(entity):
-    return bool(entity.entity_type is EntityType.FOLDER)
-
-
 class PagedSet:
     """
     Class to represent a page of results
     The results object contains the list of objects of interest
     """
 
-    def __init__(self, results, has_more, total, next_page):
+    def __init__(self, results, has_more: bool, total: int, next_page: str):
         self.results = results
         self.has_more = bool(has_more)
         self.total = int(total)
@@ -165,7 +159,7 @@ class UploadProgressCallback:
     Default implementation of a callback class to show upload progress of a file
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename: str):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
@@ -208,32 +202,12 @@ class IntegrityCheck:
         return self.success
 
 
-class Representation:
-    """
-        Class to represent the Representation Object in the Preservica data model
-    """
-
-    def __init__(self, asset, rep_type, name, url):
-        self.asset = asset
-        self.rep_type = rep_type
-        self.name = name
-        self.url = url
-
-    def __str__(self):
-        return f"Type:\t\t\t{self.rep_type}\n" \
-               f"Name:\t\t\t{self.name}\n" \
-               f"URL:\t{self.url}"
-
-    def __repr__(self):
-        return self.__str__()
-
-
 class Bitstream:
     """
         Class to represent the Bitstream Object or digital file in the Preservica data model
     """
 
-    def __init__(self, filename, length, fixity, content_url):
+    def __init__(self, filename: str, length: int, fixity: dict, content_url: str):
         self.filename = filename
         self.length = int(length)
         self.fixity = fixity
@@ -254,7 +228,7 @@ class Generation:
          Class to represent the Generation Object in the Preservica data model
      """
 
-    def __init__(self, original, active, format_group, effective_date, bitstreams):
+    def __init__(self, original: bool, active: bool, format_group: str, effective_date: str, bitstreams: list):
         self.original = original
         self.active = active
         self.content_object = None
@@ -276,7 +250,7 @@ class Entity:
         Base Class of Assets, Folders and Content Objects
     """
 
-    def __init__(self, reference, title, description, security_tag, parent, metadata):
+    def __init__(self, reference: str, title: str, description: str, security_tag: str, parent: str, metadata: dict):
         self.reference = reference
         self.title = title
         self.description = description
@@ -297,13 +271,20 @@ class Entity:
     def __repr__(self):
         return self.__str__()
 
+    def has_metadata(self):
+        return bool(self.metadata)
+
+    def metadata_namespaces(self):
+        return list(self.metadata.values())
+
 
 class Folder(Entity):
     """
        Class to represent the Structural Object or Folder in the Preservica data model
     """
 
-    def __init__(self, reference, title, description, security_tag, parent, metadata):
+    def __init__(self, reference: str, title: str, description: str = None, security_tag: str = None,
+                 parent: str = None, metadata: dict = None):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.FOLDER
         self.path = SO_PATH
@@ -315,7 +296,8 @@ class Asset(Entity):
         Class to represent the Information Object or Asset in the Preservica data model
     """
 
-    def __init__(self, reference, title, description, security_tag, parent, metadata):
+    def __init__(self, reference: str, title: str, description: str = None, security_tag: str = None,
+                 parent: str = None, metadata: dict = None):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.ASSET
         self.path = IO_PATH
@@ -327,7 +309,8 @@ class ContentObject(Entity):
        Class to represent the Content Object in the Preservica data model
     """
 
-    def __init__(self, reference, title, description, security_tag, parent, metadata):
+    def __init__(self, reference: str, title: str, description: str = None, security_tag: str = None,
+                 parent: str = None, metadata: dict = None):
         super().__init__(reference, title, description, security_tag, parent, metadata)
         self.entity_type = EntityType.CONTENT_OBJECT
         self.representation_type = None
@@ -336,7 +319,35 @@ class ContentObject(Entity):
         self.tag = "ContentObject"
 
 
-def content_api_identifier_to_type(ref):
+class Representation:
+    """
+        Class to represent the Representation Object in the Preservica data model
+    """
+
+    def __init__(self, asset: Asset, rep_type: str, name: str, url: str):
+        self.asset = asset
+        self.rep_type = rep_type
+        self.name = name
+        self.url = url
+
+    def __str__(self):
+        return f"Type:\t\t\t{self.rep_type}\n" \
+               f"Name:\t\t\t{self.name}\n" \
+               f"URL:\t{self.url}"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+def only_assets(entity: Entity):
+    return bool(entity.entity_type is EntityType.ASSET)
+
+
+def only_folders(entity: Entity):
+    return bool(entity.entity_type is EntityType.FOLDER)
+
+
+def content_api_identifier_to_type(ref: str):
     ref = ref.replace('sdb:', '')
     parts = ref.split("|")
     return tuple((EntityType(parts[0]), parts[1]))
@@ -355,7 +366,8 @@ class EntityType(Enum):
 
 
 def sanitize(filename):
-    """Return a fairly safe version of the filename.
+    """
+    Return a fairly safe version of the filename.
 
     We don't limit ourselves to ascii, because we want to keep municipality
     names, etc, but we do want to get rid of anything potentially harmful,
@@ -406,7 +418,7 @@ class AuthenticatedAPI:
     Base class for authenticated calls which need an access token
     """
 
-    def entity_from_string(self, xml_data):
+    def entity_from_string(self, xml_data: str):
         entity_response = xml.etree.ElementTree.fromstring(xml_data)
         reference = entity_response.find(f'.//{{{self.xip_ns}}}Ref')
         title = entity_response.find(f'.//{{{self.xip_ns}}}Title')
@@ -474,10 +486,10 @@ class AuthenticatedAPI:
         config = configparser.ConfigParser()
         config['credentials'] = {'username': self.username, 'password': self.password, 'tenant': self.tenant,
                                  'server': self.server}
-        with open('credentials.properties', 'wt') as configfile:
+        with open('credentials.properties', 'wt', encoding="utf-8") as configfile:
             config.write(configfile)
 
-    def manager_token(self, username, password):
+    def manager_token(self, username: str, password: str):
         data = {'username': username, 'password': password, 'tenant': self.tenant}
         response = self.session.post(f'https://{self.server}/api/accesstoken/login', data=data)
         if response.status_code == requests.codes.ok:
@@ -522,9 +534,10 @@ class AuthenticatedAPI:
                 logger.error(msg)
                 raise RuntimeError(response.status_code, msg)
 
-    def __init__(self, username=None, password=None, tenant="%", server=None, use_shared_secret=False):
+    def __init__(self, username: str = None, password: str = None, tenant: str = "%", server: str = None,
+                 use_shared_secret: bool = False):
         config = configparser.ConfigParser()
-        config.read('credentials.properties')
+        config.read('credentials.properties', encoding='utf-8')
         self.session = requests.Session()
         self.shared_secret = bool(use_shared_secret)
 
@@ -556,7 +569,7 @@ class AuthenticatedAPI:
         else:
             self.password = password
 
-        if not tenant:
+        if not tenant or tenant == "%":
             tenant = os.environ.get('PRESERVICA_TENANT')
             if tenant is None:
                 try:

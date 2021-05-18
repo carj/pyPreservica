@@ -139,12 +139,19 @@ For announcements about new versions and discussion of pyPreservica please subsc
 forum https://groups.google.com/g/pypreservica
 
 
-Example
+Examples
 ------------
 
 Using the python console, create the entity API client object and request an Asset
-(Information Object) by its unique identifier and display some of its attributes
+(Information Object) by its unique reference and display some of its attributes.
 
+All entities within the Preservica system have one unique reference which can be used to retrieve them.
+
+The reference used to fetch entities (Assets, Folders) is the Preservica internal unique identifier.
+This is a universally unique identifier `(UUID) <https://en.wikipedia.org/wiki/Universally_unique_identifier>`_
+
+You can find the reference when viewing the object metadata within Explorer. Later on we will look at how we can fetch
+entities using other 3rd party external identifiers which may be more meaningful such as ISBNs DOIs etc.
 
 .. code-block:: python
 
@@ -154,6 +161,8 @@ Using the python console, create the entity API client object and request an Ass
     pyPreservica version: 0.8.5  (Preservica 6.2 Compatible)
     Connected to: us.preservica.com Version: 6.2.0 as test@test.com
     >>> asset = client.asset("dc949259-2c1d-4658-8eee-c17b27a8823d")
+    >>> asset.reference
+    'dc949259-2c1d-4658-8eee-c17b27a8823d'
     >>> asset.title
     'LC-USZ62-20901'
     >>> asset.parent
@@ -163,6 +172,23 @@ Using the python console, create the entity API client object and request an Ass
     >>> asset.entity_type
     <EntityType.ASSET: 'IO'>
 
+
+All entities have a parent reference attribute, for Assets this always points to the parent Folder.
+For Content Objects the parent points to the Asset and for Folders it points to the parent Folder if it exists.
+Folders at the root level of the repository do not have a parent and the attribute returns the special Python
+value of ``None``
+
+This example shows how pyPreservica can be used to upload and ingest a local file into Preservica using the UploadAPI
+class.
+
+.. code-block:: python
+
+    >>> from pyPreservica import *
+
+    >>> client = UploadAPI()
+    >>> folder = "dc949259-2c1d-4658-8eee-c17b27a8823d"
+    >>> zip_p = simple_asset_package(preservation_file="picture.tiff", parent_folder=folder)
+    >>> client.upload_zip_package(zip_p)
 
 
 Authentication
