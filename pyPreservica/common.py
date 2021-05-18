@@ -1,6 +1,8 @@
 """
 Base class for authenticated API calls used by Entity, Content and Upload
 
+Manages the authentication token lifetime and namespace versions.
+
 author:     James Carr
 licence:    Apache License 2.0
 
@@ -15,7 +17,6 @@ import time
 import xml.etree.ElementTree
 from enum import Enum
 from typing import Union
-
 import requests
 import logging
 import unicodedata
@@ -68,7 +69,8 @@ class FileHash:
 
 
 def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0, zlogger=None):
-    """Create a zip file from all the files under 'base_dir'.
+    """
+    Create a non compressed zip file from all the files under 'base_dir'.
 
     The output zip file will be named 'base_name' + ".zip".  Returns the
     name of the output zip file.
