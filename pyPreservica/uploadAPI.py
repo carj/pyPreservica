@@ -1231,6 +1231,7 @@ class UploadAPI(AuthenticatedAPI):
         bucket = f'{self.tenant.lower()}.package.upload'
         endpoint = f'https://{self.server}/api/s3/buckets'
         self.token = self.__token__()
+
         s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=self.token,
                                  aws_secret_access_key="NOT_USED",
                                  config=Config(s3={'addressing_style': 'path'}))
@@ -1261,4 +1262,5 @@ class UploadAPI(AuthenticatedAPI):
                 return response['ResponseMetadata']['HTTPHeaders']['preservica-progress-token']
 
             except ClientError as e:
+                logger.error(e)
                 raise e

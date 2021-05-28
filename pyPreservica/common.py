@@ -16,7 +16,6 @@ import threading
 import time
 import xml.etree.ElementTree
 from enum import Enum
-from typing import Union
 import requests
 import logging
 import unicodedata
@@ -173,6 +172,51 @@ class UploadProgressCallback:
             percentage = (self._seen_so_far / self._size) * 100
             sys.stdout.write("\r%s  %s / %s  (%.2f%%)" % (self._filename, self._seen_so_far, self._size, percentage))
             sys.stdout.flush()
+
+
+class RelationshipDirection(Enum):
+    FROM = "From"
+    TO = "To"
+
+
+class EntityType(Enum):
+    ASSET = "IO"
+    FOLDER = "SO"
+    CONTENT_OBJECT = "CO"
+
+
+class Relationship:
+
+    DCMI_hasFormat = "http://purl.org/dc/terms/hasFormat"
+    DCMI_isFormatOf = "http://purl.org/dc/terms/isFormatOf"
+    DCMI_hasPart = "http://purl.org/dc/terms/hasPart"
+    DCMI_isPartOf = "http://purl.org/dc/terms/isPartOf"
+    DCMI_hasVersion = "http://purl.org/dc/terms/hasVersion"
+    DCMI_isVersionOf = "http://purl.org/dc/terms/isVersionOf"
+    DCMI_isReferencedBy = "http://purl.org/dc/terms/isReferencedBy"
+    DCMI_references = "http://purl.org/dc/terms/references"
+    DCMI_isReplacedBy = "http://purl.org/dc/terms/isReplacedBy"
+    DCMI_replaces = "http://purl.org/dc/terms/replaces"
+    DCMI_isRequiredBy = "http://purl.org/dc/terms/isRequiredBy"
+    DCMI_requires = "http://purl.org/dc/terms/requires"
+    DCMI_conformsTo = "http://purl.org/dc/terms/conformsTo"
+
+    def __init__(self, relationship_id: str, relationship_type: str, direction: RelationshipDirection, other_ref: str,
+                 title: str, entity_type: EntityType, this_ref: str, api_id: str):
+        self.api_id = api_id
+        self.this_ref = this_ref
+        self.entity_type = entity_type
+        self.title = title
+        self.other_ref = other_ref
+        self.direction = direction
+        self.relationship_type = relationship_type
+        self.relationship_id = relationship_id
+
+    def __str__(self):
+        if self.direction == RelationshipDirection.FROM:
+            return f"{self.this_ref} {self.relationship_type} {self.other_ref}"
+        else:
+            return f"{self.other_ref} {self.relationship_type} {self.this_ref}"
 
 
 class IntegrityCheck:
@@ -361,12 +405,6 @@ class Thumbnail(Enum):
     LARGE = "large"
 
 
-class EntityType(Enum):
-    ASSET = "IO"
-    FOLDER = "SO"
-    CONTENT_OBJECT = "CO"
-
-
 def sanitize(filename):
     """
     Return a fairly safe version of the filename.
@@ -506,13 +544,13 @@ class AuthenticatedAPI:
     def __token__(self):
         logger.debug("Token Expired Requesting New Token")
         if self.shared_secret is False:
-            if self.tenant == "%":
+            if self.tenant is None:
                 data = {'username': self.username, 'password': self.password, 'includeUserDetails': 'true'}
             else:
                 data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
             response = self.session.post(f'https://{self.server}/api/accesstoken/login', data=data)
             if response.status_code == requests.codes.ok:
-                if self.tenant == "%":
+                if self.tenant is None:
                     self.tenant = response.json()['tenant']
                 return response.json()['token']
             else:
@@ -536,7 +574,7 @@ class AuthenticatedAPI:
                 logger.error(msg)
                 raise RuntimeError(response.status_code, msg)
 
-    def __init__(self, username: str = None, password: str = None, tenant: str = "%", server: str = None,
+    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False):
         config = configparser.ConfigParser()
         config.read('credentials.properties', encoding='utf-8')
@@ -571,7 +609,7 @@ class AuthenticatedAPI:
         else:
             self.password = password
 
-        if not tenant or tenant == "%":
+        if not tenant:
             tenant = os.environ.get('PRESERVICA_TENANT')
             if tenant is None:
                 try:
@@ -580,10 +618,8 @@ class AuthenticatedAPI:
                     pass
         if not tenant:
             msg = "No valid tenant found in method arguments, environment variables or credentials.properties file"
-            logger.error(msg)
-            raise RuntimeError(msg)
-        else:
-            self.tenant = tenant
+            logger.debug(msg)
+        self.tenant = tenant
 
         if not server:
             server = os.environ.get('PRESERVICA_SERVER')

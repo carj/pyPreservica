@@ -55,7 +55,7 @@ class RetentionPolicy:
 
 class RetentionAPI(AuthenticatedAPI):
 
-    def __init__(self, username=None, password=None, tenant="%", server=None, use_shared_secret=False):
+    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
         super().__init__(username, password, tenant, server, use_shared_secret)
         if self.major_version < 7 and self.minor_version < 2:
             raise RuntimeError("Retention API is only available when connected to a v6.2 System")

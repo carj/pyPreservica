@@ -121,8 +121,8 @@ class PreservationActionRegistry:
     def delete_representation_format(self, guid) -> str:
         return self.__delete__(guid, "representation-formats")
 
-    def file_format(self, guid: str) -> str:
-        return self.__guid__(guid, "file-formats")
+    def file_format(self, puid: str) -> str:
+        return self.__guid__(puid, "file-formats")
 
     def file_formats(self) -> str:
         return self.__all_("file-formats")

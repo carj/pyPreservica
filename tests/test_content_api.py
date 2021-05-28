@@ -66,7 +66,7 @@ def test_simple_search_list():
 
 def test_field_search():
     search = ContentAPI()
-    for result in search.search_index_filter_list(query="%", map_fields={"xip.security_descriptor": "open",
+    for result in search.search_index_filter_list(query="%", filter_values={"xip.security_descriptor": "open",
                                                                          "xip.document_type": "IO",
                                                                          "xip.parent_hierarchy": FOLDER_ID}):
         assert result is not None

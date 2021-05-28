@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from time import sleep
 import xml.etree.ElementTree
-from typing import Optional, Any
+from typing import Optional, Any, Generator
 
 from pyPreservica.common import *
 
@@ -31,7 +31,7 @@ class EntityAPI(AuthenticatedAPI):
 
     """
 
-    def __init__(self, username: str = None, password: str = None, tenant: str = "%", server: str = None,
+    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False):
         super().__init__(username, password, tenant, server, use_shared_secret)
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
@@ -178,14 +178,33 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "export_opex failed")
 
     def export_opex_async(self, entity: Entity, **kwargs):
+        """
+            Initiates export of the entity returns an id to track progress
+        """
         return self.__export_opex_start__(entity, **kwargs)
 
     def export_opex_sync(self, entity: Entity, **kwargs):
+        """
+            Initiates export of the entity and downloads the opex package
+            Blocks until the package is downloaded
+
+            By default includes content, metadata with the latest active generations
+            and the parent hierarchy.
+
+            Arguments are kwargs map
+
+            IncludeContent
+            IncludeMetadata
+            IncludedGenerations
+            IncludeParentHierarchy
+
+        """
         return self.export_opex(entity, **kwargs)
 
     def export_opex(self, entity: Entity, **kwargs):
         """
             Initiates export of the entity and downloads the opex package
+            Blocks until the package is downloaded
 
             By default includes content, metadata with the latest active generations
             and the parent hierarchy.
@@ -209,7 +228,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(status)
             raise RuntimeError(f"export progress failed {status}")
 
-    def download(self, entity: Entity, filename: str):
+    def download(self, entity: Entity, filename: str) -> str:
         """
            Download a file from an asset
 
@@ -312,13 +331,14 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request)
             raise RuntimeError(request.status_code, "delete_identifier failed")
 
-    def identifiers_for_entity(self, entity: Entity):
+    def identifiers_for_entity(self, entity: Entity) -> set:
         """
              Get all external identifiers on an entity
 
              Returns the set of external identifiers on the entity
 
              :param entity: The entity
+             :type  entity: Entity
           """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers',
@@ -420,6 +440,175 @@ class EntityAPI(AuthenticatedAPI):
             return self.add_identifier(entity, identifier_type, identifier_value)
         else:
             raise RuntimeError(request.status_code, "add_identifier failed with error code")
+
+    def delete_relationships(self, entity: Entity, relationship_type: str = None):
+        """
+        Delete a relationship between two entities by its internal id
+
+        This function only deletes the relationship FROM the specified entity to another entity
+        It does not delete relationships TO this entity
+
+        If relationship_type is not specified all relationships FROM this entity are deleted.
+
+        :param entity:
+        :type  entity: Entity
+
+        :param relationship_type: The relationship type to delete
+        :type  relationship_type: str
+        """
+
+        for relationship in self.relationships(entity=entity):
+            if relationship.direction == RelationshipDirection.FROM:
+                assert relationship.this_ref == entity.reference
+                if relationship_type is None:
+                    self.__delete_relationship(relationship)
+                if relationship_type == relationship.relationship_type:
+                    self.__delete_relationship(relationship)
+
+    def __delete_relationship(self, relationship: Relationship):
+        """
+            Delete a relationship between two entities by its internal id
+
+            :param relationship:
+            :return:
+        """
+        headers = {HEADER_TOKEN: self.token}
+        entity = self.entity(relationship.entity_type, relationship.this_ref)
+        end_point = f"{entity.path}/{entity.reference}/links/{relationship.api_id}"
+        request = self.session.delete(f'https://{self.server}/api/entity/{end_point}', headers=headers)
+        if request.status_code == requests.codes.no_content:
+            print(relationship)
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.__delete_relationship(relationship)
+        else:
+            print(relationship)
+            logger.error(request.text)
+            raise RuntimeError(request.status_code, "delete_relationships failed")
+
+    def relationships(self, entity: Entity, page_size: int = 50) -> Generator:
+        """
+            List the relationship links between entities
+
+
+            :param page_size: The number of items returned in a single server call
+            :type: page_size: int
+
+            :param entity: The Source Entity
+            :type: entity: Entity
+
+            :return: Generator
+            :rtype:  Relationship
+        """
+
+        paged_set = self.__relationships__(entity, maximum=page_size, next_page=None)
+        for entity in paged_set.results:
+            yield entity
+        while paged_set.has_more:
+            paged_set = self.__relationships__(entity, maximum=page_size, next_page=paged_set.next_page)
+            for entity in paged_set.results:
+                yield entity
+
+    def __relationships__(self, entity: Entity, maximum: int = 50, next_page: str = None) -> PagedSet:
+        """
+            List the relationship links between entities
+
+            :param next_page: URL to next page of results
+            :type: next_page: str
+
+            :param maximum: The number of items returned in a single server call
+            :type: maximum: int
+
+            :param entity: The Source Entity
+            :type: from_entity: Entity
+
+            :return: relationship links
+            :rtype:  list
+        """
+
+        headers = {HEADER_TOKEN: self.token}
+        end_point = f"{entity.path}/{entity.reference}/links"
+
+        if next_page is None:
+            params = {'start': '0', 'max': str(maximum)}
+            request = self.session.get(f'https://{self.server}/api/entity/{end_point}', headers=headers, params=params)
+        else:
+            request = self.session.get(next_page, headers=headers)
+
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            logger.debug(xml_response)
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            links = entity_response.findall(f'.//{{{self.entity_ns}}}Link')
+            next_url = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}Next')
+            total_hits = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}TotalResults')
+            results = list()
+            for link in links:
+                link_type = link.attrib['linkType']
+                link_direction = link.attrib['linkDirection']
+                title = link.attrib['title']
+                other_ref = link.attrib['ref']
+                this_ref = entity.reference
+                entity_type = link.attrib['type']
+                apiId = link.attrib['apiId']
+                results.append(Relationship(apiId, link_type, RelationshipDirection(link_direction), other_ref, title,
+                                            EntityType(entity_type), this_ref, apiId))
+            has_more = True
+            url = None
+            if next_url is None:
+                has_more = False
+            else:
+                url = next_url.text
+
+            return PagedSet(results, has_more, total_hits.text, url)
+
+    def add_relation(self, from_entity: Entity, relationship_type: str, to_entity: Entity):
+        """
+            Add a new relationship link between two Assets or Folders
+
+            :param from_entity: The Source Entity
+            :type from_entity: Entity
+
+            :param to_entity: The Target Entity
+            :type to_entity: Entity
+
+            :param  relationship_type: The Relationship type
+            :type relationship_type: str
+
+            :return: relationship_type
+            :rtype:  str
+        """
+
+        if self.major_version < 7 and self.minor_version < 4 and self.patch_version < 1:
+            raise RuntimeError("add_relation API call is only available with a Preservica v6.3.1 system or higher")
+
+        assert from_entity.entity_type is not EntityType.CONTENT_OBJECT
+        assert to_entity.entity_type is not EntityType.CONTENT_OBJECT
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        xml_object = xml.etree.ElementTree.Element('Link ', {"xmlns": self.xip_ns})
+        xml.etree.ElementTree.SubElement(xml_object, "Type").text = relationship_type
+        xml.etree.ElementTree.SubElement(xml_object, "FromEntity").text = from_entity.reference
+        xml.etree.ElementTree.SubElement(xml_object, "ToEntity").text = to_entity.reference
+
+        end_point = f"/{from_entity.path}/{from_entity.reference}/links"
+        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
+        logger.debug(xml_request)
+        request = self.session.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_string = str(request.content.decode("utf-8"))
+            logger.debug(xml_string)
+            link_response = xml.etree.ElementTree.fromstring(xml_string)
+            relation = link_response.find(f'.//{{{self.xip_ns}}}Link')
+            relation_type = relation.find(f'.//{{{self.xip_ns}}}Type')
+            return relation_type.text
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.add_relation(from_entity, relationship_type, to_entity)
+        else:
+            logger.error(request.content.decode("utf-8"))
+            raise RuntimeError(request.status_code, "add_relation failed with error code")
 
     def delete_metadata(self, entity: Entity, schema: str) -> Entity:
         """
@@ -988,7 +1177,7 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "integrity_checks failed")
 
-    def integrity_checks(self, bitstream: Bitstream):
+    def integrity_checks(self, bitstream: Bitstream) -> Generator:
         """
          Return integrity checks for a bitstream
 
@@ -1233,7 +1422,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"event-actions failed: {request.content.decode('utf-8')}")
 
-    def all_descendants(self, folder_reference: str = None):
+    def all_descendants(self, folder_reference: str = None) -> Generator:
         """
          Retrieve list of entities below a folder in the repository
 
@@ -1247,7 +1436,7 @@ class EntityAPI(AuthenticatedAPI):
             if e.entity_type == EntityType.FOLDER:
                 yield from self.all_descendants(folder_reference=e.reference)
 
-    def descendants(self, folder_reference: str = None):
+    def descendants(self, folder_reference: str = None) -> Generator:
         maximum = 50
         paged_set = self.children(folder_reference, maximum=maximum, next_page=None)
         for entity in paged_set.results:
@@ -1297,7 +1486,7 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "children failed")
 
-    def all_events(self):
+    def all_events(self) -> Generator:
         self.token = self.__token__()
         paged_set = self._all_events_page()
         for entity in paged_set.results:
@@ -1422,7 +1611,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"events failed: {request.content.decode('utf-8')}")
 
-    def entity_events(self, entity: Entity):
+    def entity_events(self, entity: Entity) -> Generator:
         self.token = self.__token__()
         paged_set = self._entity_events_page(entity)
         for entity in paged_set.results:
@@ -1432,7 +1621,7 @@ class EntityAPI(AuthenticatedAPI):
             for entity in paged_set.results:
                 yield entity
 
-    def updated_entities(self, previous_days: int = 1):
+    def updated_entities(self, previous_days: int = 1) -> Generator:
         self.token = self.__token__()
         maximum = 50
         paged_set = self._updated_entities_page(previous_days=previous_days, maximum=maximum, next_page=None)

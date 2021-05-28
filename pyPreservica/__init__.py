@@ -18,6 +18,6 @@ from .parAPI import PreservationActionRegistry
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "1.0.2"
+__version__ = "1.0.5"
 
 __license__ = "Apache License Version 2.0"

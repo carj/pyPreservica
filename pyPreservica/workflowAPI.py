@@ -86,7 +86,7 @@ class WorkflowAPI(AuthenticatedAPI):
                        'Failed']
     workflow_types = ['Ingest', 'Access', 'Transformation', 'DataManagement']
 
-    def __init__(self, username: str = None, password: str = None, tenant: str = "%", server: str = None,
+    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False):
         super().__init__(username, password, tenant, server, use_shared_secret)
         self.base_url = "sdb/rest/workflow"

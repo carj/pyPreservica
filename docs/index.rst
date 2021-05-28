@@ -5,19 +5,24 @@ Welcome to pyPreservica's documentation
 .. image:: https://pepy.tech/badge/pyPreservica
     :target: https://pepy.tech/project/pyPreservica
 
+.. image:: https://img.shields.io/pypi/pyversions/pyPreservica.svg
+    :target: https://pypi.org/project/pyPreservica/
+
 .. image:: https://img.shields.io/pypi/l/pyPreservica.svg
     :target: https://pypi.org/project/pyPreservica/
 
 .. image:: https://img.shields.io/pypi/wheel/pyPreservica.svg
     :target: https://pypi.org/project/pyPreservica/
 
-.. image:: https://img.shields.io/pypi/pyversions/pyPreservica.svg
-    :target: https://pypi.org/project/pyPreservica/
+.. image:: https://github.com/carj/pyPreservica/actions/workflows/codeql-analysis.yml/badge.svg
+    :target: https://github.com/carj/pyPreservica/actions/workflows/codeql-analysis.yml
 
+.. image:: https://readthedocs.org/projects/pypreservica/badge/?version=latest
+    :target: https://pypreservica.readthedocs.io/en/latest
 
 
 pyPreservica is the Preservica API Software Development Kit (SDK) for Python,
-which allows Python developers to write software that makes use of the Preservica repository services.
+which allows Preservica users to write software that makes use of the Preservica repository services.
 
 This library provides classes for working with a range of the Preservica APIs.
 

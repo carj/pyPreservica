@@ -9,6 +9,13 @@ def test_format_families():
     assert len(json.loads(document)['formatFamilies']) == 131
 
 
+def test_format():
+    par = PreservationActionRegistry()
+    document = par.file_format("fmt/40")
+    d = json.loads(document)
+    assert d['name'] == 'Microsoft Word Document'
+
+
 def test_format_family():
     par = PreservationActionRegistry()
     document = par.format_family('ae87efa4-cd5a-5d07-b1b7-251a4fe871c8')
@@ -32,7 +39,7 @@ def test_preservation_action_type():
 def test_properties():
     par = PreservationActionRegistry()
     document = par.properties()
-    assert len(json.loads(document)['parProperties']) == 101
+    assert len(json.loads(document)['parProperties']) == 102
 
 
 def test_property():

@@ -10,6 +10,7 @@ licence:    Apache License 2.0
 """
 
 import csv
+
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class ContentAPI(AuthenticatedAPI):
 
-    def __init__(self, username=None, password=None, tenant="%", server=None, use_shared_secret=False):
+    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
         super().__init__(username, password, tenant, server, use_shared_secret)
         self.callback = None
 
@@ -71,7 +72,7 @@ class ContentAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, f"download failed with error code: {req.status_code}")
 
     def thumbnail(self, entity_type, reference, filename, size=Thumbnail.LARGE):
-        headers = {HEADER_TOKEN: self.token,  'accept': 'image/png'}
+        headers = {HEADER_TOKEN: self.token, 'accept': 'image/png'}
         params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
         with self.session.get(f'https://{self.server}/api/content/thumbnail', params=params, headers=headers,
                               stream=True) as req:
@@ -122,18 +123,19 @@ class ContentAPI(AuthenticatedAPI):
             writer.writeheader()
             writer.writerows(self.simple_search_list(query, page_size, *args))
 
-    def simple_search_list(self, query: str = "%", page_size: int = 10, *args):
-        search_result = self.simple_search(query, 0, page_size, *args)
+    def simple_search_list(self, query: str = "%", *args):
+        page_size = 50
+        search_result = self._simple_search(query, 0, page_size, *args)
         for e in search_result.results_list:
             yield e
         found = len(search_result.results_list)
         while search_result.hits > found:
-            search_result = self.simple_search(query, found, page_size, *args)
+            search_result = self._simple_search(query, found, page_size, *args)
             for e in search_result.results_list:
                 yield e
             found = found + len(search_result.results_list)
 
-    def simple_search(self, query: str = "%", start_index: int = 0, page_size: int = 10, *args):
+    def _simple_search(self, query: str = "%", start_index: int = 0, page_size: int = 10, *args):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
         query_term = ('{ "q":  "%s" }' % query)
@@ -167,43 +169,44 @@ class ContentAPI(AuthenticatedAPI):
             return search_results
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.simple_search(query, start_index, page_size, *args)
+            return self._simple_search(query, start_index, page_size, *args)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"simple_search failed with error code: {results.status_code}")
 
-    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", map_fields=None):
+    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", filter_values: dict = None):
         page_size = 50
-        if map_fields is None:
-            map_fields = dict()
-        if "xip.reference" not in map_fields:
-            map_fields["xip.reference"] = ""
+        if filter_values is None:
+            filter_values = dict()
+        if "xip.reference" not in filter_values:
+            filter_values["xip.reference"] = ""
 
-        header_fields = list(map_fields.keys())
+        header_fields = list(filter_values.keys())
         index = header_fields.index("xip.reference")
         header_fields.insert(0, header_fields.pop(index))
         with open(csv_file, newline='', mode="wt", encoding="utf-8") as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=header_fields)
             writer.writeheader()
-            writer.writerows(self.search_index_filter_list(query, page_size, map_fields))
+            writer.writerows(self.search_index_filter_list(query, page_size, filter_values))
 
-    def search_index_filter_list(self, query: str = "%", page_size: int = 25, map_fields=None):
-        search_result = self.search_index_filter(query, 0, page_size, map_fields)
+    def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict = None):
+        search_result = self._search_index_filter(query, 0, page_size, filter_values)
         for e in search_result.results_list:
             yield e
         found = len(search_result.results_list)
         while search_result.hits > found:
-            search_result = self.search_index_filter(query, found, page_size, map_fields)
+            search_result = self._search_index_filter(query, found, page_size, filter_values)
             for e in search_result.results_list:
                 yield e
             found = found + len(search_result.results_list)
 
-    def search_index_filter(self, query: str = "%", start_index: int = 0, page_size: int = 25, map_fields=None):
+    def _search_index_filter(self, query: str = "%", start_index: int = 0, page_size: int = 25,
+                             filter_values: dict = None):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
 
         field_list = list()
-        for key, value in map_fields.items():
+        for key, value in filter_values.items():
             if value == "":
                 field_list.append('{' f' "name": "{key}", "values": [] ' + '}')
             else:
@@ -213,7 +216,7 @@ class ContentAPI(AuthenticatedAPI):
 
         query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
 
-        payload = {'start': start_from, 'max': str(page_size), 'metadata': list(map_fields.keys()), 'q': query_term}
+        payload = {'start': start_from, 'max': str(page_size), 'metadata': list(filter_values.keys()), 'q': query_term}
         results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = list()
         if results.status_code == requests.codes.ok:
@@ -239,7 +242,48 @@ class ContentAPI(AuthenticatedAPI):
             return search_results
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.search_index_filter(query, start_index, page_size, map_fields)
+            return self._search_index_filter(query, start_index, page_size, filter_values)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"search_index_filter failed")
+
+    class ReportProgressCallBack:
+        def __init__(self):
+            self.current = 0
+            self.total = 0
+            self._lock = threading.Lock()
+
+        def __call__(self, value):
+            with self._lock:
+                values = value.split(":")
+                self.total = int(values[1])
+                self.current = int(values[0])
+                percentage = (self.current / self.total) * 100
+                sys.stdout.write("\rProcessing Hits %s from %s  (%.2f%%)" % (self.current, self.total, percentage))
+                sys.stdout.flush()
+
+    def __report_security_tag_frequency(self, report_name="security_report.svg"):
+        import pygal
+        from pygal.style import BlueStyle
+        results = {}
+        self.search_callback(self.ReportProgressCallBack())
+        filters = {"xip.security_descriptor": "*", "xip.document_type": "IO", "xip.parent_ref": "*"}
+        for hit in self.search_index_filter_list(query="%", page_size=50, filter_values=filters):
+            tag = hit['xip.security_descriptor'][0]
+            ref = hit['xip.reference']
+            if tag in results:
+                results[tag] = results[tag] + 1
+            else:
+                results[tag] = 1
+
+        bar_chart = pygal.HorizontalBar(show_legend=False)
+        bar_chart.title = "Security Tag Frequency"
+        bar_chart.style = BlueStyle
+        bar_chart.x_title = 'Number of Assets'
+        bar_chart.x_labels = results.keys()
+        bar_chart.add("Security Tag", results)
+
+        bar_chart.render_to_file(report_name)
+
+        sys.stdout.write("\nReport Completed. Open file " + report_name + " in your browser")
+        sys.stdout.flush()

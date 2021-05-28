@@ -17,7 +17,7 @@ def test_get_workflow_contexts2():
 def test_get_workflow_contexts3():
     workflow = WorkflowAPI()
     workflows = workflow.get_workflow_contexts("com.preservica.core.workflow.delete")
-    assert len(workflows) == 1
+    assert len(workflows) == 2
 
 
 def test_get_workflow_contexts_type():
@@ -33,5 +33,5 @@ def test_get_workflow_contexts_type():
     assert len(workflows) == 2
 
     workflows = workflow.get_workflow_contexts_by_type("DataManagement")
-    assert len(workflows) == 9
+    assert len(workflows) == 10
 

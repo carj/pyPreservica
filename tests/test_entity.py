@@ -221,3 +221,22 @@ def test_change_security_tag():
     asset = client.asset(ASSET_ID)
     assert asset.security_tag == "open"
 
+
+def test_add_link():
+    client = EntityAPI()
+
+    from_asset = client.asset("de1c32a3-bd9f-4843-a5f1-46df080f83d2")
+    to_asset = client.asset("683f9db7-ff81-4859-9c03-f68cfa5d9c3d")
+
+    client.delete_relationships(from_asset)
+    client.delete_relationships(to_asset)
+
+    link = client.add_relation(from_asset, "IsPartOf", to_asset)
+    assert link == "IsPartOf"
+
+
+def test_get_links():
+    client = EntityAPI()
+    from_asset = client.asset("de1c32a3-bd9f-4843-a5f1-46df080f83d2")
+    links = list(client.relationships(from_asset))
+    assert len(links) == 1
