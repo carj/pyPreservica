@@ -232,6 +232,46 @@ and fixity value
 
 
 
+Bulk Package Creation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``simple_asset_package`` and ``complex_asset_package`` functions create a submission package containing a single Asset.
+If you have many single file assets to ingest you can call these functions for each file.
+
+For example, the code fragment below will create a single Asset package for every jpg file in a directory and upload each package to Preservica.
+
+.. code-block:: python
+
+    path = "C:\\Jpeg-Images\\"
+
+    images = [f for f in listdir(path) if isfile(join(path, f)) and f.endswith("jpg")]
+    files = [os.path.join(path, o) for o in images]
+
+    for file in files:
+        package_path = simple_asset_package(preservation_file=file, parent_folder=folder)
+        client.upload_zip_package(path_to_zip_package=package_path)
+
+
+This works fine, but this will create a package for each file and an ingest workflow for each file.
+A more efficient way is to create a single package which contains multiple assets.
+
+To create a multiple asset package use ``multi_asset_package``, this takes a list of files and creates a package containing
+multiple assets which will be ingested into the same folder.
+
+The equivalent to the code above would be:
+
+.. code-block:: python
+
+    path = "C:\\Jpeg-Images\\"
+
+    images = [f for f in listdir(path) if isfile(join(path, f)) and f.endswith("jpg")]
+    files = [os.path.join(path, o) for o in images]
+
+    package_path = multi_asset_package(preservation_file=files, parent_folder=folder)
+    client.upload_zip_package(path_to_zip_package=package_path)
+
+
+
 Spreadsheet Metadata
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

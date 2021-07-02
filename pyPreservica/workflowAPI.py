@@ -38,6 +38,7 @@ class WorkflowInstance:
         self.workflow_context_id = None
         self.workflow_context_name = None
         self.workflow_definition_id = None
+        self.xml_response = None
 
     def __str__(self):
         return f"Workflow Instance ID: {self.instance_id}"
@@ -238,8 +239,9 @@ class WorkflowAPI(AuthenticatedAPI):
 
         """
         headers = {HEADER_TOKEN: self.token}
+        params = {"includeErrors": "true"}
         request = self.session.get(f'https://{self.server}/{self.base_url}/instances/{str(instance_id)}',
-                                   headers=headers)
+                                   headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -268,6 +270,8 @@ class WorkflowAPI(AuthenticatedAPI):
                 f".//{{{NS_WORKFLOW}}}WorkflowContextName").text
             workflow_instance.workflow_definition_id = entity_response.find(
                 f".//{{{NS_WORKFLOW}}}WorkflowDefinitionTextId").text
+
+            workflow_instance.xml_response = xml_response
 
             return workflow_instance
         elif request.status_code == requests.codes.unauthorized:

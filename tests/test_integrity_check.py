@@ -3,6 +3,21 @@ from pyPreservica import *
 ASSET_ID = "b14848b5-4c4d-4d8a-b394-3b764069ee93"
 
 
+def test_get_entity_events():
+    client = EntityAPI()
+    for e in client.entity_events(client.asset(ASSET_ID)):
+        assert e is not None
+        assert e['Date'] is not None
+        assert e['User'] is not None
+
+
+def test_get_all_events():
+    client = EntityAPI()
+    for e in client.all_events():
+        assert e is not None
+        assert e['Date'] is not None
+
+
 def test_get_bitstream_checks():
     client = EntityAPI()
     asset = client.asset(ASSET_ID)

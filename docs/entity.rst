@@ -363,6 +363,16 @@ An alternative is to call the ``metadata_for_entity``  directly
 
 this will fetch the first metadata document which matches the schema argument on the entity
 
+If you need all the descriptive XML fragments attached to an Asset or Folder you can call ``all_metadata``
+this is a Generator which returns a Tuple containing the schema as the first item and the xml document in the second.
+
+.. code-block:: python
+
+    for metadata in client.all_metadata(entity):
+        schema = metadata[0]
+        xml_string = metadata[1]
+
+
 
 Metadata can be attached to entities either by passing an XML document as a string
 
@@ -410,6 +420,77 @@ For example the following python fragment appends a new element to an existing d
             xml_string = ElementTree.tostring(xml_document, encoding='UTF-8').decode("utf-8")
             entity.update_metadata(folder, schema, xml_string)   # call into the API
 
+
+Relationships Between Entities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Preservica allows arbitrary relationships between entities such as Assets and Folders.
+These relationships appear in the Preservica user interface as links from one entity to another.
+All entities have existing vertical parent child relationships which determine the level of description for an asset.
+These relationships are additional relationships which relate different entities across the repository.
+
+For example relationships may be used to link different editions of the same work,
+or a translation of an existing document etc.
+
+Any type of relationship is supported, for example the The Dublin Core Metadata Initiative provide a set of standard relationships between entities,
+and these have been provided as part of the Relationship class, but any text string is allowed for the relationship type.
+
+.. code-block:: python
+
+    >>>Relationship.DCMI_isVersionOf
+    http://purl.org/dc/terms/isVersionOf
+
+    >>>Relationship.DCMI_isReplacedBy
+    http://purl.org/dc/terms/isReplacedBy
+
+
+Relationships are created between two entities A and B and have a type, for example;
+
+A isVersionOf B.
+
+This is a relationship from A to B. You can also create links going in the other direction and have bi-directional links between the same assets.
+For example;
+
+A isVersionOf B and B hasVersion A.
+
+To create a relationship between entities use the ``add_relation`` method.
+
+.. code-block:: python
+
+    A_asset = client.asset("de1c32a3-bd9f-4843-a5f1-46df080f83d2")
+    B_asset = client.asset("683f9db7-ff81-4859-9c03-f68cfa5d9c3d")
+
+    client.add_relation(A_asset, Relationship.DCMI_isVersionOf, B_asset)
+    client.add_relation(B_asset, Relationship.DCMI_hasVersion, A_asset)
+
+    client.add_relation(A_asset, "Supersedes", B_asset)
+
+.. note::
+    The Relationship API is only available when connected to Preservica version 6.3.1 or above
+
+You can list the relationships from an asset using:
+
+.. code-block:: python
+
+    for r in client.relationships(A_asset):
+        print(r)
+
+This returns a Generator of ``Relationship`` objects.
+
+To delete relationships between assets use:
+
+.. code-block:: python
+
+    client.delete_relationships(A_asset)
+
+This will delete all relationships FROM the specified entity to another entity,
+It does not delete relationships TO this entity.
+
+If only need to delete a specific relationship, you can pass the relationship name as a second argument
+
+.. code-block:: python
+
+    client.delete_relationships(A_asset, "Supersedes")
 
 Representations, Content Objects & Generations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -580,6 +661,9 @@ We can query Preservica for entities which have changed over the last n days usi
 
 The argument is the number of previous days to check for changes. This call does paging internally.
 
+Downloading Files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 The pyPreservica library also provides a web service call which is part of the content API which allows downloading of digital
 content directly without having to request the Representations and Generations first.
 This call is a short-cut to request the Bitstream from the latest Generation of the first Content Object in the Access
@@ -625,8 +709,8 @@ the event attributes
     for event in client.all_events():
         print(event)
 
-Add or remove asset and folder icons
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Get, Add or remove asset and folder icons
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now add and remove icons on assets and folders using the API. The icons will be displayed in the Explorer and
 Universal Access interfaces.
@@ -653,16 +737,16 @@ We also have a function to fetch the thumbnail image for an asset or folder
 .. code-block:: python
 
     asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    filename = client.thumbnail(asset, "thumbnail.jpg")
+    filename = client.thumbnail(asset, "thumbnail.png")
 
 You can specify the size of the thumbnail by passing a second argument
 
 .. code-block:: python
 
     asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.LARGE)     ## 400×400   pixels
-    filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.MEDIUM)    ## 150×150   pixels
-    filename = client.thumbnail(asset, "thumbnail.jpg", Thumbnail.SMALL)     ## 64×64     pixels
+    filename = client.thumbnail(asset, "thumbnail.png", Thumbnail.LARGE)     ## 400×400   pixels
+    filename = client.thumbnail(asset, "thumbnail.png", Thumbnail.MEDIUM)    ## 150×150   pixels
+    filename = client.thumbnail(asset, "thumbnail.png", Thumbnail.SMALL)     ## 64×64     pixels
 
 
 

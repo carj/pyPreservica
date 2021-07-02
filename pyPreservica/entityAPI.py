@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from time import sleep
 import xml.etree.ElementTree
-from typing import Optional, Any, Generator
+from typing import Optional, Any, Generator, Dict, Tuple
 
 from pyPreservica.common import *
 
@@ -36,6 +36,16 @@ class EntityAPI(AuthenticatedAPI):
         super().__init__(username, password, tenant, server, use_shared_secret)
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
+
+    def user_security_tags(self, with_permissions: bool = False):
+        """
+             Return available security tags
+
+             :return: dict of security tags
+             :rtype:  dict
+         """
+
+        return self.security_tags_base(with_permissions=with_permissions)
 
     def bitstream_content(self, bitstream: Bitstream, filename: str):
         """
@@ -457,6 +467,9 @@ class EntityAPI(AuthenticatedAPI):
         :type  relationship_type: str
         """
 
+        if (self.major_version < 7) and (self.minor_version < 4) and (self.patch_version < 1):
+            raise RuntimeError("add_relation API call is only available with a Preservica v6.3.1 system or higher")
+
         for relationship in self.relationships(entity=entity):
             if relationship.direction == RelationshipDirection.FROM:
                 assert relationship.this_ref == entity.reference
@@ -486,7 +499,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request.text)
             raise RuntimeError(request.status_code, "delete_relationships failed")
 
-    def relationships(self, entity: Entity, page_size: int = 50) -> Generator:
+    def relationships(self, entity: Entity, page_size: int = 25) -> Generator:
         """
             List the relationship links between entities
 
@@ -579,7 +592,7 @@ class EntityAPI(AuthenticatedAPI):
             :rtype:  str
         """
 
-        if self.major_version < 7 and self.minor_version < 4 and self.patch_version < 1:
+        if (self.major_version < 7) and (self.minor_version < 4) and (self.patch_version < 1):
             raise RuntimeError("add_relation API call is only available with a Preservica v6.3.1 system or higher")
 
         assert from_entity.entity_type is not EntityType.CONTENT_OBJECT
@@ -886,6 +899,18 @@ class EntityAPI(AuthenticatedAPI):
             return self.create_folder(title, description, security_tag, parent=parent)
         else:
             raise RuntimeError(request.status_code, "create_folder failed")
+
+    def all_metadata(self, entity: Entity) -> Tuple[str, str]:
+        """
+        Retrieve all metadata fragments on an entity
+
+        Returns XML documents in a tuple
+
+        :param entity:       The entity with the metadata
+        """
+
+        for uri, schema in entity.metadata.items():
+            yield tuple((str(schema), self.metadata(uri)))
 
     def metadata_for_entity(self, entity: Entity, schema: str) -> Optional[str]:
         """
@@ -1516,9 +1541,12 @@ class EntityAPI(AuthenticatedAPI):
             for e in events:
                 result = dict()
                 result['eventType'] = e.attrib['type']
-                result['Date'] = e.find(f'.//{{{self.xip_ns}}}Date').text
-                result['User'] = e.find(f'.//{{{self.xip_ns}}}User').text
-                result['Ref'] = e.find(f'.//{{{self.xip_ns}}}Ref').text
+                date_node = e.find(f'.//{{{self.xip_ns}}}Date')
+                result['Date'] = date_node.text if hasattr(date_node, 'text') else None
+                user_node = e.find(f'.//{{{self.xip_ns}}}User')
+                result['User'] = user_node.text if hasattr(user_node, 'text') else None
+                ref_node = e.find(f'.//{{{self.xip_ns}}}Ref')
+                result['Ref'] = ref_node.text if hasattr(ref_node, 'text') else None
 
                 workflow_name = e.find(f'.//{{{self.xip_ns}}}WorkflowName')
                 if workflow_name is not None:
@@ -1578,9 +1606,15 @@ class EntityAPI(AuthenticatedAPI):
                 result['commandType'] = event_action.attrib['commandType']
                 event = event_action.find(f'.//{{{self.xip_ns}}}Event')
                 result['eventType'] = event.attrib['type']
-                result['Date'] = event.find(f'.//{{{self.xip_ns}}}Date').text
-                result['User'] = event.find(f'.//{{{self.xip_ns}}}User').text
-                result['Ref'] = event.find(f'.//{{{self.xip_ns}}}Ref').text
+                date_node = event.find(f'.//{{{self.xip_ns}}}Date')
+                if date_node is not None:
+                    result['Date'] = date_node.text
+                user_node = event.find(f'.//{{{self.xip_ns}}}User')
+                if user_node is not None:
+                    result['User'] = user_node.text
+                ref_node = event.find(f'.//{{{self.xip_ns}}}Ref')
+                if ref_node is not None:
+                    result['Ref'] = ref_node.text
 
                 workflow_name = event.find(f'.//{{{self.xip_ns}}}WorkflowName')
                 if workflow_name is not None:

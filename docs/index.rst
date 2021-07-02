@@ -14,9 +14,6 @@ Welcome to pyPreservica's documentation
 .. image:: https://img.shields.io/pypi/wheel/pyPreservica.svg
     :target: https://pypi.org/project/pyPreservica/
 
-.. image:: https://github.com/carj/pyPreservica/actions/workflows/codeql-analysis.yml/badge.svg
-    :target: https://github.com/carj/pyPreservica/actions/workflows/codeql-analysis.yml
-
 .. image:: https://readthedocs.org/projects/pypreservica/badge/?version=latest
     :target: https://pypreservica.readthedocs.io/en/latest
 

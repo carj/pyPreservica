@@ -74,6 +74,15 @@ def test_get_asset_metadata():
     assert filename.text == "LC-USZ62-20901.tiff"
 
 
+def test_get_all_asset_metadata():
+    client = EntityAPI()
+    entity = client.entity(EntityType.ASSET, ASSET_ID)
+    for m in client.all_metadata(entity):
+        assert m[0] is not None
+        document = xml.etree.ElementTree.fromstring(m[1])
+        assert document is not None
+
+
 def test_get_co_metadata():
     client = EntityAPI()
     entity = client.entity(EntityType.CONTENT_OBJECT, CO_ID)

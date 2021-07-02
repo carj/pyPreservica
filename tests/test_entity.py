@@ -240,3 +240,13 @@ def test_get_links():
     from_asset = client.asset("de1c32a3-bd9f-4843-a5f1-46df080f83d2")
     links = list(client.relationships(from_asset))
     assert len(links) == 1
+
+
+def test_xdelete_links():
+    client = EntityAPI()
+    from_asset = client.asset("de1c32a3-bd9f-4843-a5f1-46df080f83d2")
+    links = list(client.relationships(from_asset))
+    assert len(links) == 1
+    client.delete_relationships(from_asset)
+    links = list(client.relationships(from_asset))
+    assert len(links) == 0

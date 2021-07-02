@@ -30,6 +30,7 @@ CHUNK_SIZE = 1024 * 2
 NS_XIP_ROOT = "http://preservica.com/XIP/"
 NS_ENTITY_ROOT = "http://preservica.com/EntityAPI/"
 NS_RM_ROOT = "http://preservica.com/RetentionManagement/"
+NS_SEC_ROOT = "http://preservica.com/SecurityAPI"
 
 NS_WORKFLOW = "http://workflow.preservica.com"
 
@@ -186,7 +187,6 @@ class EntityType(Enum):
 
 
 class Relationship:
-
     DCMI_hasFormat = "http://purl.org/dc/terms/hasFormat"
     DCMI_isFormatOf = "http://purl.org/dc/terms/isFormatOf"
     DCMI_hasPart = "http://purl.org/dc/terms/hasPart"
@@ -458,6 +458,42 @@ class AuthenticatedAPI:
     Base class for authenticated calls which need an access token
     """
 
+    def security_tags_base(self, with_permissions: bool = False):
+        """
+             Return available security tags
+
+             :return: dict of security tags
+             :rtype:  dict
+         """
+
+        if (self.major_version < 7) and (self.minor_version < 4) and (self.patch_version < 1):
+            raise RuntimeError("security_tags API call is only available with a Preservica v6.3.1 system or higher")
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        request = self.session.get(f'https://{self.server}/api/security/tags', headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            logger.debug(xml_response)
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            security_tags = dict()
+            tags = entity_response.findall(f'.//{{{self.sec_ns}}}Tag')
+            for tag in tags:
+                permissions = list()
+                for p in tag.findall(f'.//{{{self.sec_ns}}}Permission'):
+                    permissions.append(p.text)
+                if with_permissions:
+                    security_tags[tag.attrib['name']] = permissions
+                else:
+                    security_tags[tag.attrib['name']] = tag.attrib['name']
+            return security_tags
+        if request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.security_tags_base()
+        else:
+            logger.error(f'security_tags failed {request.status_code}')
+            raise RuntimeError(request.status_code, "security_tags failed")
+
     def entity_from_string(self, xml_data: str):
         entity_response = xml.etree.ElementTree.fromstring(xml_data)
         reference = entity_response.find(f'.//{{{self.xip_ns}}}Ref')
@@ -491,6 +527,7 @@ class AuthenticatedAPI:
                 self.xip_ns = f"{NS_XIP_ROOT}v{self.major_version}.{self.minor_version}"
                 self.entity_ns = f"{NS_ENTITY_ROOT}v{self.major_version}.{self.minor_version}"
                 self.rm_ns = f"{NS_RM_ROOT}v{self.major_version}.{2}"
+                self.sec_ns = f"{NS_SEC_ROOT}/v{self.major_version}.{self.minor_version}"
 
     def __version_number__(self):
         """

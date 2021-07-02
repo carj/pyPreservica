@@ -91,8 +91,10 @@ def prettify(elem):
     return re_parsed.toprettyxml(indent="  ")
 
 
-def __create_io__(file_name=None, parent_folder=None, **kwargs):
-    xip = Element('XIP')
+def __create_io__(xip=None, file_name=None, parent_folder=None, **kwargs):
+    if xip is None:
+        xip = Element('XIP')
+    assert xip is not None
     xip.set('xmlns', 'http://preservica.com/XIP/v6.0')
     io = SubElement(xip, 'InformationObject')
     ref = SubElement(io, 'Ref')
@@ -649,6 +651,137 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
                 src_file = filename
                 dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(filename))
                 shutil.copyfile(src_file, dst_file)
+        if compress:
+            shutil.make_archive(top_level_folder, 'zip', top_level_folder)
+        else:
+            shutil.make_archive(top_level_folder, 'szip', top_level_folder)
+        shutil.rmtree(top_level_folder)
+        return top_level_folder + ".zip"
+
+
+def multi_asset_package(asset_file_list=None, export_folder=None, parent_folder=None, compress=True, **kwargs):
+    """
+    Create a package containing multiple assets, all the assets are ingested into the same parent folder provided
+    by the parent_folder argument.
+
+    :param asset_file_list: List of files. One asset per file
+    :param export_folder:   Location where the package is written to
+    :param parent_folder:   The folder the assets will be ingested into
+    :param compress:        Bool, compress the package
+    :param kwargs:
+    :return:
+    """
+
+    # some basic validation
+    if export_folder is None:
+        export_folder = tempfile.gettempdir()
+    if not os.path.isdir(export_folder):
+        logger.error("Export Folder Does Not Exist")
+        raise RuntimeError(export_folder, "Export Folder Does Not Exist")
+    if parent_folder is None:
+        logger.error("You must specify a parent folder for the package asset")
+        raise RuntimeError("You must specify a parent folder for the package asset")
+
+    security_tag = kwargs.get('SecurityTag', "open")
+    content_type = kwargs.get('CustomType', "")
+
+    if not compress:
+        shutil.register_archive_format("szip", _make_stored_zipfile, None, "UnCompressed ZIP file")
+
+    if 'Preservation_files_fixity_callback' in kwargs:
+        fixity_callback = kwargs.get('Preservation_files_fixity_callback')
+    else:
+        fixity_callback = Sha1FixityCallBack()
+
+    package_id = str(uuid.uuid4())
+    export_folder = export_folder
+    top_level_folder = os.path.join(export_folder, package_id)
+    os.mkdir(top_level_folder)
+    inner_folder = os.path.join(top_level_folder, package_id)
+    os.mkdir(inner_folder)
+    os.mkdir(os.path.join(inner_folder, "content"))
+
+    asset_map = dict()
+    xip = Element('XIP')
+    for file in asset_file_list:
+        default_asset_title = os.path.splitext(os.path.basename(file))[0]
+        xip, io_ref = __create_io__(xip, file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
+        asset_map[file] = io_ref
+        representation = SubElement(xip, 'Representation')
+        io_link = SubElement(representation, 'InformationObject')
+        io_link.text = io_ref
+        access_name = SubElement(representation, 'Name')
+        access_name.text = "Preservation"
+        access_type = SubElement(representation, 'Type')
+        access_type.text = "Preservation"
+        content_objects = SubElement(representation, 'ContentObjects')
+        content_object = SubElement(content_objects, 'ContentObject')
+        content_object_ref = str(uuid.uuid4())
+        content_object.text = content_object_ref
+
+        default_content_objects_title = os.path.splitext(os.path.basename(file))[0]
+        content_object = SubElement(xip, 'ContentObject')
+        ref_element = SubElement(content_object, "Ref")
+        ref_element.text = content_object_ref
+        title = SubElement(content_object, "Title")
+        title.text = default_content_objects_title
+        description = SubElement(content_object, "Description")
+        description.text = default_content_objects_title
+        security_tag_element = SubElement(content_object, "SecurityTag")
+        security_tag_element.text = security_tag
+        custom_type = SubElement(content_object, "CustomType")
+        custom_type.text = content_type
+        parent = SubElement(content_object, "Parent")
+        parent.text = io_ref
+
+        generation = SubElement(xip, 'Generation', {"original": "true", "active": "true"})
+        content_object = SubElement(generation, "ContentObject")
+        content_object.text = content_object_ref
+        label = SubElement(generation, "Label")
+        label.text = os.path.splitext(os.path.basename(file))[0]
+        effective_date = SubElement(generation, "EffectiveDate")
+        effective_date.text = datetime.now().isoformat()
+        bitstreams = SubElement(generation, "Bitstreams")
+        bitstream = SubElement(bitstreams, "Bitstream")
+        bitstream.text = os.path.basename(file)
+        SubElement(generation, "Formats")
+        SubElement(generation, "Properties")
+
+        bitstream = SubElement(xip, 'Bitstream')
+        filename_element = SubElement(bitstream, "Filename")
+        filename_element.text = os.path.basename(file)
+        filesize = SubElement(bitstream, "FileSize")
+        file_stats = os.stat(file)
+        filesize.text = str(file_stats.st_size)
+        physical_location = SubElement(bitstream, "PhysicalLocation")
+        fixities = SubElement(bitstream, "Fixities")
+        fixity_result = fixity_callback(filename_element.text, file)
+        if type(fixity_result) == tuple:
+            fixity = SubElement(fixities, "Fixity")
+            fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
+            fixity_value = SubElement(fixity, "FixityValue")
+            fixity_algorithm_ref.text = fixity_result[0]
+            fixity_value.text = fixity_result[1]
+        elif type(fixity_result) == dict:
+            for key, val in fixity_result.items():
+                fixity = SubElement(fixities, "Fixity")
+                fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
+                fixity_value = SubElement(fixity, "FixityValue")
+                fixity_algorithm_ref.text = key
+                fixity_value.text = val
+        else:
+            logger.error("Could Not Find Fixity Value")
+            raise RuntimeError("Could Not Find Fixity Value")
+
+        src_file = file
+        dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(file))
+        shutil.copyfile(src_file, dst_file)
+
+    if xip is not None:
+        metadata_path = os.path.join(inner_folder, "metadata.xml")
+        metadata = open(metadata_path, "wt", encoding='utf-8')
+        metadata.write(prettify(xip))
+        metadata.close()
         if compress:
             shutil.make_archive(top_level_folder, 'zip', top_level_folder)
         else:

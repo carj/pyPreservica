@@ -97,10 +97,10 @@ class ContentAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}
         results = self.session.get(f'https://{self.server}/api/content/indexed-fields', headers=headers)
         if results.status_code == requests.codes.ok:
-            fields = list()
+            fields = dict()
             for ob in results.json()["value"]:
                 field = f'{ob["shortName"]}.{ob["index"]}'
-                fields.append(field)
+                fields[field] = ob["uri"]
             return fields
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -200,6 +200,34 @@ class ContentAPI(AuthenticatedAPI):
                 yield e
             found = found + len(search_result.results_list)
 
+    def _search_index_filter_hits(self, query: str = "%", filter_values: dict = None):
+        start_from = str(0)
+        headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
+
+        field_list = list()
+        for key, value in filter_values.items():
+            if value == "":
+                field_list.append('{' f' "name": "{key}", "values": [] ' + '}')
+            else:
+                field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
+
+        filter_terms = ','.join(field_list)
+
+        query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
+
+        payload = {'start': start_from, 'max': str(10), 'metadata': list(filter_values.keys()), 'q': query_term}
+        results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
+        if results.status_code == requests.codes.ok:
+            json = results.json()
+            hits = int(json['value']['totalHits'])
+            return hits
+        elif results.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self._search_index_filter_hits(query, filter_values)
+        else:
+            logger.error(f"search failed with error code: {results.status_code}")
+            raise RuntimeError(results.status_code, f"_search_index_filter_hits failed")
+
     def _search_index_filter(self, query: str = "%", start_index: int = 0, page_size: int = 25,
                              filter_values: dict = None):
         start_from = str(start_index)
@@ -262,26 +290,26 @@ class ContentAPI(AuthenticatedAPI):
                 sys.stdout.write("\rProcessing Hits %s from %s  (%.2f%%)" % (self.current, self.total, percentage))
                 sys.stdout.flush()
 
-    def __report_security_tag_frequency(self, report_name="security_report.svg"):
+    def report_security_tag_frequency(self, report_name="security_report.svg",
+                                      chart_Title: str = "Security Tag Frequency",
+                                      chart_XTitle: str = 'Number of Assets',
+                                      chart_YTitle: str = 'Security Tag'):
         import pygal
         from pygal.style import BlueStyle
+
+        security_tags = self.security_tags_base(with_permissions=False)
         results = {}
-        self.search_callback(self.ReportProgressCallBack())
-        filters = {"xip.security_descriptor": "*", "xip.document_type": "IO", "xip.parent_ref": "*"}
-        for hit in self.search_index_filter_list(query="%", page_size=50, filter_values=filters):
-            tag = hit['xip.security_descriptor'][0]
-            ref = hit['xip.reference']
-            if tag in results:
-                results[tag] = results[tag] + 1
-            else:
-                results[tag] = 1
+        for tag in security_tags:
+            filters = {"xip.security_descriptor": tag, "xip.document_type": "IO", "xip.parent_ref": "*"}
+            hits = self._search_index_filter_hits(query="%", filter_values=filters)
+            results[tag] = hits
 
         bar_chart = pygal.HorizontalBar(show_legend=False)
-        bar_chart.title = "Security Tag Frequency"
+        bar_chart.title = chart_Title
         bar_chart.style = BlueStyle
-        bar_chart.x_title = 'Number of Assets'
+        bar_chart.x_title = chart_XTitle
         bar_chart.x_labels = results.keys()
-        bar_chart.add("Security Tag", results)
+        bar_chart.add(chart_YTitle, results)
 
         bar_chart.render_to_file(report_name)
 

@@ -24,16 +24,17 @@ Entity API Features
 -  Change Security tags on Folders and Assets
 -  Create new Folder Entities
 -  Move Assets and Folders within the repository
--  Deleting Assets and Folders    (**New in 6.2**)
+-  Deleting Assets and Folders
 -  Fetch Folders and Assets belonging to parent Folders
 -  Retrieve Representations, Generations & Bitstreams from Assets
 -  Download digital files and thumbnails
 -  Fetch lists of changed entities over the last n days
--  Request information on completed integrity checks   (**New in 6.2**)
--  Add or remove asset and folder icons   (**New in 6.2**)
--  Replace existing content objects within an Asset   (**New in 6.2**)
--  Export OPEX Package   (**New in 6.2**)
+-  Request information on completed integrity checks
+-  Add or remove asset and folder icons
+-  Replace existing content objects within an Asset
+-  Export OPEX Package
 -  Fetch audit trail events on Entities and across the repository
+-  Create Relationships between Assets (**New in 6.3**)
 
 Content API Features
 ---------------------
