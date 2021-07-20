@@ -56,7 +56,7 @@ def test_get_generations():
     assert len(generations) == 1
     generation = generations[0]
     assert generation.active is True
-    assert generation.original is True
+    assert generation.original is False
     assert generation.format_group == "jpeg"
 
 

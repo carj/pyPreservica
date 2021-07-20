@@ -181,6 +181,9 @@ class RelationshipDirection(Enum):
 
 
 class EntityType(Enum):
+    """
+    Enumeration of the Entity Types
+    """
     ASSET = "IO"
     FOLDER = "SO"
     CONTENT_OBJECT = "CO"
@@ -534,6 +537,7 @@ class AuthenticatedAPI:
         Determine the version number of the server
         """
         headers = {HEADER_TOKEN: self.token}
+        self.version_hash = "RHVOMzJHNzdk"
         request = self.session.get(f'https://{self.server}/api/entity/versiondetails/version', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_ = str(request.content.decode('utf-8'))

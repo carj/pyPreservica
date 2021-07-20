@@ -14,8 +14,9 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     Returns an asset object back by its internal reference identifier
 
-    :param str reference: The unique identifier for the asset usually its uuid
-    :return: The asset object
+    :param reference: The unique identifier for the asset usually its uuid
+    :type  reference: str
+    :return: The Asset object
     :rtype: Asset
     :raises RuntimeError: if the identifier is incorrect
 
@@ -24,8 +25,9 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     Returns a folder object back by its internal reference identifier
 
-    :param str reference: The unique identifier for the asset usually its uuid
-    :return: The folder object
+    :param reference: The unique identifier for the asset usually its uuid
+    :type  reference: str
+    :return: The Folder object
     :rtype: Folder
     :raises RuntimeError: if the identifier is incorrect
 
@@ -33,7 +35,8 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     Returns a content object back by its internal reference identifier
 
-    :param str reference: The unique identifier for the asset usually its uuid
+    :param  reference: The unique identifier for the asset usually its uuid
+    :type  reference: str
     :return: The content object
     :rtype: ContentObject
     :raises RuntimeError: if the identifier is incorrect
@@ -42,9 +45,11 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     Returns an generic entity based on its reference identifier
 
-    :param entity_type entity_type: The type of entity
-    :param str reference: The unique identifier for the enity
-    :return: The entity
+    :param  entity_type: The type of entity
+    :type  entity_type: EntityType
+    :param reference: The unique identifier for the entity
+    :type  reference: str
+    :return: The entity either Asset, Folder or ContentObject
     :rtype: Entity
     :raises RuntimeError: if the identifier is incorrect
 
@@ -53,7 +58,8 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     Updates the title and description of an entity
     The security tag and parent are not saved via this method call
 
-    :param Entity entity: The entity (asset, folder, content_object) to be updated
+    :param entity: The entity (asset, folder, content_object) to be updated
+    :type  entity: Entity
     :return: The updated entity
     :rtype: Entity
 
@@ -62,9 +68,11 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     Change the security tag of an asset or folder
     This is a non blocking call which returns immediately.
 
-    :param Entity entity: The entity (asset, folder) to be updated
-    :param str new_tag: The new security tag to be set on the entity
-    :return: A progress ID
+    :param entity: The entity (asset, folder) to be updated
+    :type  entity: Entity
+    :param  new_tag: The new security tag to be set on the entity
+    :type  new_tag: str
+    :return: A progress id which can be used to monitor the workflow
     :rtype: str
 
    .. py:method:: security_tag_sync(entity, new_tag)
@@ -72,14 +80,17 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     Change the security tag of an asset or folder
     This is a blocking call which returns after all entities have been updated.
 
-    :param Entity entity: The entity (asset, folder) to be updated
-    :param str new_tag: The new security tag to be set on the entity
+    :param entity: The entity (asset, folder) to be updated
+    :type  entity: Entity
+    :param new_tag: The new security tag to be set on the entity
+    :type  new_tag: str
     :return: The updated entity
     :rtype: Entity
 
    .. py:method::  create_folder(title, description, security_tag, parent=None)
 
-    Create a new folder in the repository
+    Create a new folder in the repository below the specified parent folder.
+    If parent is missing or None then a root level folder is created.
 
     :param str title: The title of the new folder
     :param str description: The description of the new folder
@@ -92,7 +103,10 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     Return a set of representations for the asset
 
-    :param Asset asset: The asset containing the required representations
+    Representations are used to define how the information object are composed in terms of technology and structure.
+
+    :param asset: The asset containing the required representations
+    :type  asset: Asset
     :return: Set of Representation objects
     :rtype: set(Representation)
 
@@ -100,7 +114,8 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     Return a list of content objects for a representation
 
-    :param Representation representation: The representation
+    :param  representation: The representation
+    :type  representation: Representation
     :return: List of content objects
     :rtype: list(ContentObject)
 
@@ -108,7 +123,8 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     Return a list of Generation objects for a content object
 
-    :param ContentObject content_object: The content object
+    :param  content_object: The content object
+    :type  content_object: ContentObject
     :return: list of generations
     :rtype: list(Generation)
 
@@ -166,7 +182,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     Fetch the metadata document by its identifier, this is the key from the entity metadata map
 
     :param str uri: The metadata identifier
-    :return: A XML document as a string
+    :return: An XML document as a string
     :rtype: str
 
    .. py:method::  metadata_for_entity(entity, schema)
@@ -175,7 +191,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     :param Entity entity: The entity containing the metadata
     :param str schema: The metadata schema URI
-    :return: The first XML document on the entity document matching the schema URI
+    :return: The first XML document on the entity matching the schema URI
     :rtype: str
 
    .. py:method::  add_metadata(entity, schema, data)
@@ -542,9 +558,9 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     .. py:attribute:: metadata
 
-    A map of descriptive metadata attached to the asset.
+    A dict of descriptive metadata attached to the asset.
 
-    The key of the map is the metadata identifier used to retrieve the metadata document
+    The key of the dict is the metadata identifier used to retrieve the metadata document
     and the value is the schema URI
 
     .. py:attribute:: entity_type
@@ -622,6 +638,13 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     .. py:attribute:: entity_type
 
     Content objects have entity type EntityType.CONTENT_OBJECT
+
+.. autoclass:: pyPreservica.EntityType
+
+.. autoclass:: pyPreservica.RelationshipDirection
+
+
+.. autoclass:: pyPreservica.IntegrityCheck
 
 
 

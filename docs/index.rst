@@ -49,3 +49,9 @@ For Preservica 6.0 and 6.1 see `the previous version <https://pypreservica.readt
    api
 
 
+Index
+==========
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

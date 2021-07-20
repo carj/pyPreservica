@@ -56,7 +56,7 @@ def test_get_root_folders_paged():
     assert len(objs) == paged_set.total
 
 
-def test_get_chidren_of_folder():
+def test_get_children_of_folder():
     client = EntityAPI()
     paged_set = client.children(FOLDER_ID)
     assert paged_set.total == 6
@@ -65,7 +65,7 @@ def test_get_chidren_of_folder():
         assert f.parent == FOLDER_ID
 
 
-def test_get_chidren_of_folder_descendants():
+def test_get_children_of_folder_descendants():
     client = EntityAPI()
     objs = set()
     for f in client.descendants(FOLDER_ID):

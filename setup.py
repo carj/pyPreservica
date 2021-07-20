@@ -13,7 +13,7 @@ PKG = "pyPreservica"
 # This call to setup() does all the work
 setup(
     name=PKG,
-    version="1.1.0",
+    version="1.1.3",
     description="Python library for the Preservica API",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -32,7 +32,7 @@ setup(
         "Topic :: System :: Archiving",
     ],
     keywords='Preservica API Preservation',
-    install_requires=["requests", "certifi", "boto3", "botocore", "s3transfer", "pygal"],
+    install_requires=["requests", "certifi", "boto3", "botocore", "s3transfer", "pygal", "cryptography"],
     project_urls={
         'Documentation': 'https://pypreservica.readthedocs.io',
         'Source': 'https://github.com/carj/pyPreservica',

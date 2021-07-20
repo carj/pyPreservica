@@ -1,9 +1,11 @@
+import base64
 import csv
 import json
 import shutil
 import tempfile
 import uuid
 import xml
+from pathlib import Path
 from time import sleep
 
 import boto3
@@ -19,6 +21,9 @@ from botocore.exceptions import ClientError
 
 import s3transfer.upload
 import s3transfer.tasks
+import cryptography
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from requests.auth import HTTPBasicAuth
 from s3transfer import S3UploadFailedError
 
 from pyPreservica.common import *
@@ -1075,6 +1080,10 @@ def upload_config():
     return transfer_config
 
 
+def _unpad(s):
+    return s[:-ord(s[len(s) - 1:])]
+
+
 class UploadAPI(AuthenticatedAPI):
 
     def ingest_twitter_feed(self, twitter_user=None, num_tweets: int = 25, twitter_consumer_key=None,
@@ -1344,9 +1353,98 @@ class UploadAPI(AuthenticatedAPI):
 
             self.upload_zip_package(path_to_zip_package=package, folder=parent_folder, callback=callback)
 
+    def __convert_(self, key, cypher_text):
+        base64_decoded = base64.b64decode(cypher_text)
+        key = base64.b64decode(self.version_hash.encode("utf-8") + key.encode("UTF-8")).decode("utf-8").encode("utf-8")
+        aes = cryptography.hazmat.primitives.ciphers.algorithms.AES(key)
+        cipher = Cipher(algorithm=aes, mode=modes.ECB())
+        decryptor = cipher.decryptor()
+        output_bytes = decryptor.update(base64_decoded) + decryptor.finalize()
+        return _unpad(output_bytes.decode("utf-8")).strip()
+
+    def upload_buckets(self):
+        """
+        Get a list of available upload buckets
+
+        :return: dict of bucket names and regions
+        """
+        request = self.session.get(f"https://{self.server}/api/admin/locations/upload",
+                                   auth=HTTPBasicAuth(self.username, self.password))
+
+        buckets = dict()
+        xml_tag = "N2YxcGVsUA=="
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            data_sources = entity_response.findall('.//dataSource')
+            for data_source in data_sources:
+                sip_locations = data_source.findall('.//sipLocation')
+                for sip_location in sip_locations:
+                    buckets[self.__convert_(xml_tag, sip_location.text)] = self.__convert_(xml_tag, sip_location.attrib[
+                        'region'])
+        return buckets
+
+    def upload_zip_package_to_S3(self, path_to_zip_package, bucket_name, folder=None, callback=None,
+                                 delete_after_upload=False):
+
+        """
+         Uploads a zip file package to an S3 bucket connected to a Preservica Cloud System
+
+         :param str path_to_zip_package: Path to the package
+         :param str bucket_name: Bucket connected to an ingest workflow
+         :param Folder folder: The folder to ingest the package into
+         :param Callable callback: Optional callback to allow the callee to monitor the upload progress
+         :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
+
+        """
+
+        request = requests.get(f"https://{self.server}/api/admin/locations/upload?refresh={bucket_name}",
+                               auth=HTTPBasicAuth(self.username, self.password))
+
+        if request.status_code is not requests.codes.ok:
+            raise SystemError(request.content)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            a = entity_response.find('.//a')
+            b = entity_response.find('.//b')
+            c = entity_response.find('.//c')
+            xml_tag = "N2YxcGVsUA=="
+            access_key = self.__convert_(xml_tag, a.text)
+            secret_key = self.__convert_(xml_tag, b.text)
+            session_token = self.__convert_(xml_tag, c.text)
+
+            session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
+                                    aws_session_token=session_token)
+            s3 = session.resource(service_name="s3")
+
+            upload_key = str(uuid.uuid4())
+            s3_object = s3.Object(bucket_name, upload_key)
+            metadata = dict()
+            metadata['key'] = upload_key
+            metadata['name'] = upload_key + ".zip"
+            metadata['bucket'] = bucket_name
+            metadata['status'] = 'ready'
+
+            if hasattr(folder, "reference"):
+                metadata['collectionreference'] = folder.reference
+            elif isinstance(folder, str):
+                metadata['collectionreference'] = folder
+
+            metadata['size'] = str(Path(path_to_zip_package).stat().st_size)
+            metadata['createdby'] = self.username
+
+            metadata_map = {'Metadata': metadata}
+
+            s3_object.upload_file(path_to_zip_package, Callback=callback, ExtraArgs=metadata_map,
+                                  Config=transfer_config)
+
+            if delete_after_upload:
+                os.remove(path_to_zip_package)
+
     def upload_zip_package(self, path_to_zip_package, folder=None, callback=None, delete_after_upload=False):
         """
-        Uploads a zip file package and starts an ingest workflow
+        Uploads a zip file package directly to Preservica and starts an ingest workflow
 
         :param str path_to_zip_package: Path to the package
         :param Folder folder: The folder to ingest the package into

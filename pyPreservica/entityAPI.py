@@ -8,7 +8,7 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-
+from distutils.util import strtobool
 import uuid
 from datetime import datetime, timedelta, timezone
 from time import sleep
@@ -926,6 +926,25 @@ class EntityAPI(AuthenticatedAPI):
                 return self.metadata(u)
         return None
 
+    def metadata_tag_for_entity(self, entity: Entity, schema: str, tag: str, isXpath: bool = False) -> str:
+        """
+        Retrieve the first value of the tag from a metadata template given by schema
+
+        Returns XML document as a string
+
+        :param isXpath:      True if the tag name is a fully qualified xpath expression
+        :param entity:       The entity with the metadata
+        :param schema:       The schema URI
+        :param tag:          The tag name
+        """
+
+        xml_doc = self.metadata_for_entity(entity, schema)
+        xml_object = xml.etree.ElementTree.fromstring(xml_doc)
+        if isXpath is False:
+            return xml_object.find(f'.//{{*}}{tag}').text
+        else:
+            return xml_object.find(tag).text
+
     def security_tag_sync(self, entity: Entity, new_tag: str):
         """
          Change the security tag for a folder or asset
@@ -1144,7 +1163,7 @@ class EntityAPI(AuthenticatedAPI):
             bitstream_list = list()
             for bit in bitstreams:
                 bitstream_list.append(self.bitstream(bit.text))
-            return Generation(bool(ge.attrib['original']), bool(ge.attrib['active']),
+            return Generation(bool(strtobool(ge.attrib['original'])), bool(strtobool(ge.attrib['active'])),
                               format_group.text if hasattr(format_group, 'text') else None,
                               effective_date.text if hasattr(effective_date, 'text') else None,
                               bitstream_list)
@@ -1461,24 +1480,27 @@ class EntityAPI(AuthenticatedAPI):
             if e.entity_type == EntityType.FOLDER:
                 yield from self.all_descendants(folder_reference=e.reference)
 
-    def descendants(self, folder_reference: str = None) -> Generator:
+    def descendants(self, folder: Any = None) -> Generator:
         maximum = 50
-        paged_set = self.children(folder_reference, maximum=maximum, next_page=None)
+        paged_set = self.children(folder, maximum=maximum, next_page=None)
         for entity in paged_set.results:
             yield entity
         while paged_set.has_more:
-            paged_set = self.children(folder_reference, maximum=maximum, next_page=paged_set.next_page)
+            paged_set = self.children(folder, maximum=maximum, next_page=paged_set.next_page)
             for entity in paged_set.results:
                 yield entity
 
-    def children(self, folder_reference: str = None, maximum: int = 50, next_page: str = None) -> PagedSet:
+    def children(self, folder: Any = None, maximum: int = 50, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
         data = {'start': str(0), 'max': str(maximum)}
+        folder_reference = folder
         if next_page is None:
             if folder_reference is None:
                 request = self.session.get(f'https://{self.server}/api/entity/root/children', data=data,
                                            headers=headers)
             else:
+                if hasattr(folder, "reference"):
+                    folder_reference = folder.reference
                 request = self.session.get(
                     f'https://{self.server}/api/entity/structural-objects/{folder_reference}/children',
                     data=data, headers=headers)
