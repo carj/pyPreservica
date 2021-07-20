@@ -1466,22 +1466,22 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"event-actions failed: {request.content.decode('utf-8')}")
 
-    def all_descendants(self, folder_reference: str = None) -> Generator:
+    def all_descendants(self, folder: str = None) -> Generator:
         """
          Retrieve list of entities below a folder in the repository
 
          Returns list
 
-         :param folder_reference: The folder to find children of
+         :param folder: The folder to find children of
          """
         self.token = self.__token__()
-        for e in self.descendants(folder_reference=folder_reference):
+        for e in self.descendants(folder=folder):
             yield e
             if e.entity_type == EntityType.FOLDER:
-                yield from self.all_descendants(folder_reference=e.reference)
+                yield from self.all_descendants(folder=e.reference)
 
     def descendants(self, folder: Any = None) -> Generator:
-        maximum = 50
+        maximum = 25
         paged_set = self.children(folder, maximum=maximum, next_page=None)
         for entity in paged_set.results:
             yield entity

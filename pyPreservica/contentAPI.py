@@ -33,6 +33,16 @@ class ContentAPI(AuthenticatedAPI):
     def search_callback(self, fn):
         self.callback = fn
 
+    def user_security_tags(self, with_permissions: bool = False):
+        """
+             Return available security tags
+
+             :return: dict of security tags
+             :rtype:  dict
+         """
+
+        return self.security_tags_base(with_permissions=with_permissions)
+
     def object_details(self, entity_type, reference):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
         params = {'id': f'sdb:{entity_type.value}|{reference}'}

@@ -259,33 +259,33 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :rtype: Entity
 
 
-   .. py:method::  children(folder_reference, maximum=50, next_page=None)
+   .. py:method::  children(folder, maximum=50, next_page=None)
 
     Return the child entities of a folder one page at a time. The caller is responsible for
     requesting the next page of results.
 
-    :param str folder_reference: The parent folder reference, None for the children of root folders
+    :param str folder: The parent folder reference, None for the children of root folders
     :param int maximum: The maximum size of the result set in each page
     :param str next_page: A URL for the next page of results
     :return: A set of entity objects
     :rtype: set(Entity)
 
-   .. py:method::  descendants(folder_reference)
+   .. py:method::  descendants(folder)
 
     Return the immediate child entities of a folder using a lazy iterator. The paging is done internally using a default page
     size of 50 elements. Callers can iterate over the result to get all children with a single call.
 
-    :param str folder_reference: The parent folder reference, None for the children of root folders
+    :param str folder: The parent folder reference, None for the children of root folders
     :return: A set of entity objects (Folders and Assets)
     :rtype: set(Entity)
 
-   .. py:method::   all_descendants(folder_reference)
+   .. py:method::   all_descendants(folder)
 
     Return all child entities recursively of a folder or repository down to the assets using a lazy iterator.
     The paging is done internally using a default page
-    size of 50 elements. Callers can iterate over the result to get all children with a single call.
+    size of 25 elements. Callers can iterate over the result to get all children with a single call.
 
-    :param str folder_reference: The parent folder reference, None for the children of root folders
+    :param str folder: The parent folder reference, None for the children of root folders
     :return: A set of entity objects (Folders and Assets)
     :rtype: set(Entity)
 

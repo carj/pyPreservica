@@ -41,6 +41,7 @@ Content API Features
 
 -  Fetch a list of indexed Solr Fields
 -  Search based on a single query term
+-  Security tag report (**New in 6.3**)
 
 Upload API Features
 ---------------------

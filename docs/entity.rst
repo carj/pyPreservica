@@ -709,7 +709,7 @@ the event attributes
     for event in client.all_events():
         print(event)
 
-Get, Add or remove asset and folder icons
+Get, Add or Remove asset and folder icons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now add and remove icons on assets and folders using the API. The icons will be displayed in the Explorer and
