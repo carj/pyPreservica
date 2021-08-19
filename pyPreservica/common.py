@@ -564,7 +564,7 @@ class AuthenticatedAPI:
         return self.__str__()
 
     def save_config(self):
-        config = configparser.ConfigParser()
+        config = configparser.ConfigParser(interpolation=None)
         config['credentials'] = {'username': self.username, 'password': self.password, 'tenant': self.tenant,
                                  'server': self.server}
         with open('credentials.properties', 'wt', encoding="utf-8") as configfile:
@@ -617,7 +617,7 @@ class AuthenticatedAPI:
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False):
-        config = configparser.ConfigParser()
+        config = configparser.ConfigParser(interpolation=None)
         config.read('credentials.properties', encoding='utf-8')
         self.session = requests.Session()
         self.shared_secret = bool(use_shared_secret)

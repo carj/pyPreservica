@@ -123,7 +123,7 @@ paging is available.
 
 A version of this method is also available as a generator function which does not require explicit paging.
 This version returns a lazy iterator which does the paging internally.
-It will default to 50 items between server requests
+It will default to 100 items between server requests
 
 .. code-block:: python
 

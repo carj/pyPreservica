@@ -15,6 +15,10 @@ from time import sleep
 import xml.etree.ElementTree
 from typing import Optional, Any, Generator, Dict, Tuple
 
+import pygal
+from pygal import Config
+from pygal.style import DarkStyle, LightStyle, BlueStyle
+
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
@@ -1481,7 +1485,7 @@ class EntityAPI(AuthenticatedAPI):
                 yield from self.all_descendants(folder=e.reference)
 
     def descendants(self, folder: Any = None) -> Generator:
-        maximum = 25
+        maximum = 100
         paged_set = self.children(folder, maximum=maximum, next_page=None)
         for entity in paged_set.results:
             yield entity
@@ -1490,24 +1494,26 @@ class EntityAPI(AuthenticatedAPI):
             for entity in paged_set.results:
                 yield entity
 
-    def children(self, folder: Any = None, maximum: int = 50, next_page: str = None) -> PagedSet:
+    def children(self, folder: Any = None, maximum: int = 100, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
         data = {'start': str(0), 'max': str(maximum)}
         folder_reference = folder
         if next_page is None:
             if folder_reference is None:
-                request = self.session.get(f'https://{self.server}/api/entity/root/children', data=data,
+                request = self.session.get(f'https://{self.server}/api/entity/root/children', params=data,
                                            headers=headers)
             else:
                 if hasattr(folder, "reference"):
                     folder_reference = folder.reference
                 request = self.session.get(
                     f'https://{self.server}/api/entity/structural-objects/{folder_reference}/children',
-                    data=data, headers=headers)
+                    params=data, headers=headers)
         else:
             request = self.session.get(next_page, headers=headers)
+        logger.debug(request.url)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
+            logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             children = entity_response.findall(f'.//{{{self.entity_ns}}}Child')
             result = set()
