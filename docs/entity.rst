@@ -702,12 +702,24 @@ Events Across Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 List actions performed against all entities within the repository. The event is a ``dict()`` object containing
-the event attributes
+the event attributes. This call is generator function which returns the events as needed.
 
 .. code-block:: python
 
     for event in client.all_events():
         print(event)
+
+
+Ingest Events
+^^^^^^^^^^^^^^^^^
+
+Return a generator of ingest events over the last n days
+
+.. code-block:: python
+
+    for ingest_event in client.all_ingest_events(previous_days=1):
+        print(ingest_event)
+
 
 Get, Add or Remove asset and folder icons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

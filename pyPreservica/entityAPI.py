@@ -1539,6 +1539,21 @@ class EntityAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "children failed")
 
+    def all_ingest_events(self, previous_days: int = 1) -> Generator:
+        self.token = self.__token__()
+        previous = datetime.utcnow() - timedelta(days=previous_days)
+        from_date = previous.replace(tzinfo=timezone.utc).isoformat()
+        to_date = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+        paged_set = self._all_events_page(maximum=25, next_page=None, type="Ingest", from_date=from_date,
+                                          to_date=to_date)
+        for entity in paged_set.results:
+            yield entity
+        while paged_set.has_more:
+            paged_set = self._all_events_page(maximum=25, next_page=paged_set.next_page, type="Ingest",
+                                              from_date=from_date, to_date=to_date)
+            for entity in paged_set.results:
+                yield entity
+
     def all_events(self) -> Generator:
         self.token = self.__token__()
         paged_set = self._all_events_page()
@@ -1554,7 +1569,15 @@ class EntityAPI(AuthenticatedAPI):
           event actions performed against this repository
          """
         headers = {HEADER_TOKEN: self.token}
+
         params = {'start': str(0), 'max': str(maximum)}
+        if "type" in kwargs:
+            params["types"] = kwargs.get("type")
+        if "from_date" in kwargs:
+            params["from"] = kwargs.get("from_date")
+        if "to_date" in kwargs:
+            params["to"] = kwargs.get("to_date")
+
         if next_page is None:
             request = self.session.get(f'https://{self.server}/api/entity/events', params=params, headers=headers)
         else:
@@ -1685,7 +1708,7 @@ class EntityAPI(AuthenticatedAPI):
 
     def updated_entities(self, previous_days: int = 1) -> Generator:
         self.token = self.__token__()
-        maximum = 50
+        maximum = 25
         paged_set = self._updated_entities_page(previous_days=previous_days, maximum=maximum, next_page=None)
         for entity in paged_set.results:
             yield entity
