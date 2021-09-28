@@ -18,7 +18,7 @@ Welcome to pyPreservica's documentation
     :target: https://pypreservica.readthedocs.io/en/latest
 
 
-pyPreservica is the Preservica API Software Development Kit (SDK) for Python,
+pyPreservica is a 3rd party Python Software Development Kit (SDK) for the Preservica API,
 which allows Preservica users to write software that makes use of the Preservica repository services.
 
 This library provides classes for working with a range of the Preservica APIs.
@@ -28,6 +28,9 @@ https://developers.preservica.com/api-reference
 This version of the documentation is for use against a Preservica 6.3/6.2 system
 
 For Preservica 6.0 and 6.1 see `the previous version <https://pypreservica.readthedocs.io/en/v6.1/>`_
+
+
+pyPreservica is an open source 3rd party library and is not affiliated with `Preservica Ltd <https://preservica.com/>`_
 
 -------------------
 

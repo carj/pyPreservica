@@ -413,7 +413,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.identifier(identifier_type, identifier_value)
         else:
-            logger.error(request)
+            logger.error(request.content.decode('utf-8'))
             logger.error(f"identifier failed {request.status_code}")
             raise RuntimeError(request.status_code, "identifier failed")
 
@@ -453,6 +453,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.add_identifier(entity, identifier_type, identifier_value)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_identifier failed with error code")
 
     def delete_relationships(self, entity: Entity, relationship_type: str = None):
@@ -499,7 +500,6 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.__delete_relationship(relationship)
         else:
-            print(relationship)
             logger.error(request.text)
             raise RuntimeError(request.status_code, "delete_relationships failed")
 
@@ -578,6 +578,10 @@ class EntityAPI(AuthenticatedAPI):
                 url = next_url.text
 
             return PagedSet(results, has_more, total_hits.text, url)
+        elif request.status_code == requests.codes.unauthorized:
+            self.__relationships__(entity=entity, maximum=maximum, next_page=next_page)
+        else:
+            logger.error(request.content.decode('utf-8'))
 
     def add_relation(self, from_entity: Entity, relationship_type: str, to_entity: Entity):
         """
@@ -624,7 +628,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.add_relation(from_entity, relationship_type, to_entity)
         else:
-            logger.error(request.content.decode("utf-8"))
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_relation failed with error code")
 
     def delete_metadata(self, entity: Entity, schema: str) -> Entity:
@@ -689,6 +693,7 @@ class EntityAPI(AuthenticatedAPI):
                     self.token = self.__token__()
                     return self.update_metadata(entity, schema, data)
                 else:
+                    logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "update_metadata failed with error code")
         return self.entity(entity.entity_type, entity.reference)
 
@@ -725,6 +730,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.add_metadata(entity, schema, data)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_metadata failed with error code")
 
     def save(self, entity: Entity) -> Entity:
@@ -769,6 +775,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.save(entity)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "save failed for entity: " + entity.reference)
 
     def move_async(self, entity: Entity, dest_folder: Folder) -> str:
@@ -799,6 +806,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.move_async(entity, dest_folder)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "move failed for entity: " + entity.reference)
 
     def get_async_progress(self, pid: str) -> str:
@@ -815,6 +823,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.get_async_progress(pid)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "get_async_progress" + pid)
 
     def move_sync(self, entity: Entity, dest_folder: Folder) -> Entity:
@@ -851,6 +860,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.move_sync(entity, dest_folder)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "move failed for entity: " + entity.reference)
 
     def move(self, entity: Entity, dest_folder: Folder) -> Entity:
@@ -902,6 +912,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.create_folder(title, description, security_tag, parent=parent)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "create_folder failed")
 
     def all_metadata(self, entity: Entity) -> Tuple[str, str]:
@@ -976,6 +987,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.security_tag_sync(entity, new_tag)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"security_tag_sync change failed on {entity.reference}")
 
     def security_tag_async(self, entity: Entity, new_tag: str):
@@ -997,6 +1009,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.security_tag_async(entity, new_tag)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"security_tag_async change failed on {entity.reference}")
 
     def metadata(self, uri: str) -> str:
@@ -1018,7 +1031,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.metadata(uri)
         else:
-            logger.error(request)
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"metadata failed for {uri}")
 
     def entity(self, entity_type: EntityType, reference: str) -> Entity:
@@ -1087,6 +1100,7 @@ class EntityAPI(AuthenticatedAPI):
         elif request.status_code == requests.codes.not_found:
             raise RuntimeError(reference, "The requested reference is not found in the repository")
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"folder failed for {reference}")
 
     def content_object(self, reference: str) -> ContentObject:
@@ -1111,6 +1125,7 @@ class EntityAPI(AuthenticatedAPI):
         elif request.status_code == requests.codes.not_found:
             raise RuntimeError(reference, "The requested reference is not found in the repository")
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"content_object failed for {reference}")
 
     def content_objects(self, representation: Representation) -> Optional[list]:
@@ -1143,7 +1158,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.content_objects(representation)
         else:
-            logger.error(request)
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "content_objects failed")
 
     def generation(self, url: str):
@@ -1175,6 +1190,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.generation(url)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "generation failed")
 
     def _integrity_checks(self, bitstream: Bitstream, maximum: int = 10, next_page: str = None):
@@ -1223,6 +1239,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self._integrity_checks(bitstream, maximum, next_page)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "integrity_checks failed")
 
     def integrity_checks(self, bitstream: Bitstream) -> Generator:
@@ -1268,7 +1285,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.bitstream(url)
         else:
-            logger.error(request)
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "bitstream failed")
 
     def replace_generation_sync(self, content_object: ContentObject, file_name, fixity_algorithm=None,
@@ -1335,6 +1352,7 @@ class EntityAPI(AuthenticatedAPI):
             return self.replace_generation_async(content_object=content_object, file_name=file_name,
                                                  fixity_algorithm=fixity_algorithm, fixity_value=fixity_value)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"replace_generation failed: {request.content}")
 
     def generations(self, content_object: ContentObject) -> list:
@@ -1363,6 +1381,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.generations(content_object)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "generations failed")
 
     def representations(self, asset: Asset) -> Optional[set]:
@@ -1391,6 +1410,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.representations(asset)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "representations failed")
 
     def remove_thumbnail(self, entity: Entity):
@@ -1416,6 +1436,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.remove_thumbnail(entity)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"remove_thumbnail failed: {request.content}")
 
     def add_thumbnail(self, entity: Entity, image_file: str):
@@ -1537,6 +1558,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.children(folder_reference, maximum=maximum, next_page=next_page)
         else:
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "children failed")
 
     def all_ingest_events(self, previous_days: int = 1) -> Generator:
@@ -1759,7 +1781,7 @@ class EntityAPI(AuthenticatedAPI):
             return self._updated_entities_page(previous_days=previous_days, maximum=maximum,
                                                next_page=next_page)
         else:
-            logger.error(request)
+            logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "updated_entities failed")
 
     def delete_asset(self, asset: Asset, operator_comment: str, supervisor_comment: str):
@@ -1792,6 +1814,8 @@ class EntityAPI(AuthenticatedAPI):
             self.manager_token(manager_username, manager_password)
         except KeyError:
             raise RuntimeError("No manager password set in credentials.properties")
+
+        self.token = self.__token__()
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         xml_object = xml.etree.ElementTree.Element('DeletionAction',
@@ -1830,6 +1854,7 @@ class EntityAPI(AuthenticatedAPI):
                                 logger.error(approve.content.decode('utf-8'))
                                 raise RuntimeError(approve.status_code, "delete_asset failed during approval")
                         sleep(2.0)
+                req = self.session.get(f"https://{self.server}/api/entity/progress/{progress}", headers=headers)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self._delete_entity(entity, operator_comment, supervisor_comment)

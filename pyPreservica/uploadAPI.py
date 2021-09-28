@@ -994,6 +994,18 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
                         entity.text = io_ref
                         content = SubElement(metadata, 'Content')
                         content.append(descriptive_metadata.getroot())
+                    elif isinstance(metadata_path, str):
+                        try:
+                            descriptive_metadata = xml.etree.ElementTree.fromstring(metadata_path)
+                            metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
+                            metadata_ref = SubElement(metadata, 'Ref')
+                            metadata_ref.text = str(uuid.uuid4())
+                            entity = SubElement(metadata, 'Entity')
+                            entity.text = io_ref
+                            content = SubElement(metadata, 'Content')
+                            content.append(descriptive_metadata)
+                        except RuntimeError:
+                            logging.info(f"Could not parse asset metadata in namespace {metadata_ns}")
 
     if xip is not None:
         export_folder = export_folder
@@ -1448,7 +1460,7 @@ class UploadAPI(AuthenticatedAPI):
 
         :param str path_to_zip_package: Path to the package
         :param Folder folder: The folder to ingest the package into
-        :param str callback: Optional callback to allow the callee to monitor the upload progress
+        :param Callable callback: Optional callback to allow the callee to monitor the upload progress
         :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
 
         :return: preservica-progress-token to allow the workflow progress to be monitored
