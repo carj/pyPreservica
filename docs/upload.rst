@@ -54,6 +54,24 @@ To specify the parent folder of the ingest pass a folder object as the second ar
     upload.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder)
 
 
+For large packages it is more reliable to send the submission via the AWS S3 transfer bucket connected to a ingest workflow.
+The available transfer buckets are shown on the Preservica administration sources tab.
+The ingest can then be triggered automatically once the submission is saved to the S3 transfer bucket.
+
+
+.. code-block:: python
+
+    upload = UploadAPI()
+    client = EntityAPI()
+
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    bucket = "com.preservica.<Tenent-ID>.upload"
+    upload.upload_zip_package_to_S3(path_to_zip_package="my-large-package.zip", bucket_name=bucket, folder=folder)
+
+
+.. note::
+    This upload mechanism is only available to AWS users.
+
 Monitoring Upload Progress
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
