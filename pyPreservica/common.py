@@ -156,6 +156,36 @@ class Sha512FixityCallBack:
         return "SHA512", sha(full_path)
 
 
+class UploadProgressConsoleCallback:
+
+    def __init__(self, filename: str, prefix='Progress:', suffix='Complete', length=100, fill='█', printEnd="\r"):
+        self.prefix = prefix
+        self.suffix = suffix
+        self.length = length
+        self.fill = fill
+        self.printEnd = printEnd
+        self._filename = filename
+        self._size = float(os.path.getsize(filename))
+        self._seen_so_far = 0
+        self._lock = threading.Lock()
+        self.printProgressBar(0)
+
+    def __call__(self, bytes_amount):
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self._size) * 100
+            self.printProgressBar(percentage)
+            if int(self._seen_so_far) == int(self._size):
+                sys.stdout.write(self.printEnd)
+                sys.stdout.flush()
+
+    def printProgressBar(self, percentage):
+        filled_length = int(self.length * (percentage / 100.0))
+        bar = self.fill * filled_length + '-' * (self.length - filled_length)
+        sys.stdout.write(f'\r%s |%s| (%.2f%%) %s ' % (self.prefix, bar, percentage, self.suffix))
+        sys.stdout.flush()
+
+
 class UploadProgressCallback:
     """
     Default implementation of a callback class to show upload progress of a file

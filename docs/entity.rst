@@ -234,6 +234,10 @@ folders and content objects using the ``save()`` method
     content_object.description = "New Content Object Description"
     content_object = client.save(content_object)
 
+
+Security Tags
+^^^^^^^^^^^^^^^^^^^^^^^^
+
 To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running process.
 You can choose either a asynchronous (non-blocking) call which returns immediately or synchronous (blocking call) which
 waits for the security tag to be changed before returning.
