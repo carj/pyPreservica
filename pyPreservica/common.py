@@ -158,7 +158,7 @@ class Sha512FixityCallBack:
 
 class UploadProgressConsoleCallback:
 
-    def __init__(self, filename: str, prefix='Progress:', suffix='Complete', length=100, fill='█', printEnd="\r"):
+    def __init__(self, filename: str, prefix='Progress:', suffix='', length=100, fill='█', printEnd="\r"):
         self.prefix = prefix
         self.suffix = suffix
         self.length = length
@@ -167,22 +167,29 @@ class UploadProgressConsoleCallback:
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
+        self.start = time.time()
         self._lock = threading.Lock()
-        self.printProgressBar(0)
+        self.printProgressBar(0, 0)
 
     def __call__(self, bytes_amount):
         with self._lock:
+            seconds = time.time() - self.start
+            if seconds == 0:
+                seconds = 1
             self._seen_so_far += bytes_amount
             percentage = (self._seen_so_far / self._size) * 100
-            self.printProgressBar(percentage)
+            rate = (self._seen_so_far / (1024 * 1024)) / seconds
+            self.printProgressBar(percentage, rate)
             if int(self._seen_so_far) == int(self._size):
+                self.printProgressBar(100.0, rate)
                 sys.stdout.write(self.printEnd)
                 sys.stdout.flush()
 
-    def printProgressBar(self, percentage):
+    def printProgressBar(self, percentage, rate):
         filled_length = int(self.length * (percentage / 100.0))
         bar = self.fill * filled_length + '-' * (self.length - filled_length)
-        sys.stdout.write(f'\r%s |%s| (%.2f%%) %s ' % (self.prefix, bar, percentage, self.suffix))
+        sys.stdout.write(
+            f'\r%s |%s| (%.2f%%) (%.2f %s) %s ' % (self.prefix, bar, percentage, rate, "Mb/s", self.suffix))
         sys.stdout.flush()
 
 
@@ -647,7 +654,8 @@ class AuthenticatedAPI:
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False):
-        config = configparser.ConfigParser(interpolation=None)
+
+        config = configparser.ConfigParser(interpolation=configparser.Interpolation())
         config.read('credentials.properties', encoding='utf-8')
         self.session = requests.Session()
         self.shared_secret = bool(use_shared_secret)

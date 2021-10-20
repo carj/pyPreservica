@@ -119,40 +119,39 @@ class ContentAPI(AuthenticatedAPI):
             logger.error(f"indexed_fields failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"indexed_fields failed with error code: {results.status_code}")
 
-    def simple_search_csv(self, query: str = "%", csv_file="search.csv", *args):
+    def simple_search_csv(self, query: str = "%", csv_file="search.csv", list_indexes: list = None):
         page_size = 50
-        if len(args) == 0:
+        if list_indexes is None or len(list_indexes) == 0:
             metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type",
                                "xip.parent_ref", "xip.security_descriptor"]
         else:
-            metadata_fields = list(*args)
+            metadata_fields = list(list_indexes)
         if "xip.reference" not in metadata_fields:
             metadata_fields.insert(0, "xip.reference")
         with open(csv_file, newline='', mode="wt", encoding="utf-8") as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=metadata_fields)
             writer.writeheader()
-            writer.writerows(self.simple_search_list(query, page_size, *args))
+            writer.writerows(self.simple_search_list(query, page_size, metadata_fields))
 
-    def simple_search_list(self, query: str = "%", *args):
-        page_size = 50
-        search_result = self._simple_search(query, 0, page_size, *args)
+    def simple_search_list(self, query: str = "%", page_size: int = 50, list_indexes: list = None):
+        search_result = self._simple_search(query, 0, page_size, list_indexes)
         for e in search_result.results_list:
             yield e
         found = len(search_result.results_list)
         while search_result.hits > found:
-            search_result = self._simple_search(query, found, page_size, *args)
+            search_result = self._simple_search(query, found, page_size, list_indexes)
             for e in search_result.results_list:
                 yield e
             found = found + len(search_result.results_list)
 
-    def _simple_search(self, query: str = "%", start_index: int = 0, page_size: int = 10, *args):
+    def _simple_search(self, query: str = "%", start_index: int = 0, page_size: int = 10, list_indexes: list = None):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
         query_term = ('{ "q":  "%s" }' % query)
-        if len(args) == 0:
+        if list_indexes is None or len(list_indexes) == 0:
             metadata_fields = "xip.title,xip.description,xip.document_type,xip.parent_ref,xip.security_descriptor"
         else:
-            metadata_fields = ','.join(*args)
+            metadata_fields = ','.join(list_indexes)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': query_term}
         results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = list()
@@ -303,14 +302,14 @@ class ContentAPI(AuthenticatedAPI):
     def report_security_tag_frequency(self, report_name="security_report.svg",
                                       chart_Title: str = "Security Tag Frequency",
                                       chart_XTitle: str = 'Number of Assets',
-                                      chart_YTitle: str = 'Security Tag'):
+                                      chart_YTitle: str = 'Security Tag', parent_collection: str = '*'):
         import pygal
         from pygal.style import BlueStyle
 
         security_tags = self.security_tags_base(with_permissions=False)
         results = {}
         for tag in security_tags:
-            filters = {"xip.security_descriptor": tag, "xip.document_type": "IO", "xip.parent_ref": "*"}
+            filters = {"xip.security_descriptor": tag, "xip.document_type": "IO", "xip.top_level_so": parent_collection}
             hits = self._search_index_filter_hits(query="%", filter_values=filters)
             results[tag] = hits
 

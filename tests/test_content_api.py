@@ -64,6 +64,16 @@ def test_simple_search_list():
     assert results.pop()['xip.reference'] == '9fd239eb-19a3-4a46-9495-40fd9a5d8f93'
 
 
+def test_simple_search_list2():
+    client = ContentAPI()
+
+    columns = ["xip.reference", "xip.title", "xip.description", "xip.document_type"]
+
+    results = list(client.simple_search_list("pyPreservica", 25, columns))
+    assert len(results) == 1
+    assert results.pop()['xip.reference'] == '9fd239eb-19a3-4a46-9495-40fd9a5d8f93'
+
+
 def test_field_search():
     search = ContentAPI()
     for result in search.search_index_filter_list(query="%", filter_values={"xip.security_descriptor": "open",

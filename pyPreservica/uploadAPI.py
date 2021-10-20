@@ -778,6 +778,21 @@ def multi_asset_package(asset_file_list=None, export_folder=None, parent_folder=
             logger.error("Could Not Find Fixity Value")
             raise RuntimeError("Could Not Find Fixity Value")
 
+        if 'Identifiers' in kwargs:
+            identifier_map = kwargs.get('Identifiers')
+            if str(file) in identifier_map:
+                identifier_map_values = identifier_map[str(file)]
+                for identifier_key, identifier_value in identifier_map_values.items():
+                    if identifier_key:
+                        if identifier_value:
+                            identifier = SubElement(xip, 'Identifier')
+                            id_type = SubElement(identifier, "Type")
+                            id_type.text = identifier_key
+                            id_value = SubElement(identifier, "Value")
+                            id_value.text = identifier_value
+                            id_io = SubElement(identifier, "Entity")
+                            id_io.text = io_ref
+
         src_file = file
         dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(file))
         shutil.copyfile(src_file, dst_file)
