@@ -211,9 +211,9 @@ Fetch the full set of user details, such as full name, email address and roles
 
     client = AdminAPI()
 
-    for user in client.user_details(username):
-        print(user['FullName'])
-        print(user['Email'])
+    user = client.user_details(username):
+    print(user['FullName'])
+    print(user['Email'])
 
 
 Create new user accounts
