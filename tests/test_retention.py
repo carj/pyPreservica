@@ -122,3 +122,12 @@ def test_add_assignments():
     retention.remove_assignments(retention_assignment)
 
     retention.assignable_policy(policy.reference, False)
+
+
+def test_zdelete_policy():
+    retention = RetentionAPI()
+    for policy in retention.policies():
+        if policy.name == "API Created Policy1":
+            retention.delete_policy(policy.reference)
+
+

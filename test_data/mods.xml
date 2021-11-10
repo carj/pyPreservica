@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mods xmlns="http://www.loc.gov/mods/v31" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-4.xsd" version="3.4">
+    <recordInfo>
+        <recordIdentifier>MODS Identifier</recordIdentifier>
+        <recordOrigin>Title</recordOrigin>
+        <recordCreationDate></recordCreationDate>
+        <descriptionStandard>Rules/conditions (protocols used for description)</descriptionStandard>
+    </recordInfo>
+
+    <titleInfo>
+
+        <title>Enter Title</title>
+
+    </titleInfo>
+
+    <name>
+
+        <namePart>Creator Name</namePart>
+
+        <role>
+
+            <roleTerm type="text">Creator</roleTerm>
+
+        </role>
+
+    </name>
+
+    <typeOfResource>software, multimedia</typeOfResource>
+
+    <originInfo>
+
+        <dateCreated></dateCreated>
+
+        <dateOther></dateOther>
+
+    </originInfo>
+
+    <language>
+
+        <languageTerm>Language</languageTerm>
+
+    </language>
+
+    <physicalDescription>
+
+        <extent>Extent and media</extent>
+        <form>Physical characteristics / technical requirements</form>
+        <note type="arrangement" displayLabel="System of arrangement">System of arrangement</note>
+
+    </physicalDescription>
+
+    <note type="biographyHistory" displayLabel="Biography or History">Administrative/biographical history</note>
+    <note type="history" displayLabel="Custodial history">Archival history</note>
+    <note type="acquisition" displayLabel="Acquisition Information">Immediate source of acquisition</note>
+    <note type="appraisal" displayLabel="Appraisal Information">Appraisal, destruction and scheduling info</note>
+    <note type="accrual" displayLabel="Accrual Information">Accruals (yes/no, quantity and frequency)</note>
+    <accessCondition type="access" displayLabel="Conditions governing access">Conditions governing access</accessCondition>
+    <accessCondition type="use" displayLabel="Conditions governing use">Conditions governing reproduction</accessCondition>
+
+    <subject>
+
+        <topic>Scope and content</topic>
+
+    </subject>
+    <relatedItem type="host" displayLabel="Other finding aids">
+        <titleInfo>
+            <title>Finding aids</title>
+        </titleInfo>
+    </relatedItem>
+    <location>
+        <physicalLocation type="original" displayLabel="Location of Originals">Location of Originals</physicalLocation>
+    </location>
+    <relatedItem type="otherVersion" displayLabel="Alternative Form Available">
+        <titleInfo>
+            <title>Enter Title</title>
+        </titleInfo>
+    </relatedItem>
+    <relatedItem type="references" displayLabel="Material referenced">
+        <titleInfo>
+            <title>Related records</title>
+        </titleInfo>
+    </relatedItem>
+    <relatedItem type="isReferencedBy" displayLabel="Referencing material">
+        <titleInfo>
+            <title>Related records</title>
+        </titleInfo>
+    </relatedItem>
+    <note type="bibliography" displayLabel="Bibliography">Note</note>
+    <note type="other" displayLabel="Other descriptive data">Note</note>
+    <note type="processinfo" displayLabel="Processing Information">Archivist's notes</note>
+</mods>

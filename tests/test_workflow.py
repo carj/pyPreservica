@@ -27,11 +27,11 @@ def test_get_workflow_contexts_type():
     assert len(workflows) == 5
 
     workflows = workflow.get_workflow_contexts_by_type("Access")
-    assert len(workflows) == 6
+    assert len(workflows) == 5
 
     workflows = workflow.get_workflow_contexts_by_type("Transformation")
-    assert len(workflows) == 2
+    assert len(workflows) == 1
 
     workflows = workflow.get_workflow_contexts_by_type("DataManagement")
-    assert len(workflows) == 13
+    assert len(workflows) == 14
 

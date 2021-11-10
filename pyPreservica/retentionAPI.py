@@ -221,7 +221,7 @@ class RetentionAPI(AuthenticatedAPI):
 
         xml_request = xml.etree.ElementTree.tostring(retention_policy, encoding='utf-8')
 
-        request = self.session.put(f'https://{self.server}/api/entity/retention-policies', data=xml_request,
+        request = self.session.put(f'https://{self.server}/api/entity/retention-policies/{reference}', data=xml_request,
                                    headers=headers)
         if request.status_code == requests.codes.ok:
             return self.policy(reference)
@@ -229,8 +229,8 @@ class RetentionAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.update_policy(reference, **kwargs)
         else:
-            print(str(request.content.decode('utf-8')))
-            raise RuntimeError(request.status_code, "update_policy failed")
+            logger.error(str(request.content.decode('utf-8')))
+            raise RuntimeError(request.status_code, "update_policy failed " + str(request.content.decode('utf-8')))
 
     def create_policy(self, **kwargs):
         """

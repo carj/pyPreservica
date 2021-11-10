@@ -34,14 +34,14 @@ Entity API Features
 -  Replace existing content objects within an Asset
 -  Export OPEX Package
 -  Fetch audit trail events on Entities and across the repository
--  Create Relationships between Assets (**New in 6.3**)
+-  Create Relationships between Assets
 
 Content API Features
 ---------------------
 
 -  Fetch a list of indexed Solr Fields
 -  Search based on a single query term
--  Security tag report (**New in 6.3**)
+-  Filtered searches on indexed fields
 
 Upload API Features
 ---------------------
@@ -53,7 +53,18 @@ Upload API Features
 -  Ingest Web Video
 -  Ingest Twitter Feeds
 
+Admin API Features
+---------------------
+-  Schema Management (XML Templates, XSD Schema's & XSLT Transforms) (**New**)
+-  User Management (create and remove user accounts)  (**New**)
+-  Security Tags (add and remove security tags)   (**New**)
 
+Retention Management API Features
+------------------------------------
+-  Create new retention policies (**New**)
+-  Delete retention policies (**New**)
+-  Update retention policies (**New**)
+-  Assign retention policies to entities (**New**)
 
 
 Background

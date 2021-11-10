@@ -712,10 +712,10 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
 
 
-Retention API
-^^^^^^^^^^^^^^
+Retention Management API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-https://eu.preservica.com/api/entity/documentation.html
+https://eu.preservica.com/api/entity/documentation.html#/%2Fretention-policies
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: RetentionPolicy
@@ -732,11 +732,25 @@ Workflow API
 .. note::
     The Workflow API is available for Enterprise Preservica users
 
-https://preview.preservica.com/sdb/rest/workflow/documentation.html
+https://eu.preservica.com/api/admin/documentation.html
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: WorkflowContext
 .. autoclass:: WorkflowInstance
 .. autoclass:: WorkflowAPI
      :members:
+
+
+Administration and Management  API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+    The Administration and Management API needs to be enabled by the help desk.
+
+https://eu.preservica.com/sdb/rest/workflow/documentation.html
+
+.. py:currentmodule:: pyPreservica
+.. autoclass:: AdminAPI
+     :members:
+
 

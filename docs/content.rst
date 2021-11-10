@@ -177,7 +177,7 @@ callback contains the total number of search hits for the query and the current 
     client.search_callback(CallBack())
 
 
-Security Tag Reports
+User Security Tags
 ^^^^^^^^^^^^^^^^^^^^^
 
 You can get a list of available security tags for the current user by calling:
@@ -187,21 +187,5 @@ You can get a list of available security tags for the current user by calling:
     client = ContentAPI()
 
     client.user_security_tags()
-
-
-To generate a report which provides the number of Assets against each security tag use:
-
-.. code-block:: python
-
-    client = ContentAPI()
-
-    client.report_security_tag_frequency("security_report.svg")
-
-This creates a graphical report which displays the frequency of each security tag with the ability to hover
-over the values.
-
-
-.. raw:: html
-    :file: images/security_report.svg
 
 

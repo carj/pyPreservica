@@ -15,10 +15,6 @@ from time import sleep
 import xml.etree.ElementTree
 from typing import Optional, Any, Generator, Dict, Tuple
 
-import pygal
-from pygal import Config
-from pygal.style import DarkStyle, LightStyle, BlueStyle
-
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
@@ -41,9 +37,9 @@ class EntityAPI(AuthenticatedAPI):
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
 
-    def user_security_tags(self, with_permissions: bool = False):
+    def user_security_tags(self, with_permissions: bool = False) -> dict:
         """
-             Return available security tags
+             Return  security tags available for the  current user
 
              :return: dict of security tags
              :rtype:  dict
@@ -265,7 +261,7 @@ class EntityAPI(AuthenticatedAPI):
                 self.token = self.__token__()
                 return self.download(entity, filename)
             else:
-                logger.error(req)
+                logger.error(req.text)
                 raise RuntimeError(req.status_code, "download failed")
 
     def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE):
@@ -291,7 +287,7 @@ class EntityAPI(AuthenticatedAPI):
                 self.token = self.__token__()
                 return self.thumbnail(entity, filename, size=size)
             else:
-                logger.error(req)
+                logger.error(req.text)
                 raise RuntimeError(req.status_code, "thumbnail failed")
 
     def delete_identifiers(self, entity: Entity, identifier_type: str = None, identifier_value: str = None):

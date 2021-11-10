@@ -14,10 +14,12 @@ from .uploadAPI import UploadAPI, simple_asset_package, complex_asset_package, c
 from .workflowAPI import WorkflowAPI, WorkflowContext, WorkflowInstance
 from .retentionAPI import RetentionAPI, RetentionAssignment, RetentionPolicy
 from .parAPI import PreservationActionRegistry
+from .adminAPI import AdminAPI
+
 
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "1.1.12"
+__version__ = "1.2.0"
 
 __license__ = "Apache License Version 2.0"

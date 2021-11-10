@@ -216,6 +216,8 @@ page of a book should be the first item added to the list.
 
 
 
+
+
 Custom Fixity Generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -287,6 +289,162 @@ The equivalent to the code above would be:
 
     package_path = multi_asset_package(preservation_file=files, parent_folder=folder)
     client.upload_zip_package(path_to_zip_package=package_path)
+
+
+
+Package Examples
+^^^^^^^^^^^^^^^^^^^^
+
+The following code samples show different ways of ingesting data into Preservica for different use cases.
+
+Ingest a single digital file as an asset, with a progress bar during upload, delete the package after upload has completed.
+-----------------------------------------------------------------------------------------------------------------------------
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    upload = UploadAPI()
+
+    folder = "54308774-4822-4593-a8ad-970ca511caa0"
+
+    image = "./data/file.jpg"
+
+    # Create a simple package with 1 Asset and Representation and 1 CO
+    package = simple_asset_package(preservation_file=image, parent_folder=folder)
+
+    # Send the package via the S3 ingest bucket
+    # use the bucket name attached to the ingest workflow you want to use
+
+    bucket = "com.preservica.upload"
+
+    callback=UploadProgressCallback(package)
+
+    upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, callback=callback, delete_after_upload=True)
+
+Ingest a single digital file as an asset, with a custom asset Title and Description
+---------------------------------------------------------------------------------------
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    upload = UploadAPI()
+
+    folder = "54308774-4822-4593-a8ad-970ca511caa0"
+
+    image = "./data/file.jpg"
+
+    title = "The Asset Title"
+    description = "The Asset Description"
+
+    # Create a simple package with 1 Asset and Representation and 1 CO
+    package = simple_asset_package(preservation_file=image, parent_folder=folder, Title=title, Description=description)
+
+    # Send the package via the S3 ingest bucket
+    # use the bucket name attached to the ingest workflow you want to use
+    bucket = "com.preservica.upload"
+    callback=UploadProgressCallback(package)
+    upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, callback=callback, delete_after_upload=True)
+
+
+Ingest each jpeg file in a directory as an individual asset
+--------------------------------------------------------------
+
+.. code-block:: python
+
+    import glob
+    from pyPreservica import *
+
+    upload = UploadAPI()
+
+    folder = "54308774-4822-4593-a8ad-970ca511caa0"
+
+    directory = "./data/*.jpg"
+
+    # Create simple packages with 1 Asset and 1 CO for every file in the folder
+    bucket = "com.preservica.upload"
+    for image in glob.glob(directory):
+        package = simple_asset_package(preservation_file=image, parent_folder=folder)
+        upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket)
+
+
+Ingest a single digital file as an asset with a 3rd party identifier and custom metadata
+------------------------------------------------------------------------------------------
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    upload = UploadAPI()
+
+    folder = "54308774-4822-4593-a8ad-970ca511caa0"
+
+    image = "./data/file.jpg"
+
+    # Set the Asset Title and Description
+
+    title = "My Assst Title"
+    description = "My Assst Description"
+
+    # Add 3rd Party Identifiers
+
+    identifiers = {"ISBN": "123-4567-938"}
+
+    # Add Description metadata
+
+    metadata = {"https://www.example.com/metadata": "./metadata/dc.xml"}
+
+    package = simple_asset_package(preservation_file=image, parent_folder=folder,
+                                    Title=title, Description=description, Identifiers=identifiers, Asset_Metadata=metadata)
+
+    bucket = "com.preservica.upload"
+
+    upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, delete_after_upload=True)
+
+
+Create a single Asset with 2 Representations (Preservation and Access) each Representation has 1 Content Object
+------------------------------------------------------------------------------------------------------------------
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    upload = UploadAPI()
+
+    folder = "54308774-4822-4593-a8ad-970ca511caa0"
+
+    access_image = "./jpeg/file.jpg"
+    preservation_image = "./tiff/file.tif"
+
+    package = simple_asset_package(preservation_file=preservation_image, access_file=access_image,
+                                    parent_folder=folder)
+
+    bucket = "com.preservica.upload"
+    upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, delete_after_upload=True)
+
+Create a package with 1 Asset 2 Representations (Preservation and Access) and multiple Content Objects (one for every image)
+------------------------------------------------------------------------------------------------------------------------------
+
+
+.. code-block:: python
+
+    import glob
+    from pyPreservica import *
+
+    upload = UploadAPI()
+
+    folder = "54308774-4822-4593-a8ad-970ca511caa0"
+
+    access_images = "./data/*.jpg"
+    preservation_images = "./data2/*.tif"
+
+    package = complex_asset_package(preservation_files_list=glob.glob(preservation_images),
+                                    access_files_list=glob.glob(access_images),
+                                    parent_folder=folder)
+
+    bucket = "com.preservica.upload"
+    upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, delete_after_upload=True)
 
 
 

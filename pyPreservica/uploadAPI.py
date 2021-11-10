@@ -1114,7 +1114,7 @@ def _unpad(s):
 class UploadAPI(AuthenticatedAPI):
 
     def ingest_tweet(self, twitter_user=None, tweet_id: int = 0, twitter_consumer_key=None,
-                            twitter_secret_key=None, folder=None, callback=None, **kwargs):
+                     twitter_secret_key=None, folder=None, callback=None, **kwargs):
 
         """
             Ingest tweets from a twitter stream by twitter username
@@ -1294,7 +1294,6 @@ class UploadAPI(AuthenticatedAPI):
             for ob in content_objects:
                 os.remove(ob)
             os.remove("metadata.xml")
-
 
     def ingest_twitter_feed(self, twitter_user=None, num_tweets: int = 25, twitter_consumer_key=None,
                             twitter_secret_key=None, folder=None, callback=None, **kwargs):
@@ -1593,6 +1592,83 @@ class UploadAPI(AuthenticatedAPI):
                     buckets[self.__convert_(xml_tag, sip_location.text)] = self.__convert_(xml_tag, sip_location.attrib[
                         'region'])
         return buckets
+
+    """
+    def ingest_folder_structure(self, folder_path, bucket_name, parent_folder, callback=None,
+                                security_tag: str = "open",
+                                delete_after_upload=True, max_MB_ingested: int = -1):
+
+        def get_parent(client, code, parent_ref):
+            identifier = str(os.path.dirname(code))
+            if not identifier:
+                identifier = code
+            entities = client.identifier("code", identifier)
+            if len(entities) > 0:
+                folder = entities.pop()
+                folder = client.folder(folder.reference)
+                return folder.reference
+            else:
+                return parent
+
+        def get_folder(client, name, security_tag, parent_ref, code):
+            entities = client.identifier("code", code)
+            if len(entities) == 0:
+                logger.info(f"Creating new folder with name {name}")
+                folder = client.create_folder(name, name, security_tag, parent_ref)
+                client.add_identifier(folder, "code", code)
+            else:
+                logger.info(f"Found existing folder with name {name}")
+                folder = entities.pop()
+            return folder
+
+        from pyPreservica import EntityAPI
+        entity_client = EntityAPI()
+
+        if parent_folder:
+            parent = entity_client.folder(parent_folder)
+            logger.info(f"Folders will be created inside Preservica collection {parent.title}")
+            parent = parent.reference
+        else:
+            parent = None
+
+        bytes_ingested = 0
+
+        folder_path = os.path.normpath(folder_path)
+
+        for dirname, subdirs, files in os.walk(folder_path):
+            base = os.path.basename(dirname)
+            code = os.path.relpath(dirname, Path(folder_path).parent)
+            f = get_folder(base, security_tag, get_parent(code, parent), code)
+            identifiers = dict()
+            for file in list(files):
+                full_path = os.path.join(dirname, file)
+                if os.path.islink(full_path):
+                    logger.info(f"Skipping link {file}")
+                    files.remove(file)
+                    continue
+                asset_code = os.path.join(code, file)
+                if len(entity_client.identifier("code", asset_code)) == 0:
+                    bytes_ingested = bytes_ingested + os.stat(full_path).st_size
+                    logger.info(f"Adding new file: {file} to package ready for upload")
+                    file_identifiers = {"code": asset_code}
+                    identifiers[full_path] = file_identifiers
+                else:
+                    logger.info(f"Skipping file {file} already exists in repository")
+                    files.remove(file)
+
+            if len(files) > 0:
+                full_path_list = [os.path.join(dirname, file) for file in files]
+                package = multi_asset_package(asset_file_list=full_path_list, parent_folder=f, SecurityTag=security_tag,
+                                              Identifiers=identifiers)
+                self.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket_name,
+                                              callback=callback, delete_after_upload=delete_after_upload)
+                logger.info(f"Uploaded " + "{:.1f}".format(bytes_ingested / (1024 * 1024)) + " MB")
+
+                if max_MB_ingested > 0:
+                    if bytes_ingested > (1024 * 1024 * max_MB_ingested):
+                        logger.info(f"Reached Max Upload Limit")
+                        break
+    """
 
     def upload_zip_package_to_S3(self, path_to_zip_package, bucket_name, folder=None, callback=None,
                                  delete_after_upload=False):

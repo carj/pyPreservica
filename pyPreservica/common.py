@@ -10,6 +10,7 @@ licence:    Apache License 2.0
 
 import configparser
 import hashlib
+import json
 import os
 import sys
 import threading
@@ -33,6 +34,8 @@ NS_RM_ROOT = "http://preservica.com/RetentionManagement/"
 NS_SEC_ROOT = "http://preservica.com/SecurityAPI"
 
 NS_WORKFLOW = "http://workflow.preservica.com"
+
+NS_ADMIN = "http://preservica.com/AdminAPI"
 
 NS_XIP_V6 = "http://preservica.com/XIP/v6.0"
 NS_ENTITY = "http://preservica.com/EntityAPI/v6.0"
@@ -498,9 +501,23 @@ class AuthenticatedAPI:
     Base class for authenticated calls which need an access token
     """
 
-    def security_tags_base(self, with_permissions: bool = False):
+    def __find_user_roles_(self):
         """
-             Return available security tags
+        Get a list of roles for the user
+        :return list of roles:
+        """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        request = self.session.get(f"https://{self.server}/api/user/details", headers=headers)
+        if request.status_code == requests.codes.ok:
+            roles = json.loads(str(request.content.decode('utf-8')))['roles']
+            return roles
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.__find_user_roles_()
+
+    def security_tags_base(self, with_permissions: bool = False) -> dict:
+        """
+             Return  security tags available for the  current user
 
              :return: dict of security tags
              :rtype:  dict
@@ -568,6 +585,7 @@ class AuthenticatedAPI:
                 self.entity_ns = f"{NS_ENTITY_ROOT}v{self.major_version}.{self.minor_version}"
                 self.rm_ns = f"{NS_RM_ROOT}v{self.major_version}.{2}"
                 self.sec_ns = f"{NS_SEC_ROOT}/v{self.major_version}.{self.minor_version}"
+                self.admin_ns = f"{NS_ADMIN}/v{self.major_version}.{self.minor_version}"
 
     def __version_number__(self):
         """
@@ -593,7 +611,7 @@ class AuthenticatedAPI:
             RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.3 Compatible) " \
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.4 Compatible) " \
                f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
                f"in tenancy {self.tenant}"
 
@@ -601,7 +619,7 @@ class AuthenticatedAPI:
         return self.__str__()
 
     def save_config(self):
-        config = configparser.ConfigParser(interpolation=None)
+        config = configparser.RawConfigParser(interpolation=None)
         config['credentials'] = {'username': self.username, 'password': self.password, 'tenant': self.tenant,
                                  'server': self.server}
         with open('credentials.properties', 'wt', encoding="utf-8") as configfile:
@@ -717,7 +735,7 @@ class AuthenticatedAPI:
         self.token = self.__token__()
         self.version = self.__version_number__()
         self.__version_namespace__()
+        self.roles = self.__find_user_roles_()
 
-        logger.debug(str(self))
         logger.debug(self.xip_ns)
         logger.debug(self.entity_ns)

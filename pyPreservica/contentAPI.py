@@ -295,32 +295,9 @@ class ContentAPI(AuthenticatedAPI):
                 values = value.split(":")
                 self.total = int(values[1])
                 self.current = int(values[0])
-                percentage = (self.current / self.total) * 100
+                if self.total == 0:
+                    percentage = 100.0
+                else:
+                    percentage = (self.current / self.total) * 100
                 sys.stdout.write("\rProcessing Hits %s from %s  (%.2f%%)" % (self.current, self.total, percentage))
                 sys.stdout.flush()
-
-    def report_security_tag_frequency(self, report_name="security_report.svg",
-                                      chart_Title: str = "Security Tag Frequency",
-                                      chart_XTitle: str = 'Number of Assets',
-                                      chart_YTitle: str = 'Security Tag', parent_collection: str = '*'):
-        import pygal
-        from pygal.style import BlueStyle
-
-        security_tags = self.security_tags_base(with_permissions=False)
-        results = {}
-        for tag in security_tags:
-            filters = {"xip.security_descriptor": tag, "xip.document_type": "IO", "xip.top_level_so": parent_collection}
-            hits = self._search_index_filter_hits(query="%", filter_values=filters)
-            results[tag] = hits
-
-        bar_chart = pygal.HorizontalBar(show_legend=False)
-        bar_chart.title = chart_Title
-        bar_chart.style = BlueStyle
-        bar_chart.x_title = chart_XTitle
-        bar_chart.x_labels = results.keys()
-        bar_chart.add(chart_YTitle, results)
-
-        bar_chart.render_to_file(report_name)
-
-        sys.stdout.write("\nReport Completed. Open file " + report_name + " in your browser")
-        sys.stdout.flush()
