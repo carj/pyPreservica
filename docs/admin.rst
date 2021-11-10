@@ -278,11 +278,12 @@ You can generate a report of security tag frequency usage using the pygal librar
         from pygal.style import BlueStyle
 
         client = AdminAPI()
+        search = ContentAPI()
         security_tags = client.security_tags()
         results = {}
         for tag in security_tags:
             filters = {"xip.security_descriptor": tag, "xip.document_type": "IO", "xip.top_level_so": parent_collection}
-            hits = self._search_index_filter_hits(query="%", filter_values=filters)
+            hits = search._search_index_filter_hits(query="%", filter_values=filters)
             results[tag] = hits
 
         bar_chart = pygal.HorizontalBar(show_legend=False)
