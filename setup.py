@@ -32,7 +32,7 @@ setup(
         "Topic :: System :: Archiving",
     ],
     keywords='Preservica API Preservation',
-    install_requires=["requests", "certifi", "boto3", "botocore", "s3transfer", "cryptography", "sphinx-rtd-dark-mode"],
+    install_requires=["requests", "certifi", "boto3", "botocore", "s3transfer", "cryptography"],
     project_urls={
         'Documentation': 'https://pypreservica.readthedocs.io',
         'Source': 'https://github.com/carj/pyPreservica',
