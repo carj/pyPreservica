@@ -11,7 +11,6 @@ master_doc = 'index'
 html_logo = "images/logo1.JPG"
 
 extensions = [
-    'sphinx_rtd_dark_mode',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
