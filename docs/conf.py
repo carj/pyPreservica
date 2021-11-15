@@ -15,11 +15,12 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinx_rtd_theme',
     'sphinx.ext.todo',
     "sphinx_rtd_dark_mode",
 ]
 
-html_theme = "sphinx_rtd_dark_mode"
+html_theme = "sphinx_rtd_theme"
 
 default_dark_mode = False
 
