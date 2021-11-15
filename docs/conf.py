@@ -20,7 +20,7 @@ extensions = [
     "sphinx_rtd_dark_mode",
 ]
 
-html_theme = "sphinx_rtd_dark_mode"
+html_theme = "sphinx_rtd_theme"
 
 default_dark_mode = False
 
