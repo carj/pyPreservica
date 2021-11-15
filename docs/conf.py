@@ -22,7 +22,7 @@ extensions = [
 
 html_theme = "sphinx_rtd_dark_mode"
 
-default_dark_mode = True
+default_dark_mode = False
 
 version = __version__
 
