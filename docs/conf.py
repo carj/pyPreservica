@@ -1,4 +1,5 @@
 import sphinx_rtd_theme
+import sphinx_rtd_dark_mode
 import os
 import sys
 from pyPreservica import __version__
