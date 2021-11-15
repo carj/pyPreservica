@@ -10,8 +10,6 @@ master_doc = 'index'
 
 html_logo = "images/logo1.JPG"
 
-html_theme = "sphinx_rtd_theme"
-
 extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
@@ -22,7 +20,7 @@ extensions = [
     "sphinx_rtd_dark_mode",
 ]
 
-
+html_theme = "sphinx_rtd_dark_mode"
 
 default_dark_mode = True
 
