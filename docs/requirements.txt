@@ -5,3 +5,4 @@ botocore
 s3transfer
 cryptography
 sphinx-rtd-dark-mode
+pyPreservica
