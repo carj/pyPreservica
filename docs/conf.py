@@ -9,6 +9,8 @@ master_doc = 'index'
 
 html_logo = "images/logo1.JPG"
 
+html_theme = "sphinx_rtd_theme"
+
 extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
@@ -16,15 +18,16 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx_rtd_theme',
     'sphinx.ext.todo',
+    "sphinx_rtd_dark_mode",
 ]
 
-html_theme = "sphinx_rtd_theme"
+
+
+default_dark_mode = True
 
 version = __version__
 
 pygments_style = 'default'
-
-
 
 source_suffix = ".rst"
 

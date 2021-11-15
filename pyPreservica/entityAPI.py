@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from time import sleep
 import xml.etree.ElementTree
-from typing import Optional, Any, Generator, Dict, Tuple
+from typing import Optional, Any, Generator,  Tuple
 
 from pyPreservica.common import *
 
@@ -555,7 +555,7 @@ class EntityAPI(AuthenticatedAPI):
             links = entity_response.findall(f'.//{{{self.entity_ns}}}Link')
             next_url = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}Next')
             total_hits = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}TotalResults')
-            results = list()
+            results = []
             for link in links:
                 link_type = link.attrib['linkType']
                 link_direction = link.attrib['linkDirection']
@@ -1138,7 +1138,7 @@ class EntityAPI(AuthenticatedAPI):
             return None
         request = self.session.get(f'{representation.url}', headers=headers)
         if request.status_code == requests.codes.ok:
-            results = list()
+            results = []
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
@@ -1175,7 +1175,7 @@ class EntityAPI(AuthenticatedAPI):
             format_group = entity_response.find(f'.//{{{self.xip_ns}}}FormatGroup')
             effective_date = entity_response.find(f'.//{{{self.xip_ns}}}EffectiveDate')
             bitstreams = entity_response.findall(f'./{{{self.entity_ns}}}Bitstreams/{{{self.entity_ns}}}Bitstream')
-            bitstream_list = list()
+            bitstream_list = []
             for bit in bitstreams:
                 bitstream_list.append(self.bitstream(bit.text))
             return Generation(bool(strtobool(ge.attrib['original'])), bool(strtobool(ge.attrib['active'])),
@@ -1206,7 +1206,7 @@ class EntityAPI(AuthenticatedAPI):
 
             next_url = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}Next')
             total_hits = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}TotalResults')
-            results = list()
+            results = []
             for history in histories:
                 xip_type = history.find(f'./{{{self.xip_ns}}}Type')
                 xip_success = history.find(f'./{{{self.xip_ns}}}Success')
@@ -1270,7 +1270,7 @@ class EntityAPI(AuthenticatedAPI):
             filesize = entity_response.find(f'.//{{{self.xip_ns}}}FileSize')
             fixity_values = entity_response.findall(f'.//{{{self.xip_ns}}}Fixity')
             content = entity_response.find(f'.//{{{self.entity_ns}}}Content')
-            fixity = dict()
+            fixity = {}
             for f in fixity_values:
                 fixity[f[0].text] = f[1].text
             bitstream = Bitstream(filename.text if hasattr(filename, 'text') else None,
@@ -1366,7 +1366,7 @@ class EntityAPI(AuthenticatedAPI):
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             generations = entity_response.findall(f'.//{{{self.entity_ns}}}Generation')
-            result = list()
+            result = []
             for g in generations:
                 if hasattr(g, 'text'):
                     generation = self.generation(g.text)
@@ -1496,10 +1496,10 @@ class EntityAPI(AuthenticatedAPI):
          :param folder: The folder to find children of
          """
         self.token = self.__token__()
-        for e in self.descendants(folder=folder):
-            yield e
-            if e.entity_type == EntityType.FOLDER:
-                yield from self.all_descendants(folder=e.reference)
+        for entity in self.descendants(folder=folder):
+            yield entity
+            if entity.entity_type == EntityType.FOLDER:
+                yield from self.all_descendants(folder=entity.reference)
 
     def descendants(self, folder: Any = None) -> Generator:
         maximum = 100
@@ -1536,13 +1536,13 @@ class EntityAPI(AuthenticatedAPI):
             result = set()
             next_url = entity_response.find(f'.//{{{self.entity_ns}}}Next')
             total_hits = entity_response.find(f'.//{{{self.entity_ns}}}TotalResults')
-            for c in children:
-                if c.attrib['type'] == EntityType.FOLDER.value:
-                    f = Folder(c.attrib['ref'], c.attrib['title'], None, None, folder_reference, None)
-                    result.add(f)
+            for child in children:
+                if child.attrib['type'] == EntityType.FOLDER.value:
+                    folder = Folder(child.attrib['ref'], child.attrib['title'], None, None, folder_reference, None)
+                    result.add(folder)
                 else:
-                    a = Asset(c.attrib['ref'], c.attrib['title'], None, None, folder_reference, None)
-                    result.add(a)
+                    asset = Asset(child.attrib['ref'], child.attrib['title'], None, None, folder_reference, None)
+                    result.add(asset)
             has_more = True
             url = None
             if next_url is None:
@@ -1606,26 +1606,25 @@ class EntityAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             events = entity_response.findall(f'.//{{{self.xip_ns}}}Event')
-            result_list = list()
-            for e in events:
-                result = dict()
-                result['eventType'] = e.attrib['type']
-                date_node = e.find(f'.//{{{self.xip_ns}}}Date')
+            result_list = []
+            for event in events:
+                result = {'eventType': event.attrib['type']}
+                date_node = event.find(f'.//{{{self.xip_ns}}}Date')
                 result['Date'] = date_node.text if hasattr(date_node, 'text') else None
-                user_node = e.find(f'.//{{{self.xip_ns}}}User')
+                user_node = event.find(f'.//{{{self.xip_ns}}}User')
                 result['User'] = user_node.text if hasattr(user_node, 'text') else None
-                ref_node = e.find(f'.//{{{self.xip_ns}}}Ref')
+                ref_node = event.find(f'.//{{{self.xip_ns}}}Ref')
                 result['Ref'] = ref_node.text if hasattr(ref_node, 'text') else None
 
-                workflow_name = e.find(f'.//{{{self.xip_ns}}}WorkflowName')
+                workflow_name = event.find(f'.//{{{self.xip_ns}}}WorkflowName')
                 if workflow_name is not None:
                     result['WorkflowName'] = workflow_name.text
 
-                workflow_instance_id = e.find(f'.//{{{self.xip_ns}}}WorkflowInstanceId')
+                workflow_instance_id = event.find(f'.//{{{self.xip_ns}}}WorkflowInstanceId')
                 if workflow_instance_id is not None:
                     result['WorkflowInstanceId'] = workflow_instance_id.text
 
-                serialised_command = e.find(f'.//{{{self.xip_ns}}}SerialisedCommand')
+                serialised_command = event.find(f'.//{{{self.xip_ns}}}SerialisedCommand')
                 if serialised_command is not None:
                     result['SerialisedCommand'] = serialised_command.text
 
@@ -1669,10 +1668,9 @@ class EntityAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             event_actions = entity_response.findall(f'.//{{{self.xip_ns}}}EventAction')
-            result_list = list()
+            result_list = []
             for event_action in event_actions:
-                result = dict()
-                result['commandType'] = event_action.attrib['commandType']
+                result = {'commandType': event_action.attrib['commandType']}
                 event = event_action.find(f'.//{{{self.xip_ns}}}Event')
                 result['eventType'] = event.attrib['type']
                 date_node = event.find(f'.//{{{self.xip_ns}}}Date')
@@ -1751,17 +1749,17 @@ class EntityAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             entities = entity_response.findall(f'.//{{{self.entity_ns}}}Entity')
-            result = list()
-            for e in entities:
-                if 'type' in e.attrib:
-                    if e.attrib['type'] == EntityType.FOLDER.value:
-                        f = Folder(e.attrib['ref'], e.attrib['title'], None, None, None, None)
+            result = []
+            for entity in entities:
+                if 'type' in entity.attrib:
+                    if entity.attrib['type'] == EntityType.FOLDER.value:
+                        f = Folder(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                         result.append(f)
-                    elif e.attrib['type'] == EntityType.ASSET.value:
-                        a = Asset(e.attrib['ref'], e.attrib['title'], None, None, None, None)
+                    elif entity.attrib['type'] == EntityType.ASSET.value:
+                        a = Asset(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                         result.append(a)
-                    elif e.attrib['type'] == EntityType.CONTENT_OBJECT.value:
-                        c = ContentObject(e.attrib['ref'], e.attrib['title'], None, None, None, None)
+                    elif entity.attrib['type'] == EntityType.CONTENT_OBJECT.value:
+                        c = ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                         result.append(c)
             next_url = entity_response.find(f'.//{{{self.entity_ns}}}Next')
             total_hits = entity_response.find(f'.//{{{self.entity_ns}}}TotalResults')
@@ -1781,12 +1779,26 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, "updated_entities failed")
 
     def delete_asset(self, asset: Asset, operator_comment: str, supervisor_comment: str):
+        """
+        Delete an asset from the repository
+
+        :param asset:               The Asset
+        :param operator_comment:    The operator comment on the deletion
+        :param supervisor_comment:  The supervisor comment on the deletion
+        """
         if isinstance(asset, Asset):
             return self._delete_entity(asset, operator_comment, supervisor_comment)
         else:
             raise RuntimeError("delete_asset only deletes assets")
 
     def delete_folder(self, folder: Folder, operator_comment: str, supervisor_comment: str):
+        """
+         Delete an asset from the repository
+
+         :param folder:            The Folder
+         :param operator_comment:   The operator comment on the deletion
+         :param supervisor_comment:  The supervisor comment on the deletion
+         """
         if isinstance(folder, Folder):
             return self._delete_entity(folder, operator_comment, supervisor_comment)
         else:

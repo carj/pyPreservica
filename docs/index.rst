@@ -18,7 +18,7 @@ Release v\ |version|.
 .. image:: https://readthedocs.org/projects/pypreservica/badge/?version=latest
     :target: https://pypreservica.readthedocs.io/en/latest
 
-**pyPreservica** is simple client library for Python for accessing the Preservica APIs
+**pyPreservica** is an open source, python client for the Preservica APIs
 
 -------------------------------------------------------------------------------
 
