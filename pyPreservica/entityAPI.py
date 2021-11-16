@@ -8,12 +8,11 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-from distutils.util import strtobool
 import uuid
+import xml.etree.ElementTree
 from datetime import datetime, timedelta, timezone
 from time import sleep
-import xml.etree.ElementTree
-from typing import Optional, Any, Generator,  Tuple
+from typing import Optional, Any, Generator, Tuple
 
 from pyPreservica.common import *
 
@@ -396,14 +395,14 @@ class EntityAPI(AuthenticatedAPI):
             result = set()
             for entity in entity_list:
                 if entity.attrib['type'] == EntityType.FOLDER.value:
-                    f = Folder(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
-                    result.add(f)
+                    folder = Folder(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                    result.add(folder)
                 elif entity.attrib['type'] == EntityType.ASSET.value:
-                    a = Asset(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
-                    result.add(a)
+                    asset = Asset(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                    result.add(asset)
                 elif entity.attrib['type'] == EntityType.CONTENT_OBJECT.value:
-                    c = ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
-                    result.add(c)
+                    co = ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                    result.add(co)
             return result
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -515,12 +514,12 @@ class EntityAPI(AuthenticatedAPI):
         """
 
         paged_set = self.__relationships__(entity, maximum=page_size, next_page=None)
-        for entity in paged_set.results:
-            yield entity
+        for e in paged_set.results:
+            yield e
         while paged_set.has_more:
             paged_set = self.__relationships__(entity, maximum=page_size, next_page=paged_set.next_page)
-            for entity in paged_set.results:
-                yield entity
+            for e in paged_set.results:
+                yield e
 
     def __relationships__(self, entity: Entity, maximum: int = 50, next_page: str = None) -> PagedSet:
         """
@@ -573,7 +572,7 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 url = next_url.text
 
-            return PagedSet(results, has_more, total_hits.text, url)
+            return PagedSet(results, has_more, int(total_hits.text), url)
         elif request.status_code == requests.codes.unauthorized:
             self.__relationships__(entity=entity, maximum=maximum, next_page=next_page)
         else:
@@ -932,9 +931,9 @@ class EntityAPI(AuthenticatedAPI):
         :param entity:       The entity with the metadata
         :param schema:       The schema URI
         """
-        for u, s in entity.metadata.items():
-            if schema == s:
-                return self.metadata(u)
+        for uri, schema_name in entity.metadata.items():
+            if schema == schema_name:
+                return self.metadata(uri)
         return None
 
     def metadata_tag_for_entity(self, entity: Entity, schema: str, tag: str, isXpath: bool = False) -> str:
@@ -1178,7 +1177,7 @@ class EntityAPI(AuthenticatedAPI):
             bitstream_list = []
             for bit in bitstreams:
                 bitstream_list.append(self.bitstream(bit.text))
-            return Generation(bool(strtobool(ge.attrib['original'])), bool(strtobool(ge.attrib['active'])),
+            return Generation(strtobool(ge.attrib['original']), strtobool(ge.attrib['active']),
                               format_group.text if hasattr(format_group, 'text') else None,
                               effective_date.text if hasattr(effective_date, 'text') else None,
                               bitstream_list)
@@ -1753,14 +1752,14 @@ class EntityAPI(AuthenticatedAPI):
             for entity in entities:
                 if 'type' in entity.attrib:
                     if entity.attrib['type'] == EntityType.FOLDER.value:
-                        f = Folder(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
-                        result.append(f)
+                        folder = Folder(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                        result.append(folder)
                     elif entity.attrib['type'] == EntityType.ASSET.value:
-                        a = Asset(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
-                        result.append(a)
+                        asset = Asset(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                        result.append(asset)
                     elif entity.attrib['type'] == EntityType.CONTENT_OBJECT.value:
-                        c = ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
-                        result.append(c)
+                        co = ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
+                        result.append(co)
             next_url = entity_response.find(f'.//{{{self.entity_ns}}}Next')
             total_hits = entity_response.find(f'.//{{{self.entity_ns}}}TotalResults')
             has_more = True

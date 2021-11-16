@@ -10,6 +10,7 @@ licence:    Apache License 2.0
 """
 
 import csv
+import logging
 
 from pyPreservica.common import *
 
@@ -43,9 +44,18 @@ class ContentAPI(AuthenticatedAPI):
 
         return self.security_tags_base(with_permissions=with_permissions)
 
-    def object_details(self, entity_type, reference):
+    def object_details(self, entity_type, reference: str) -> dict:
+        """
+
+        :param entity_type:
+        :param reference:
+        :return: Dictionary of object attributes
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
-        params = {'id': f'sdb:{entity_type.value}|{reference}'}
+        if type(entity_type) == EntityType:
+            params = {'id': f'sdb:{entity_type.value}|{reference}'}
+        else:
+            params = {'id': f'sdb:{entity_type}|{reference}'}
         request = self.session.get(f'https://{self.server}/api/content/object-details', params=params, headers=headers)
         if request.status_code == requests.codes.ok:
             return request.json()["value"]
@@ -107,7 +117,7 @@ class ContentAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}
         results = self.session.get(f'https://{self.server}/api/content/indexed-fields', headers=headers)
         if results.status_code == requests.codes.ok:
-            fields = dict()
+            fields = {}
             for ob in results.json()["value"]:
                 field = f'{ob["shortName"]}.{ob["index"]}'
                 fields[field] = ob["uri"]
@@ -154,16 +164,16 @@ class ContentAPI(AuthenticatedAPI):
             metadata_fields = ','.join(list_indexes)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': query_term}
         results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
-        results_list = list()
+        results_list = []
         if results.status_code == requests.codes.ok:
-            json = results.json()
-            metadata = json['value']['metadata']
-            refs = list(json['value']['objectIds'])
+            json_doc = results.json()
+            metadata = json_doc['value']['metadata']
+            refs = list(json_doc['value']['objectIds'])
             refs = list(map(lambda x: content_api_identifier_to_type(x), refs))
-            hits = int(json['value']['totalHits'])
+            hits = int(json_doc['value']['totalHits'])
 
             for m_row, r_row in zip(metadata, refs):
-                results_map = dict()
+                results_map = {}
                 results_map['xip.reference'] = r_row[1]
                 for li in m_row:
                     results_map[li['name']] = li['value']
@@ -178,7 +188,7 @@ class ContentAPI(AuthenticatedAPI):
             return search_results
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self._simple_search(query, start_index, page_size, *args)
+            return self._simple_search(query, start_index, page_size, list_indexes)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"simple_search failed with error code: {results.status_code}")
@@ -186,7 +196,7 @@ class ContentAPI(AuthenticatedAPI):
     def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", filter_values: dict = None):
         page_size = 50
         if filter_values is None:
-            filter_values = dict()
+            filter_values = {}
         if "xip.reference" not in filter_values:
             filter_values["xip.reference"] = ""
 
@@ -213,7 +223,7 @@ class ContentAPI(AuthenticatedAPI):
         start_from = str(0)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
 
-        field_list = list()
+        field_list = []
         for key, value in filter_values.items():
             if value == "":
                 field_list.append('{' f' "name": "{key}", "values": [] ' + '}')
@@ -227,8 +237,8 @@ class ContentAPI(AuthenticatedAPI):
         payload = {'start': start_from, 'max': str(10), 'metadata': list(filter_values.keys()), 'q': query_term}
         results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         if results.status_code == requests.codes.ok:
-            json = results.json()
-            hits = int(json['value']['totalHits'])
+            json_doc = results.json()
+            hits = int(json_doc['value']['totalHits'])
             return hits
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -242,7 +252,7 @@ class ContentAPI(AuthenticatedAPI):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
 
-        field_list = list()
+        field_list = []
         for key, value in filter_values.items():
             if value == "":
                 field_list.append('{' f' "name": "{key}", "values": [] ' + '}')
@@ -254,18 +264,18 @@ class ContentAPI(AuthenticatedAPI):
         query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
 
         payload = {'start': start_from, 'max': str(page_size), 'metadata': list(filter_values.keys()), 'q': query_term}
+        logger.debug(payload)
         results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
-        results_list = list()
+        results_list = []
         if results.status_code == requests.codes.ok:
-            json = results.json()
-            metadata = json['value']['metadata']
-            refs = list(json['value']['objectIds'])
+            json_doc = results.json()
+            metadata = json_doc['value']['metadata']
+            refs = list(json_doc['value']['objectIds'])
             refs = list(map(lambda x: content_api_identifier_to_type(x), refs))
-            hits = int(json['value']['totalHits'])
+            hits = int(json_doc['value']['totalHits'])
 
             for m_row, r_row in zip(metadata, refs):
-                results_map = dict()
-                results_map['xip.reference'] = r_row[1]
+                results_map = {'xip.reference': r_row[1]}
                 for li in m_row:
                     results_map[li['name']] = li['value']
                 results_list.append(results_map)

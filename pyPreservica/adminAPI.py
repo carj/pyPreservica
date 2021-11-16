@@ -9,8 +9,8 @@ licence:    Apache License 2.0
 
 """
 
-from typing import List, Any
 import xml.etree.ElementTree
+from typing import List, Any
 
 from pyPreservica.common import *
 
@@ -309,7 +309,7 @@ class AdminAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             users = entity_response.findall(f'.//{{{self.admin_ns}}}User')
-            system_users = list()
+            system_users = []
             for user in users:
                 system_users.append(user.text)
             return system_users
@@ -573,7 +573,7 @@ class AdminAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             schemas = entity_response.findall(f'.//{{{self.admin_ns}}}Schema')
-            results = list()
+            results = []
             for schema in schemas:
                 schema_dict = {}
                 schema_uri = schema.find(f'.//{{{self.admin_ns}}}SchemaUri')
@@ -608,7 +608,7 @@ class AdminAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             transforms = entity_response.findall(f'.//{{{self.admin_ns}}}Transform')
-            results = list()
+            results = []
             for transform in transforms:
                 transform_dict = {}
                 to_schema_uri = transform.find(f'.//{{{self.admin_ns}}}ToSchemaUri')
@@ -742,9 +742,10 @@ class AdminAPI(AuthenticatedAPI):
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return
-        elif request.status_code == requests.codes.unauthorized:
+
+        if request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.add_xml_transform(name, input_uri, output_uri, purpose, originalName, xml_data)
-        else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "add_xml_transform failed")
+
+        logger.error(request.content.decode('utf-8'))
+        raise RuntimeError(request.status_code, "add_xml_transform failed")

@@ -20,7 +20,7 @@ The content API client is created using
 object-details
 ^^^^^^^^^^^^^^^^^
 
-Get the details for a Asset or Folder as a raw json document
+Get the details for a Asset or Folder as a Python dictionary object containing CMIS attributes
 
 .. code-block:: python
 
@@ -29,11 +29,36 @@ Get the details for a Asset or Folder as a raw json document
     client.object_details("IO", "uuid")
     client.object_details("SO", "uuid")
 
+e.g.
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    client = ContentAPI()
+
+    details = client.object_details("IO", "de1c32a3-bd9f-4843-a5f1-46df080f83d2")
+    print(details['name'])
+
+or
+
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    client = ContentAPI()
+
+    details = client.object_details(EntityType.ASSET, "de1c32a3-bd9f-4843-a5f1-46df080f83d2")
+    print(details['name'])
+
+
+
 
 indexed-fields
 ^^^^^^^^^^^^^^^^^
 
-Get a list of all the indexed metadata fields within the solr server. This includes the default
+Get a list of all the indexed metadata fields within the Preservica search engine. This includes the default
 xip.* fields and any custom indexes which have been created through custom index files.
 
 .. code-block:: python
@@ -118,7 +143,8 @@ These calls use a Python dictionary to allow the caller to specify filter values
     client = ContentAPI()
 
     filters = {"dc.rights": "Public Domain", "xip.security_descriptor": "public"}
-    client.search_index_filter_list(query="History of Oxford", filter_values=filters)
+    for hit in client.search_index_filter_list(query="History of Oxford", filter_values=filters):
+        print(hit)
 
 
 If you want to generate a report which can be opened directly in Excel, the use the csv version.
@@ -157,9 +183,11 @@ To allow allow monitoring of search result downloads, you can add a callback to 
 The callback class will be called for every page of search results returned to the client. The value passed to the
 callback contains the total number of search hits for the query and the current number of results processed.
 
+Preservica provides a default callback
+
 .. code-block:: python
 
-    class CallBack:
+    class ReportProgressCallBack:
         def __init__(self):
             self.current = 0
             self.total = 0
@@ -174,7 +202,84 @@ callback contains the total number of search hits for the query and the current 
                 sys.stdout.write("\r%s / %s  (%.2f%%)" % (self.current, self.total, percentage))
                 sys.stdout.flush()
 
-    client.search_callback(CallBack())
+To use the default callback in your scripts include the following line
+
+.. code-block:: python
+
+    client.search_callback(client.ReportProgressCallBack())
+
+
+Reporting Examples
+^^^^^^^^^^^^^^^^^^^^
+
+Create a spreadsheet containing all Assets within the repository
+--------------------------------------------------------------------------
+
+Generate a CSV report on all assets within the system, spreadsheet columns include asset title, description,
+security tag etc
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    client = ContentAPI()
+
+
+    if __name__ == '__main__':
+        metadata_fields = {
+            "xip.reference": "*", "xip.title": "",  "xip.description": "", "xip.document_type": "IO",  "xip.parent_ref": "",
+            "xip.security_descriptor": "*",
+            "xip.identifier": "", "xip.bitstream_names_r_Preservation": ""}
+
+        client.search_callback(client.ReportProgressCallBack())
+
+        client.search_index_filter_csv("%", "assets.csv", metadata_fields)
+
+
+Create a spreadsheet containing all Assets and Folders within the repository
+-------------------------------------------------------------------------------------
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    client = ContentAPI()
+
+    if __name__ == '__main__':
+        metadata_fields = {
+            "xip.reference": "*", "xip.title": "",  "xip.description": "", "xip.document_type": "*",  "xip.parent_ref": "",
+            "xip.security_descriptor": "*",
+            "xip.identifier": "", "xip.bitstream_names_r_Preservation": ""}
+
+        client.search_callback(client.ReportProgressCallBack())
+
+        client.search_index_filter_csv("%", "all_objects.csv", metadata_fields)
+
+
+Create a spreadsheet containing all Assets and Folders underneath a specific folder
+-------------------------------------------------------------------------------------
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    content = ContentAPI()
+    entity = EntityAPI()
+
+    folder = entity.folder(sys.argv[1])
+
+    print(f"Searching inside folder {folder.title}")
+
+    if __name__ == '__main__':
+        metadata_fields = {
+            "xip.reference": "*", "xip.title": "", "xip.description": "", "xip.document_type": "*", "xip.parent_hierarchy": f"{folder.reference}",
+            "xip.security_descriptor": "*",
+            "xip.identifier": "", "xip.bitstream_names_r_Preservation": ""}
+
+
+        content.search_callback(content.ReportProgressCallBack())
+
+        content.search_index_filter_csv("%", "assets.csv", metadata_fields)
 
 
 User Security Tags

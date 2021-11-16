@@ -105,7 +105,7 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token}
         params = {"type": workflow_type}
-        workflow_contexts = list()
+        workflow_contexts = []
         request = self.session.get(f'https://{self.server}/{self.base_url}/contexts', headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -137,7 +137,7 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token}
         params = {"workflowDefinitionId": definition}
-        workflow_contexts = list()
+        workflow_contexts = []
         request = self.session.get(f'https://{self.server}/{self.base_url}/contexts', headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -349,7 +349,7 @@ class WorkflowAPI(AuthenticatedAPI):
             total_count = int(entity_response.find(f".//{{{NS_WORKFLOW}}}TotalCount").text)
             count = int(entity_response.find(f".//{{{NS_WORKFLOW}}}Count").text)
             workflow_instance = entity_response.findall(f".//{{{NS_WORKFLOW}}}WorkflowInstance")
-            workflow_instances = list()
+            workflow_instances = []
             for instance in workflow_instance:
                 instance_id = instance.find(f".//{{{NS_WORKFLOW}}}Id").text
                 workflow_instance = WorkflowInstance(int(instance_id))

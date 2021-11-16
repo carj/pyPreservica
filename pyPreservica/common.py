@@ -11,16 +11,17 @@ licence:    Apache License 2.0
 import configparser
 import hashlib
 import json
+import logging
 import os
+import re
 import sys
 import threading
 import time
+import unicodedata
 import xml.etree.ElementTree
 from enum import Enum
+
 import requests
-import logging
-import unicodedata
-import re
 
 import pyPreservica
 
@@ -69,6 +70,22 @@ class FileHash:
                 hash_algorithm.update(buf)
                 buf = f.read(HASH_BLOCK_SIZE)
         return hash_algorithm.hexdigest()
+
+
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return True
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return False
+    else:
+        raise ValueError("invalid truth value %r" % (val,))
 
 
 def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0, zlogger=None):
@@ -182,17 +199,17 @@ class UploadProgressConsoleCallback:
             self._seen_so_far += bytes_amount
             percentage = (self._seen_so_far / self._size) * 100
             rate = (self._seen_so_far / (1024 * 1024)) / seconds
-            self.printProgressBar(percentage, rate)
+            self.print_progress_bar(percentage, rate)
             if int(self._seen_so_far) == int(self._size):
-                self.printProgressBar(100.0, rate)
+                self.print_progress_bar(100.0, rate)
                 sys.stdout.write(self.printEnd)
                 sys.stdout.flush()
 
-    def printProgressBar(self, percentage, rate):
+    def print_progress_bar(self, percentage, rate):
         filled_length = int(self.length * (percentage / 100.0))
-        bar = self.fill * filled_length + '-' * (self.length - filled_length)
+        bar_sym = self.fill * filled_length + '-' * (self.length - filled_length)
         sys.stdout.write(
-            f'\r%s |%s| (%.2f%%) (%.2f %s) %s ' % (self.prefix, bar, percentage, rate, "Mb/s", self.suffix))
+            '\r%s |%s| (%.2f%%) (%.2f %s) %s ' % (self.prefix, bar_sym, percentage, rate, "Mb/s", self.suffix))
         sys.stdout.flush()
 
 
@@ -533,10 +550,10 @@ class AuthenticatedAPI:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            security_tags = dict()
+            security_tags = {}
             tags = entity_response.findall(f'.//{{{self.sec_ns}}}Tag')
             for tag in tags:
-                permissions = list()
+                permissions = []
                 for p in tag.findall(f'.//{{{self.sec_ns}}}Permission'):
                     permissions.append(p.text)
                 if with_permissions:

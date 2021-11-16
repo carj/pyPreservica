@@ -43,6 +43,9 @@ class RetentionPolicy:
         self.start_date_field = ""
         self.period = ""
         self.expiry_action = ""
+        self.assignable = True
+        self.restriction = ""
+        self.period_unit = ""
 
     def __str__(self):
         return f"Ref:\t\t\t{self.reference}\n" \
@@ -101,7 +104,7 @@ class RetentionAPI(AuthenticatedAPI):
             else:
                 rp.restriction = None
             assignable = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Assignable')
-            rp.assignable = bool(assignable.text == "true")
+            rp.assignable = strtobool(assignable.text)
             return rp
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()

@@ -1,27 +1,24 @@
 import base64
 import csv
-import json
 import shutil
 import tempfile
 import uuid
 import xml
+from datetime import datetime
 from pathlib import Path
 from time import sleep
-
-import boto3
-from datetime import datetime
 from xml.dom import minidom
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 
+import boto3
+import cryptography
+import s3transfer.tasks
+import s3transfer.upload
 import six
 from boto3.s3.transfer import TransferConfig, S3Transfer
 from botocore.config import Config
 from botocore.exceptions import ClientError
-
-import s3transfer.upload
-import s3transfer.tasks
-import cryptography
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from requests.auth import HTTPBasicAuth
 from s3transfer import S3UploadFailedError
@@ -477,8 +474,8 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
     io_ref = None
     xip = None
     default_asset_title = None
-    preservation_representation_refs_dict = dict()
-    access_representation_refs_dict = dict()
+    preservation_representation_refs_dict = {}
+    access_representation_refs_dict = {}
 
     security_tag = kwargs.get('SecurityTag', "open")
     content_type = kwargs.get('CustomType', "")
@@ -871,8 +868,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
     io_ref = None
     xip = None
     default_asset_title = None
-    preservation_refs_dict = dict()
-    access_refs_dict = dict()
+    preservation_refs_dict = {}
+    access_refs_dict = {}
 
     security_tag = kwargs.get('SecurityTag', "open")
     content_type = kwargs.get('CustomType', "")
@@ -1421,8 +1418,8 @@ class UploadAPI(AuthenticatedAPI):
                             if "media_url_https" in med:
                                 co = get_image(med, has_video)
                                 content_objects.append(co)
-                identifiers = dict()
-                asset_metadata = dict()
+                identifiers = {}
+                asset_metadata = {}
                 identifiers["tweet_id"] = id_str
 
                 user = full_tweet._json['user']
@@ -1580,7 +1577,7 @@ class UploadAPI(AuthenticatedAPI):
         request = self.session.get(f"https://{self.server}/api/admin/locations/upload",
                                    auth=HTTPBasicAuth(self.username, self.password))
 
-        buckets = dict()
+        buckets = {}
         xml_tag = "N2YxcGVsUA=="
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -1706,11 +1703,7 @@ class UploadAPI(AuthenticatedAPI):
 
             upload_key = str(uuid.uuid4())
             s3_object = s3.Object(bucket_name, upload_key)
-            metadata = dict()
-            metadata['key'] = upload_key
-            metadata['name'] = upload_key + ".zip"
-            metadata['bucket'] = bucket_name
-            metadata['status'] = 'ready'
+            metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': bucket_name, 'status': 'ready'}
 
             if hasattr(folder, "reference"):
                 metadata['collectionreference'] = folder.reference
@@ -1753,7 +1746,7 @@ class UploadAPI(AuthenticatedAPI):
                                  aws_secret_access_key="NOT_USED",
                                  config=Config(s3={'addressing_style': 'path'}))
 
-        metadata = dict()
+        metadata = {}
         if folder is not None:
             if hasattr(folder, "reference"):
                 metadata = {'Metadata': {'structuralobjectreference': folder.reference}}
