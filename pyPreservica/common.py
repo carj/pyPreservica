@@ -189,7 +189,7 @@ class UploadProgressConsoleCallback:
         self._seen_so_far = 0
         self.start = time.time()
         self._lock = threading.Lock()
-        self.printProgressBar(0, 0)
+        self.print_progress_bar(0, 0)
 
     def __call__(self, bytes_amount):
         with self._lock:
@@ -244,6 +244,40 @@ class EntityType(Enum):
     ASSET = "IO"
     FOLDER = "SO"
     CONTENT_OBJECT = "CO"
+
+
+class HTTPException(Exception):
+    """
+     Custom Exception non 404 errors
+     """
+
+    def __init__(self, reference, http_status_code, url, method_name, message):
+        self.reference = reference
+        self.url = url
+        self.method_name = method_name
+        self.http_status_code = http_status_code
+        self.msg = message
+        Exception.__init__(self, self.reference, self.http_status_code, self.url, self.msg)
+
+    def __str__(self):
+        return f"Calling method {self.method_name}() {self.url} returned HTTP {self.http_status_code}. {self.msg}"
+
+
+class ReferenceNotFoundException(Exception):
+    """
+    Custom Exception for failed lookups by reference 404 Errors
+    """
+
+    def __init__(self, reference, http_status_code, url, method_name):
+        self.reference = reference
+        self.url = url
+        self.method_name = method_name
+        self.http_status_code = http_status_code
+        self.msg = f"The requested reference {self.reference} is not found in the repository"
+        Exception.__init__(self, self.reference, self.http_status_code, self.url, self.msg)
+
+    def __str__(self):
+        return f"Calling method {self.method_name}() {self.url} returned HTTP {self.http_status_code}. {self.msg}"
 
 
 class Relationship:

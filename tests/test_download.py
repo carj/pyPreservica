@@ -65,7 +65,7 @@ def test_can_download_file3():
     client = EntityAPI()
     folder = client.folder("ebd977f6-bebd-4ecf-99be-e054989f9af4")
     filename = str(uuid.uuid4())
-    with pytest.raises(RuntimeError):
+    with pytest.raises(HTTPException):
         f = client.download(folder, filename)
 
 

@@ -10,7 +10,6 @@ licence:    Apache License 2.0
 """
 
 import csv
-import logging
 
 from pyPreservica.common import *
 
@@ -173,8 +172,7 @@ class ContentAPI(AuthenticatedAPI):
             hits = int(json_doc['value']['totalHits'])
 
             for m_row, r_row in zip(metadata, refs):
-                results_map = {}
-                results_map['xip.reference'] = r_row[1]
+                results_map = {'xip.reference': r_row[1]}
                 for li in m_row:
                     results_map[li['name']] = li['value']
                 results_list.append(results_map)

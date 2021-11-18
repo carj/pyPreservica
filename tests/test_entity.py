@@ -45,31 +45,31 @@ def test_get_co():
 
 def test_get_co_raises_error1():
     client = EntityAPI()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ReferenceNotFoundException):
         folder = client.content_object("bla")
 
 
 def test_get_asset_raises_error1():
     client = EntityAPI()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ReferenceNotFoundException):
         folder = client.asset("bla")
 
 
 def test_get_folder_raises_error1():
     client = EntityAPI()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ReferenceNotFoundException):
         folder = client.folder("bla")
 
 
 def test_get_folder_raises_error2():
     client = EntityAPI()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ReferenceNotFoundException):
         folder = client.folder(None)
 
 
 def test_get_asset_raises_error2():
     client = EntityAPI()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ReferenceNotFoundException):
         folder = client.asset(None)
 
 

@@ -15,7 +15,6 @@ import boto3
 import cryptography
 import s3transfer.tasks
 import s3transfer.upload
-import six
 from boto3.s3.transfer import TransferConfig, S3Transfer
 from botocore.config import Config
 from botocore.exceptions import ClientError
@@ -43,7 +42,7 @@ def upload_file(self, filename, bucket, key,
         :py:meth:`S3.Client.upload_file`
         :py:meth:`S3.Client.upload_fileobj`
     """
-    if not isinstance(filename, six.string_types):
+    if not isinstance(filename, str):
         raise ValueError('Filename must be a string')
 
     subscribers = self._get_subscribers(callback)

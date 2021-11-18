@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath('../pyPreservica/'))
 
 master_doc = 'index'
 
-html_logo = "images/logo1.JPG"
+html_logo = "images/logo.png"
 
 extensions = [
     'sphinx.ext.intersphinx',

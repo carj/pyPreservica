@@ -8,8 +8,8 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-import json
 from typing import AnyStr
+
 from requests.auth import HTTPBasicAuth
 
 from pyPreservica.common import *

@@ -32,3 +32,16 @@ forum https://groups.google.com/g/pypreservica
 ## License
 
 The package is available as open source under the terms of the Apache License 2.0
+
+
+## Installation
+
+pyPreservica is available from the Python Package Index (PyPI)
+
+https://pypi.org/project/pyPreservica/
+
+To install pyPreservica, simply run this simple command in your terminal of choice:
+
+
+    $ pip install pyPreservica
+

@@ -67,13 +67,13 @@ class EntityAPI(AuthenticatedAPI):
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")
             raise RuntimeError("bitstream_content argument is not a Bitstream object")
-        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as req:
-            if req.status_code == requests.codes.unauthorized:
+        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as request:
+            if request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.bitstream_content(bitstream, filename)
-            elif req.status_code == requests.codes.ok:
+            elif request.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
-                    for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                    for chunk in request.iter_content(chunk_size=CHUNK_SIZE):
                         file.write(chunk)
                     file.flush()
                 if os.path.getsize(filename) == bitstream.length:
@@ -84,8 +84,10 @@ class EntityAPI(AuthenticatedAPI):
                     os.remove(filename)
                     return None
             else:
-                logger.error(f'bitstream_content failed {req.status_code}')
-                raise RuntimeError(req.status_code, "bitstream_content failed")
+                exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_content",
+                                          request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
 
     def download_opex(self, pid: str):
         """
@@ -113,8 +115,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.download_opex(pid)
         else:
-            logger.error(download)
-            raise RuntimeError(download.status_code, "download_package failed")
+            exception = HTTPException(pid, download.status_code, download.url, "download_opex",
+                                      download.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def __export_opex_start__(self, entity: Entity, **kwargs):
         """
@@ -183,8 +187,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.__export_opex_start__(entity)
         else:
-            logger.error(str(request.content.decode('utf-8')))
-            raise RuntimeError(request.status_code, "export_opex failed")
+            exception = HTTPException(entity.reference, request.status_code, request.url, "__export_opex_start__",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def export_opex_async(self, entity: Entity, **kwargs):
         """
@@ -249,19 +255,21 @@ class EntityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}'}
         with self.session.get(f'https://{self.server}/api/content/download', params=params, headers=headers,
-                              stream=True) as req:
-            if req.status_code == requests.codes.ok:
+                              stream=True) as request:
+            if request.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
-                    for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                    for chunk in request.iter_content(chunk_size=CHUNK_SIZE):
                         file.write(chunk)
                     file.flush()
                 return filename
-            elif req.status_code == requests.codes.unauthorized:
+            elif request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.download(entity, filename)
             else:
-                logger.error(req.text)
-                raise RuntimeError(req.status_code, "download failed")
+                exception = HTTPException(entity.reference, request.status_code, request.url, "download",
+                                          request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
 
     def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE):
         """
@@ -275,19 +283,22 @@ class EntityAPI(AuthenticatedAPI):
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}', 'size': f'{size.value}'}
-        with self.session.get(f'https://{self.server}/api/content/thumbnail', params=params, headers=headers) as req:
-            if req.status_code == requests.codes.ok:
+        with self.session.get(f'https://{self.server}/api/content/thumbnail', params=params,
+                              headers=headers) as request:
+            if request.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
-                    for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                    for chunk in request.iter_content(chunk_size=CHUNK_SIZE):
                         file.write(chunk)
                     file.flush()
                 return filename
-            elif req.status_code == requests.codes.unauthorized:
+            elif request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.thumbnail(entity, filename, size=size)
             else:
-                logger.error(req.text)
-                raise RuntimeError(req.status_code, "thumbnail failed")
+                exception = HTTPException(entity.reference, request.status_code, request.url, "thumbnail",
+                                          request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
 
     def delete_identifiers(self, entity: Entity, identifier_type: str = None, identifier_value: str = None):
         """
@@ -371,8 +382,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.identifiers_for_entity(entity)
         else:
-            logger.error(request)
-            raise RuntimeError(request.status_code, "identifiers_for_entity failed")
+            exception = HTTPException(entity.reference, request.status_code, request.url, "identifiers_for_entity",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def identifier(self, identifier_type: str, identifier_value: str):
         """
@@ -408,9 +421,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.identifier(identifier_type, identifier_value)
         else:
-            logger.error(request.content.decode('utf-8'))
-            logger.error(f"identifier failed {request.status_code}")
-            raise RuntimeError(request.status_code, "identifier failed")
+            exception = HTTPException(payload, request.status_code, request.url, "identifier",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def add_identifier(self, entity: Entity, identifier_type: str, identifier_value: str):
         """
@@ -448,8 +462,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.add_identifier(entity, identifier_type, identifier_value)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "add_identifier failed with error code")
+            exception = HTTPException(entity.reference, request.status_code, request.url, "add_identifier",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def delete_relationships(self, entity: Entity, relationship_type: str = None):
         """
@@ -495,8 +511,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.__delete_relationship(relationship)
         else:
-            logger.error(request.text)
-            raise RuntimeError(request.status_code, "delete_relationships failed")
+            exception = HTTPException(entity.reference, request.status_code, request.url, "delete_relationships",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def relationships(self, entity: Entity, page_size: int = 25) -> Generator:
         """
@@ -562,9 +580,9 @@ class EntityAPI(AuthenticatedAPI):
                 other_ref = link.attrib['ref']
                 this_ref = entity.reference
                 entity_type = link.attrib['type']
-                apiId = link.attrib['apiId']
-                results.append(Relationship(apiId, link_type, RelationshipDirection(link_direction), other_ref, title,
-                                            EntityType(entity_type), this_ref, apiId))
+                api_id = link.attrib['apiId']
+                results.append(Relationship(api_id, link_type, RelationshipDirection(link_direction), other_ref, title,
+                                            EntityType(entity_type), this_ref, api_id))
             has_more = True
             url = None
             if next_url is None:
@@ -576,7 +594,10 @@ class EntityAPI(AuthenticatedAPI):
         elif request.status_code == requests.codes.unauthorized:
             self.__relationships__(entity=entity, maximum=maximum, next_page=next_page)
         else:
-            logger.error(request.content.decode('utf-8'))
+            exception = HTTPException(entity.reference, request.status_code, request.url, "relationships",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def add_relation(self, from_entity: Entity, relationship_type: str, to_entity: Entity):
         """
@@ -623,8 +644,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.add_relation(from_entity, relationship_type, to_entity)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "add_relation failed with error code")
+            exception = HTTPException(from_entity.reference, request.status_code, request.url, "add_relation",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def delete_metadata(self, entity: Entity, schema: str) -> Entity:
         """
@@ -645,7 +668,11 @@ class EntityAPI(AuthenticatedAPI):
                     self.token = self.__token__()
                     return self.delete_metadata(entity, schema)
                 else:
-                    raise RuntimeError(request.status_code, "delete_metadata failed with error code")
+                    exception = HTTPException(entity.reference, request.status_code, request.url, "delete_metadata",
+                                              request.content.decode('utf-8'))
+                    logger.error(exception)
+                    raise exception
+
         return self.entity(entity.entity_type, entity.reference)
 
     def update_metadata(self, entity: Entity, schema: str, data: Any) -> Entity:
@@ -688,8 +715,10 @@ class EntityAPI(AuthenticatedAPI):
                     self.token = self.__token__()
                     return self.update_metadata(entity, schema, data)
                 else:
-                    logger.error(request.content.decode('utf-8'))
-                    raise RuntimeError(request.status_code, "update_metadata failed with error code")
+                    exception = HTTPException(entity.reference, request.status_code, request.url, "update_metadata",
+                                              request.content.decode('utf-8'))
+                    logger.error(exception)
+                    raise exception
         return self.entity(entity.entity_type, entity.reference)
 
     def add_metadata(self, entity: Entity, schema: str, data) -> Entity:
@@ -725,8 +754,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.add_metadata(entity, schema, data)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "add_metadata failed with error code")
+            exception = HTTPException(entity.reference, request.status_code, request.url, "add_metadata",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def save(self, entity: Entity) -> Entity:
         """
@@ -770,8 +801,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.save(entity)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "save failed for entity: " + entity.reference)
+            exception = HTTPException(entity.reference, request.status_code, request.url, "save",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def move_async(self, entity: Entity, dest_folder: Folder) -> str:
         """
@@ -801,8 +834,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.move_async(entity, dest_folder)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "move failed for entity: " + entity.reference)
+            exception = HTTPException(entity.reference, request.status_code, request.url, "move_async",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def get_async_progress(self, pid: str) -> str:
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
@@ -818,8 +853,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.get_async_progress(pid)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "get_async_progress" + pid)
+            exception = HTTPException(pid, request.status_code, request.url, "get_async_progress",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def move_sync(self, entity: Entity, dest_folder: Folder) -> Entity:
         """
@@ -855,8 +892,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.move_sync(entity, dest_folder)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "move failed for entity: " + entity.reference)
+            exception = HTTPException(entity, request.status_code, request.url, "move_sync",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def move(self, entity: Entity, dest_folder: Folder) -> Entity:
         """
@@ -907,8 +946,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.create_folder(title, description, security_tag, parent=parent)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "create_folder failed")
+            exception = HTTPException(title, request.status_code, request.url, "create_folder",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def all_metadata(self, entity: Entity) -> Tuple[str, str]:
         """
@@ -982,8 +1023,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.security_tag_sync(entity, new_tag)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"security_tag_sync change failed on {entity.reference}")
+            exception = HTTPException(entity.reference, request.status_code, request.url, "security_tag_sync",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def security_tag_async(self, entity: Entity, new_tag: str):
         """
@@ -1004,8 +1047,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.security_tag_async(entity, new_tag)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"security_tag_async change failed on {entity.reference}")
+            exception = HTTPException(entity.reference, request.status_code, request.url, "security_tag_async",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def metadata(self, uri: str) -> str:
         """
@@ -1026,8 +1071,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.metadata(uri)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"metadata failed for {uri}")
+            exception = HTTPException(uri, request.status_code, request.url, "metadata",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def entity(self, entity_type: EntityType, reference: str) -> Entity:
         """
@@ -1065,13 +1112,14 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.asset(reference)
         elif request.status_code == requests.codes.not_found:
-            msg = "The requested reference is not found in the repository"
-            logger.error(msg)
-            raise RuntimeError(reference, msg)
+            exception = ReferenceNotFoundException(reference, request.status_code, request.url, "asset")
+            logger.error(exception)
+            raise exception
         else:
-            logger.error(request.status_code)
-            logger.error(str(request.content.decode('utf-8')))
-            raise RuntimeError(request.status_code, f"asset failed for {reference}")
+            exception = HTTPException(reference, request.status_code, request.url, "asset",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def folder(self, reference: str) -> Folder:
         """
@@ -1093,10 +1141,14 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.folder(reference)
         elif request.status_code == requests.codes.not_found:
-            raise RuntimeError(reference, "The requested reference is not found in the repository")
+            exception = ReferenceNotFoundException(reference, request.status_code, request.url, "folder")
+            logger.error(exception)
+            raise exception
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"folder failed for {reference}")
+            exception = HTTPException(reference, request.status_code, request.url, "folder",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def content_object(self, reference: str) -> ContentObject:
         """
@@ -1118,10 +1170,14 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.content_object(reference)
         elif request.status_code == requests.codes.not_found:
-            raise RuntimeError(reference, "The requested reference is not found in the repository")
+            exception = ReferenceNotFoundException(reference, request.status_code, request.url, "content_object")
+            logger.error(exception)
+            raise exception
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"content_object failed for {reference}")
+            exception = HTTPException(reference, request.status_code, request.url, "content_object",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def content_objects(self, representation: Representation) -> Optional[list]:
         """
@@ -1153,8 +1209,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.content_objects(representation)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "content_objects failed")
+            exception = HTTPException(representation.name, request.status_code, request.url, "content_objects",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def generation(self, url: str):
         """
@@ -1185,8 +1243,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.generation(url)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "generation failed")
+            exception = HTTPException(url, request.status_code, request.url, "generation",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def _integrity_checks(self, bitstream: Bitstream, maximum: int = 10, next_page: str = None):
         headers = {HEADER_TOKEN: self.token}
@@ -1228,14 +1288,16 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 url = next_url.text
 
-            return PagedSet(results, has_more, total_hits.text, url)
+            return PagedSet(results, has_more, int(total_hits.text), url)
 
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self._integrity_checks(bitstream, maximum, next_page)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "integrity_checks failed")
+            exception = HTTPException(bitstream.filename, request.status_code, request.url, "_integrity_checks",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def integrity_checks(self, bitstream: Bitstream) -> Generator:
         """
@@ -1273,15 +1335,17 @@ class EntityAPI(AuthenticatedAPI):
             for f in fixity_values:
                 fixity[f[0].text] = f[1].text
             bitstream = Bitstream(filename.text if hasattr(filename, 'text') else None,
-                                  filesize.text if hasattr(filesize, 'text') else None, fixity,
+                                  int(filesize.text) if hasattr(filesize, 'text') else None, fixity,
                                   content.text if hasattr(content, 'text') else None)
             return bitstream
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.bitstream(url)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "bitstream failed")
+            exception = HTTPException(url, request.status_code, request.url, "bitstream",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def replace_generation_sync(self, content_object: ContentObject, file_name, fixity_algorithm=None,
                                 fixity_value=None) -> str:
@@ -1347,8 +1411,10 @@ class EntityAPI(AuthenticatedAPI):
             return self.replace_generation_async(content_object=content_object, file_name=file_name,
                                                  fixity_algorithm=fixity_algorithm, fixity_value=fixity_value)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"replace_generation failed: {request.content}")
+            exception = HTTPException(content_object.reference, request.status_code, request.url,
+                                      "replace_generation_async", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def generations(self, content_object: ContentObject) -> list:
         """
@@ -1376,8 +1442,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.generations(content_object)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "generations failed")
+            exception = HTTPException(content_object.reference, request.status_code, request.url,
+                                      "generations", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def representations(self, asset: Asset) -> Optional[set]:
         """
@@ -1398,15 +1466,17 @@ class EntityAPI(AuthenticatedAPI):
             representations = entity_response.findall(f'.//{{{self.entity_ns}}}Representation')
             result = set()
             for r in representations:
-                representation = Representation(asset, r.get('type'), r.get("name", ""), r.text)
+                representation = Representation(asset, r.get('type'), r.get("name", None), r.text)
                 result.add(representation)
             return result
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.representations(asset)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "representations failed")
+            exception = HTTPException(asset.reference, request.status_code, request.url,
+                                      "representations", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def remove_thumbnail(self, entity: Entity):
         """
@@ -1431,8 +1501,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.remove_thumbnail(entity)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"remove_thumbnail failed: {request.content}")
+            exception = HTTPException(entity.reference, request.status_code, request.url,
+                                      "remove_thumbnail", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def add_thumbnail(self, entity: Entity, image_file: str):
         """
@@ -1460,8 +1532,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.add_thumbnail(entity, image_file)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"add_thumbnail failed: {request.content.decode('utf-8')}")
+            exception = HTTPException(entity.reference, request.status_code, request.url,
+                                      "add_thumbnail", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def _event_actions(self, entity: Entity, maximum: int):
         """
@@ -1483,8 +1557,10 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self._event_actions(entity, maximum=maximum)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"event-actions failed: {request.content.decode('utf-8')}")
+            exception = HTTPException(entity.reference, request.status_code, request.url,
+                                      "_event_actions", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def all_descendants(self, folder: str = None) -> Generator:
         """
@@ -1500,7 +1576,7 @@ class EntityAPI(AuthenticatedAPI):
             if entity.entity_type == EntityType.FOLDER:
                 yield from self.all_descendants(folder=entity.reference)
 
-    def descendants(self, folder: Any = None) -> Generator:
+    def descendants(self, folder: Folder = None) -> Generator:
         maximum = 100
         paged_set = self.children(folder, maximum=maximum, next_page=None)
         for entity in paged_set.results:
@@ -1510,7 +1586,7 @@ class EntityAPI(AuthenticatedAPI):
             for entity in paged_set.results:
                 yield entity
 
-    def children(self, folder: Any = None, maximum: int = 100, next_page: str = None) -> PagedSet:
+    def children(self, folder: Folder = None, maximum: int = 100, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
         data = {'start': str(0), 'max': str(maximum)}
         folder_reference = folder
@@ -1548,13 +1624,15 @@ class EntityAPI(AuthenticatedAPI):
                 has_more = False
             else:
                 url = next_url.text
-            return PagedSet(result, has_more, total_hits.text, url)
+            return PagedSet(result, has_more, int(total_hits.text), url)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.children(folder_reference, maximum=maximum, next_page=next_page)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "children failed")
+            exception = HTTPException(folder.reference, request.status_code, request.url,
+                                      "children", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def all_ingest_events(self, previous_days: int = 1) -> Generator:
         self.token = self.__token__()
@@ -1636,14 +1714,16 @@ class EntityAPI(AuthenticatedAPI):
                 has_more = False
             else:
                 url = next_url.text
-            return PagedSet(result_list, has_more, total_hits.text, url)
+            return PagedSet(result_list, has_more, int(total_hits.text), url)
 
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self._all_events_page(maximum, next_page, **kwargs)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"events failed: {request.content.decode('utf-8')}")
+            exception = HTTPException("", request.status_code, request.url,
+                                      "_all_events_page", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def _entity_events_page(self, entity: Entity, maximum: int = 25, next_page: str = None) -> PagedSet:
         """
@@ -1703,13 +1783,15 @@ class EntityAPI(AuthenticatedAPI):
                 has_more = False
             else:
                 url = next_url.text
-            return PagedSet(result_list, has_more, total_hits.text, url)
+            return PagedSet(result_list, has_more, int(total_hits.text), url)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self._entity_events_page(entity)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, f"events failed: {request.content.decode('utf-8')}")
+            exception = HTTPException(entity.reference, request.status_code, request.url,
+                                      "_all_events_page", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def entity_events(self, entity: Entity) -> Generator:
         self.token = self.__token__()
@@ -1768,14 +1850,16 @@ class EntityAPI(AuthenticatedAPI):
                 has_more = False
             else:
                 url = next_url.text
-            return PagedSet(result, has_more, total_hits.text, url)
+            return PagedSet(result, has_more, int(total_hits.text), url)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self._updated_entities_page(previous_days=previous_days, maximum=maximum,
                                                next_page=next_page)
         else:
-            logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "updated_entities failed")
+            exception = HTTPException(previous_days, request.status_code, request.url,
+                                      "_updated_entities_page", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def delete_asset(self, asset: Asset, operator_comment: str, supervisor_comment: str):
         """
@@ -1872,4 +1956,8 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "User doesn't have deletion rights on the "
                                                     "entity or the required operator role to evaluate a deletion")
-        raise RuntimeError(request.status_code, "delete_asset failed")
+
+        exception = HTTPException(entity.reference, request.status_code, request.url,
+                                  "_delete_entity", request.content.decode('utf-8'))
+        logger.error(exception)
+        raise exception

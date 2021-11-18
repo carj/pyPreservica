@@ -1,3 +1,14 @@
+"""
+pyPreservica WorkflowAPI module definition
+
+A client library for the Preservica Repository web services Workflow API
+https://us.preservica.com/sdb/rest/workflow/documentation.html
+
+author:     James Carr
+licence:    Apache License 2.0
+
+"""
+
 import uuid
 import datetime
 from xml.dom import minidom
@@ -103,6 +114,7 @@ class WorkflowAPI(AuthenticatedAPI):
         :rtype: list
 
         """
+
         headers = {HEADER_TOKEN: self.token}
         params = {"type": workflow_type}
         workflow_contexts = []
@@ -135,6 +147,7 @@ class WorkflowAPI(AuthenticatedAPI):
         :rtype: list
 
         """
+
         headers = {HEADER_TOKEN: self.token}
         params = {"workflowDefinitionId": definition}
         workflow_contexts = []
@@ -171,6 +184,7 @@ class WorkflowAPI(AuthenticatedAPI):
         :rtype: str
 
         """
+
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         correlation_id = str(uuid.uuid4())
@@ -207,6 +221,7 @@ class WorkflowAPI(AuthenticatedAPI):
         :type instance_ids: int or a list of int
 
         """
+
         if isinstance(instance_ids, list):
             converted_list = [str(int(e)) for e in instance_ids]
             param_string = ",".join(converted_list)
@@ -226,18 +241,18 @@ class WorkflowAPI(AuthenticatedAPI):
             logger.error(request.content)
             raise RuntimeError(request.status_code, "terminate_workflow_instance")
 
-    def workflow_instance(self, instance_id: int):
+    def workflow_instance(self, instance_id: int) -> WorkflowInstance:
         """
         Return a workflow instance by its Id
 
         :param instance_id: The Workflow instance
         :type instance_id: int
 
-
         :return: workflow_instance
         :rtype: WorkflowInstance
 
         """
+
         headers = {HEADER_TOKEN: self.token}
         params = {"includeErrors": "true"}
         request = self.session.get(f'https://{self.server}/{self.base_url}/instances/{str(instance_id)}',
@@ -289,6 +304,7 @@ class WorkflowAPI(AuthenticatedAPI):
         :param workflow_type: The Workflow type Ingest, Access, Transformation or DataManagement
 
         """
+
         start_value = int(0)
         maximum = int(25)
         total_count = maximum
@@ -306,10 +322,12 @@ class WorkflowAPI(AuthenticatedAPI):
         """
         Return a list of Workflow instances
 
-        :param workflow_state: The Workflow state: Aborted, Active, Completed, Finished_Mixed_Outcome, Pending, Suspended, Unknown, or Failed
+        :param workflow_state: The Workflow state: Aborted, Active, Completed, Finished_Mixed_Outcome, Pending,
+        Suspended, Unknown, or Failed
         :param workflow_type: The Workflow type: Ingest, Access, Transformation or DataManagement
 
         """
+
         headers = {HEADER_TOKEN: self.token}
 
         if workflow_state not in self.workflow_states:
