@@ -276,27 +276,25 @@ You can generate a report of security tag frequency usage using the pygal librar
 
         import pygal
         from pygal.style import BlueStyle
+        from pyPreservica import *
 
         client = AdminAPI()
         search = ContentAPI()
         security_tags = client.security_tags()
         results = {}
         for tag in security_tags:
-            filters = {"xip.security_descriptor": tag, "xip.document_type": "IO", "xip.top_level_so": parent_collection}
-            hits = search._search_index_filter_hits(query="%", filter_values=filters)
+            filters = {"xip.security_descriptor": tag, "xip.document_type": "IO"}
+            hits = search.search_index_filter_hits(query="%", filter_values=filters)
             results[tag] = hits
 
         bar_chart = pygal.HorizontalBar(show_legend=False)
-        bar_chart.title = chart_Title
+        bar_chart.title = "Security Tag Frequency"
         bar_chart.style = BlueStyle
-        bar_chart.x_title = chart_XTitle
+        bar_chart.x_title = "Number of Assets"
         bar_chart.x_labels = results.keys()
-        bar_chart.add(chart_YTitle, results)
+        bar_chart.add("Security Tag", results)
 
-        bar_chart.render_to_file(report_name)
-
-        sys.stdout.write("\nReport Completed. Open file " + report_name + " in your browser")
-        sys.stdout.flush()
+        bar_chart.render_to_file("chart.svg")
 
 
 This creates a graphical report which displays the frequency of each security tag with the ability to hover

@@ -10,7 +10,7 @@ licence:    Apache License 2.0
 """
 
 import csv
-
+from typing import Generator
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
@@ -206,7 +206,15 @@ class ContentAPI(AuthenticatedAPI):
             writer.writeheader()
             writer.writerows(self.search_index_filter_list(query, page_size, filter_values))
 
-    def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict = None):
+    def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict = None) -> Generator:
+        """
+        Run a search query with optional filters
+
+        :param query: The main search query.
+        :param page_size:  The default search page size
+        :param filter_values:  Dictionary of index names and values
+        :return: search result
+        """
         search_result = self._search_index_filter(query, 0, page_size, filter_values)
         for e in search_result.results_list:
             yield e
@@ -217,7 +225,14 @@ class ContentAPI(AuthenticatedAPI):
                 yield e
             found = found + len(search_result.results_list)
 
-    def _search_index_filter_hits(self, query: str = "%", filter_values: dict = None):
+    def search_index_filter_hits(self, query: str = "%", filter_values: dict = None) -> int:
+        """
+        Run a search query with filters and return the number of hits only
+
+        :param query: The main search query.
+        :param filter_values:  Dictionary of index names and values
+        :return: Number of search results
+        """
         start_from = str(0)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
 
@@ -236,11 +251,10 @@ class ContentAPI(AuthenticatedAPI):
         results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
         if results.status_code == requests.codes.ok:
             json_doc = results.json()
-            hits = int(json_doc['value']['totalHits'])
-            return hits
+            return int(json_doc['value']['totalHits'])
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self._search_index_filter_hits(query, filter_values)
+            return self.search_index_filter_hits(query, filter_values)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"_search_index_filter_hits failed")

@@ -176,6 +176,40 @@ class Sha512FixityCallBack:
         return "SHA512", sha(full_path)
 
 
+class ReportProgressConsoleCallback:
+
+    def __init__(self, prefix='Progress:', suffix='', length=100, fill='█', printEnd="\r"):
+        self.prefix = prefix
+        self.suffix = suffix
+        self.length = length
+        self.fill = fill
+        self.printEnd = printEnd
+        self._lock = threading.Lock()
+        self.print_progress_bar(0)
+
+    def __call__(self, value):
+        with self._lock:
+            values = value.split(":")
+            self.total = int(values[1])
+            self.current = int(values[0])
+            if self.total == 0:
+                percentage = 100.0
+            else:
+                percentage = (self.current / self.total) * 100
+            self.print_progress_bar(percentage)
+            if int(percentage) == int(100):
+                self.print_progress_bar(100.0)
+                sys.stdout.write(self.printEnd)
+                sys.stdout.flush()
+
+    def print_progress_bar(self, percentage):
+        filled_length = int(self.length * (percentage / 100.0))
+        bar_sym = self.fill * filled_length + '-' * (self.length - filled_length)
+        sys.stdout.write(
+            '\r%s |%s| (%.2f%%) %s ' % (self.prefix, bar_sym, percentage, self.suffix))
+        sys.stdout.flush()
+
+
 class UploadProgressConsoleCallback:
 
     def __init__(self, filename: str, prefix='Progress:', suffix='', length=100, fill='█', printEnd="\r"):
