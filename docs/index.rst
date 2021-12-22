@@ -52,6 +52,7 @@ pyPreservica is an open source 3rd party library and is not affiliated with `Pre
    entity
    content
    upload
+   workflow
    admin
    retention
    par

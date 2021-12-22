@@ -9,7 +9,7 @@ Begin by importing the pyPreservica module
 
     from pyPreservica import *
 
-Now, let's create the ``EntityAPI`` class
+Now, let's create the ``EntityAPI`` client
 
 .. code-block:: python
 
@@ -546,6 +546,26 @@ fetch technical metadata about the bitstream itself
         print(bitstream.length)
         for algorithm,value in bitstream.fixity.items():
             print(algorithm,  value)
+
+
+
+If you have an Asset object and you would like to fetch all the available bitstreams you would use something like:
+
+.. code-block:: python
+
+    for representation in self.representations(asset):
+        for content_object in self.content_objects(representation):
+            for generation in self.generations(content_object):
+                for bitstream in generation.bitstreams:
+
+If you only need the current or active Generations, then you can use the following short cut method
+which returns each Bitstream from all the Representations and Content Objects within the Asset.
+
+.. code-block:: python
+
+    for bitstream in client.bitstreams_for_asset(asset):
+        do_something(bitstream)
+
 
 The actual content files can be download using ``bitstream_content()``
 
