@@ -195,8 +195,8 @@ def test_save_co_description():
 
 def test_move_entity_to_folder():
     client = EntityAPI()
-    asset = client.asset("c365634e-9fcc-4ea1-b47f-077f55df9d64")
-    folder = client.folder(FOLDER_ID)
+    asset = client.asset("05e2750d-bd68-41a0-af25-31cb3498cc2d")
+    folder = client.folder("ebd977f6-bebd-4ecf-99be-e054989f9af4")
     assert asset.parent == folder.reference
     assert asset.title == "LC-USZ62-79099"
 
@@ -211,6 +211,7 @@ def test_move_entity_to_folder():
 def test_change_security_tag():
     client = EntityAPI()
     asset = client.asset(ASSET_ID)
+
     assert asset.security_tag == "open"
     client.security_tag_sync(asset, "closed")
 

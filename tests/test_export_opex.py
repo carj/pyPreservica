@@ -6,7 +6,7 @@ from pyPreservica import *
 
 def test_export_file_wait():
     client = EntityAPI()
-    asset = client.asset("c365634e-9fcc-4ea1-b47f-077f55df9d64")
+    asset = client.asset("683f9db7-ff81-4859-9c03-f68cfa5d9c3d")
     zip_file = client.export_opex_sync(asset)
     assert os.path.exists(zip_file)
     assert 1066650 < os.stat(zip_file).st_size
@@ -17,7 +17,7 @@ def test_export_file_wait():
 
 def test_export_file_no_wait():
     client = EntityAPI()
-    asset = client.asset("c365634e-9fcc-4ea1-b47f-077f55df9d64")
+    asset = client.asset("683f9db7-ff81-4859-9c03-f68cfa5d9c3d")
     pid = client.export_opex_async(asset)
     status = "ACTIVE"
 

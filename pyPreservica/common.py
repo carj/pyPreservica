@@ -72,8 +72,9 @@ class FileHash:
         return hash_algorithm.hexdigest()
 
 
-def strtobool(val):
-    """Convert a string representation of truth to true (1) or false (0).
+def strtobool(val) -> bool:
+    """
+    Convert a string representation of truth to true (1) or false (0).
 
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
     are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
@@ -403,8 +404,8 @@ class Generation:
      """
 
     def __init__(self, original: bool, active: bool, format_group: str, effective_date: str, bitstreams: list):
-        self.original = original
-        self.active = active
+        self.original = bool(original)
+        self.active = bool(active)
         self.content_object = None
         self.format_group = format_group
         self.effective_date = effective_date
@@ -533,7 +534,7 @@ class Thumbnail(Enum):
     LARGE = "large"
 
 
-def sanitize(filename):
+def sanitize(filename) -> str:
     """
     Return a fairly safe version of the filename.
 
@@ -583,10 +584,10 @@ def sanitize(filename):
 
 class AuthenticatedAPI:
     """
-    Base class for authenticated calls which need an access token
+    Base class for authenticated calls which need access token
     """
 
-    def __find_user_roles_(self):
+    def __find_user_roles_(self) -> list:
         """
         Get a list of roles for the user
         :return list of roles:
@@ -636,7 +637,7 @@ class AuthenticatedAPI:
             logger.error(f'security_tags failed {request.status_code}')
             raise RuntimeError(request.status_code, "security_tags failed")
 
-    def entity_from_string(self, xml_data: str):
+    def entity_from_string(self, xml_data: str) -> dict:
         entity_response = xml.etree.ElementTree.fromstring(xml_data)
         reference = entity_response.find(f'.//{{{self.xip_ns}}}Ref')
         title = entity_response.find(f'.//{{{self.xip_ns}}}Title')

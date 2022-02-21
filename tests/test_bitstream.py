@@ -60,8 +60,6 @@ def test_get_generations():
     assert generation.format_group == "jpeg"
 
 
-
-
 def test_get_bitstream_content():
     client = EntityAPI()
     asset = client.asset(ASSET_ID)

@@ -12,7 +12,7 @@ import uuid
 import xml.etree.ElementTree
 from datetime import datetime, timedelta, timezone
 from time import sleep
-from typing import Optional, Any, Generator, Tuple
+from typing import Optional, Any, Generator, Tuple, Iterable
 
 from pyPreservica.common import *
 
@@ -46,7 +46,7 @@ class EntityAPI(AuthenticatedAPI):
 
         return self.security_tags_base(with_permissions=with_permissions)
 
-    def bitstream_content(self, bitstream: Bitstream, filename: str):
+    def bitstream_content(self, bitstream: Bitstream, filename: str) -> Optional[int]:
         """
         Download a file represented as a Bitstream to a local filename
 
@@ -89,7 +89,7 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def download_opex(self, pid: str):
+    def download_opex(self, pid: str) -> str:
         """
         Download a completed OPEX export using the workflow process ID
 
@@ -120,11 +120,11 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def __export_opex_start__(self, entity: Entity, **kwargs):
+    def __export_opex_start__(self, entity: Entity, **kwargs) -> str:
         """
             Initiates export of the entity and downloads the opex package
 
-            By default includes content, metadata with the latest active generations
+            By default, includes content, metadata with the latest active generations
             and the parent hierarchy.
 
             Arguments are kwargs map
@@ -147,25 +147,25 @@ class EntityAPI(AuthenticatedAPI):
 
         include_content = "Content"
         if 'IncludeContent' in kwargs:
-            value = kwargs.get("IncludeContent").trim()
+            value = str(kwargs.get("IncludeContent")).strip()
             if value.casefold() in map(str.casefold, include_content_options):
                 include_content = value
 
         include_metadata = "Metadata"
         if 'IncludeMetadata' in kwargs:
-            value = kwargs.get("IncludeMetadata").trim()
+            value = str(kwargs.get("IncludeMetadata")).strip()
             if value.casefold() in map(str.casefold, include_metadata_options):
                 include_metadata = value
 
         include_generation = "All"
         if 'IncludedGenerations' in kwargs:
-            value = kwargs.get("IncludedGenerations").trim()
+            value = str(kwargs.get("IncludedGenerations")).strip()
             if value.casefold() in map(str.casefold, include_generation_options):
                 include_generation = value
 
         include_parent = "true"
         if 'IncludeParentHierarchy' in kwargs:
-            value = kwargs.get("IncludeParentHierarchy").trim()
+            value = str(kwargs.get("IncludeParentHierarchy")).strip()
             if value.casefold() in map(str.casefold, include_parent_options):
                 include_parent = value
 
@@ -185,20 +185,22 @@ class EntityAPI(AuthenticatedAPI):
             return str(request.content.decode('utf-8'))
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.__export_opex_start__(entity)
+            return self.__export_opex_start__(entity, IncludeContent=include_content,
+                                              IncludeMetadata=include_metadata, IncludedGenerations=include_generation,
+                                              IncludeParentHierarchy=include_parent)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "__export_opex_start__",
                                       request.content.decode('utf-8'))
             logger.error(exception)
             raise exception
 
-    def export_opex_async(self, entity: Entity, **kwargs):
+    def export_opex_async(self, entity: Entity, **kwargs) -> str:
         """
             Initiates export of the entity returns an id to track progress
         """
         return self.__export_opex_start__(entity, **kwargs)
 
-    def export_opex_sync(self, entity: Entity, **kwargs):
+    def export_opex_sync(self, entity: Entity, **kwargs) -> str:
         """
             Initiates export of the entity and downloads the opex package
             Blocks until the package is downloaded
@@ -216,12 +218,12 @@ class EntityAPI(AuthenticatedAPI):
         """
         return self.export_opex(entity, **kwargs)
 
-    def export_opex(self, entity: Entity, **kwargs):
+    def export_opex(self, entity: Entity, **kwargs) -> str:
         """
             Initiates export of the entity and downloads the opex package
             Blocks until the package is downloaded
 
-            By default includes content, metadata with the latest active generations
+            By default, includes content, metadata with the latest active generations
             and the parent hierarchy.
 
             Arguments are kwargs map
@@ -271,7 +273,7 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE):
+    def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE) -> str:
         """
             Download the thumbnail of an asset or folder
 
@@ -351,7 +353,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request)
             raise RuntimeError(request.status_code, "delete_identifier failed")
 
-    def identifiers_for_entity(self, entity: Entity) -> set:
+    def identifiers_for_entity(self, entity: Entity) -> set[tuple]:
         """
              Get all external identifiers on an entity
 
@@ -387,7 +389,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def identifier(self, identifier_type: str, identifier_value: str):
+    def identifier(self, identifier_type: str, identifier_value: str) -> set[Entity]:
         """
              Get all entities which have the external identifier
 
@@ -767,6 +769,7 @@ class EntityAPI(AuthenticatedAPI):
 
         :param entity: The Entity to update
         """
+
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         xml_object = xml.etree.ElementTree.Element(entity.tag, {"xmlns": self.xip_ns})
@@ -1092,6 +1095,51 @@ class EntityAPI(AuthenticatedAPI):
         if entity_type is EntityType.ASSET:
             return self.asset(reference)
 
+    def add_physical_asset(self, title: str, description: str, parent: Folder, security_tag: str = "open") -> Asset:
+        """
+        Create a new asset which represents a physical object
+
+        Returns Asset
+
+        :param title:           The title of the new Asset
+        :param description:     The description of the new Asset
+        :param parent:          The parent folder
+        :param security_tag:    The security setting
+        """
+
+        if (self.major_version < 7) and (self.minor_version < 4):
+            raise RuntimeError(
+                "add_physical_asset API call is only available with a Preservica v6.4.0 system or higher")
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        xip_object = xml.etree.ElementTree.Element('XIP ', {"xmlns": self.xip_ns})
+        io_object = xml.etree.ElementTree.SubElement(xip_object, "InformationObject")
+        xml.etree.ElementTree.SubElement(io_object, "Title").text = str(title)
+        xml.etree.ElementTree.SubElement(io_object, "Description").text = str(description)
+        xml.etree.ElementTree.SubElement(io_object, "SecurityTag").text = str(security_tag)
+        xml.etree.ElementTree.SubElement(io_object, "Parent").text = parent.reference
+        rep_object = xml.etree.ElementTree.SubElement(xip_object, "Representation")
+        xml.etree.ElementTree.SubElement(rep_object, "Type").text = "Physical"
+
+        xml_request = xml.etree.ElementTree.tostring(xip_object, encoding='utf-8')
+
+        request = self.session.post(f'https://{self.server}/api/entity/{IO_PATH}', data=xml_request, headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_string = str(request.content.decode("utf-8"))
+            entity = self.entity_from_string(xml_string)
+            return Asset(entity['reference'], entity['title'], entity['description'],
+                         entity['security_tag'], entity['parent'],
+                         entity['metadata'])
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.add_physical_asset(title, description, parent, security_tag)
+        else:
+            exception = HTTPException(title, request.status_code, request.url, "add_physical_asset",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
     def asset(self, reference: str) -> Asset:
         """
          Retrieve an Asset by its reference
@@ -1123,7 +1171,7 @@ class EntityAPI(AuthenticatedAPI):
 
     def folder(self, reference: str) -> Folder:
         """
-         Retrieve an Folder by its reference
+         Retrieve a Folder by its reference
 
          Returns Folder
 
@@ -1179,13 +1227,12 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def content_objects(self, representation: Representation) -> Optional[list]:
+    def content_objects(self, representation: Representation) -> Optional[list[ContentObject]]:
         """
          Retrieve a list of content objects within a representation
 
-         Returns List(ContentObject)
-
          :param representation:
+         :returns list[ContentObject]
          """
         headers = {HEADER_TOKEN: self.token}
         if not isinstance(representation, Representation):
@@ -1214,13 +1261,12 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def generation(self, url: str):
+    def generation(self, url: str) -> Generation:
         """
          Retrieve a list of generation objects
 
-         Returns List(Generation)
-
          :param url:
+         :returns Generation
          """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(url, headers=headers)
@@ -1313,7 +1359,7 @@ class EntityAPI(AuthenticatedAPI):
             for entity in paged_set.results:
                 yield entity
 
-    def bitstream(self, url: str):
+    def bitstream(self, url: str) -> Bitstream:
         """
          Retrieve a bitstream by its url
 
@@ -1416,7 +1462,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def generations(self, content_object: ContentObject) -> list:
+    def generations(self, content_object: ContentObject) -> list[Generation]:
         """
         Retrieve list of generations on a content object
 
@@ -1435,7 +1481,9 @@ class EntityAPI(AuthenticatedAPI):
             for g in generations:
                 if hasattr(g, 'text'):
                     generation = self.generation(g.text)
+                    generation.asset = content_object.asset
                     generation.content_object = content_object
+                    generation.representation_type = content_object.representation_type
                     result.append(generation)
             return result
         elif request.status_code == requests.codes.unauthorized:
@@ -1447,13 +1495,33 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def representations(self, asset: Asset) -> Optional[set]:
+    def bitstreams_for_asset(self, asset: Asset) -> Iterable[Bitstream]:
+        """
+
+        Return all the bitstreams within an asset.
+        This includes all the representations and content objects
+
+
+        :param asset:               The asset
+        :return:
+        """
+
+        for representation in self.representations(asset):
+            for content_object in self.content_objects(representation):
+                for generation in self.generations(content_object):
+                    if generation.active:
+                        for bitstream in generation.bitstreams:
+                            bitstream.representation = representation
+                            bitstream.content_object = content_object
+                            bitstream.generation = generation
+                            yield bitstream
+
+    def representations(self, asset: Asset) -> Optional[set[Representation]]:
         """
         Retrieve set of representations on an Asset
 
-        Returns list
-
         :param asset:   The asset
+        :returns set[Representation]
         """
         headers = {HEADER_TOKEN: self.token}
         if not isinstance(asset, Asset):
@@ -1878,7 +1946,8 @@ class EntityAPI(AuthenticatedAPI):
         """
          Delete an asset from the repository
 
-         :param folder:            The Folder
+
+         :param folder:             The Folder
          :param operator_comment:   The operator comment on the deletion
          :param supervisor_comment:  The supervisor comment on the deletion
          """

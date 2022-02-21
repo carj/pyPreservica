@@ -1,4 +1,6 @@
 import pathlib
+import sys
+import os
 from setuptools import setup
 
 # The directory containing this file
@@ -9,11 +11,17 @@ README = (HERE / "README.md").read_text()
 
 PKG = "pyPreservica"
 
+# 'setup.py publish' shortcut.
+if sys.argv[-1] == 'publish':
+    os.system('python setup.py sdist bdist_wheel')
+    os.system('twine upload dist/*')
+    sys.exit()
+
 
 # This call to setup() does all the work
 setup(
     name=PKG,
-    version="1.2.2",
+    version="1.2.3",
     description="Python library for the Preservica API",
     long_description=README,
     long_description_content_type="text/markdown",

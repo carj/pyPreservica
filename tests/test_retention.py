@@ -100,7 +100,7 @@ def test_add_assignments():
     client = EntityAPI()
     retention = RetentionAPI()
 
-    asset = client.asset("c365634e-9fcc-4ea1-b47f-077f55df9d64")
+    asset = client.asset("799b467f-050d-415f-b8ec-7c74b343f628")
 
     retention_assignments = retention.assignments(asset)
 

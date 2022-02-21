@@ -1,5 +1,6 @@
 import base64
 import csv
+import os
 import shutil
 import tempfile
 import uuid
@@ -1231,6 +1232,9 @@ class UploadAPI(AuthenticatedAPI):
                         if "video_info" in med:
                             co, has_video = get_video(med)
                             content_objects.append(co)
+                            if has_video:
+                                co = get_image(med, has_video)
+                                content_objects.append(co)
                             continue
                         if "media_url_https" in med:
                             co = get_image(med, has_video)
@@ -1413,6 +1417,9 @@ class UploadAPI(AuthenticatedAPI):
                             if "video_info" in med:
                                 co, has_video = get_video(med)
                                 content_objects.append(co)
+                                if has_video:
+                                    co = get_image(med, has_video)
+                                    content_objects.append(co)
                                 continue
                             if "media_url_https" in med:
                                 co = get_image(med, has_video)
