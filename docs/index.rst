@@ -3,8 +3,9 @@ Welcome to pyPreservica's documentation
 
 Release v\ |version|.
 
-.. image:: https://pepy.tech/badge/pyPreservica
-    :target: https://pepy.tech/project/pyPreservica
+..
+    #image:: https://pepy.tech/badge/pyPreservica
+    #target: https://pepy.tech/project/pyPreservica
 
 .. image:: https://img.shields.io/pypi/pyversions/pyPreservica.svg
     :target: https://pypi.org/project/pyPreservica/
