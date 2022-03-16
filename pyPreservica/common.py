@@ -20,6 +20,7 @@ import time
 import unicodedata
 import xml.etree.ElementTree
 from enum import Enum
+from pathlib import Path
 
 import requests
 
@@ -220,7 +221,7 @@ class UploadProgressConsoleCallback:
         self.fill = fill
         self.printEnd = printEnd
         self._filename = filename
-        self._size = float(os.path.getsize(filename))
+        self._size = float(Path(filename).stat().st_size)
         self._seen_so_far = 0
         self.start = time.time()
         self._lock = threading.Lock()
@@ -230,9 +231,9 @@ class UploadProgressConsoleCallback:
         with self._lock:
             seconds = time.time() - self.start
             if seconds == 0:
-                seconds = 1
+                seconds = 1.0
             self._seen_so_far += bytes_amount
-            percentage = (self._seen_so_far / self._size) * 100
+            percentage = (self._seen_so_far / self._size) * float(100.0)
             rate = (self._seen_so_far / (1024 * 1024)) / seconds
             self.print_progress_bar(percentage, rate)
             if int(self._seen_so_far) == int(self._size):

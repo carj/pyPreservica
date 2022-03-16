@@ -1592,8 +1592,12 @@ class UploadAPI(AuthenticatedAPI):
             for data_source in data_sources:
                 sip_locations = data_source.findall('.//sipLocation')
                 for sip_location in sip_locations:
-                    buckets[self.__convert_(xml_tag, sip_location.text)] = self.__convert_(xml_tag, sip_location.attrib[
-                        'region'])
+                    if sip_location.attrib['region'] == "":
+                        buckets[self.__convert_(xml_tag, sip_location.text)] = "Unknown"
+                    else:
+                        buckets[self.__convert_(xml_tag, sip_location.text)] = self.__convert_(xml_tag,
+                                                                                               sip_location.attrib[
+                                                                                                   'region'])
         return buckets
 
     """
@@ -1672,6 +1676,89 @@ class UploadAPI(AuthenticatedAPI):
                         logger.info(f"Reached Max Upload Limit")
                         break
     """
+
+    def upload_zip_package_to_Azure(self, path_to_zip_package, container_name, folder=None, callback=None,
+                                    delete_after_upload=False):
+
+        """
+         Uploads a zip file package to an Azure container connected to a Preservica Cloud System
+
+         :param str path_to_zip_package: Path to the package
+         :param str container_name: container connected to an ingest workflow
+         :param Folder folder: The folder to ingest the package into
+         :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
+
+        """
+
+        from azure.storage.blob import ContainerClient
+
+        request = requests.get(f"https://{self.server}/api/admin/locations/upload?refresh={container_name}",
+                               auth=HTTPBasicAuth(self.username, self.password))
+
+        if request.status_code is not requests.codes.ok:
+            raise SystemError(request.content)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            a = entity_response.find('.//a')
+            b = entity_response.find('.//b')
+            c = entity_response.find('.//c')
+            t = entity_response.find('.//type')
+            xml_tag = "N2YxcGVsUA=="
+            account_key = self.__convert_(xml_tag, a.text)
+            session_token = self.__convert_(xml_tag, c.text)
+            access_type = self.__convert_(xml_tag, t.text)
+
+            sas_url = f"https://{account_key}.blob.core.windows.net/{container_name}?{session_token}"
+            container = ContainerClient.from_container_url(sas_url)
+
+            upload_key = str(uuid.uuid4())
+            metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': container_name, 'status': 'ready'}
+
+            if hasattr(folder, "reference"):
+                metadata['collectionreference'] = folder.reference
+            elif isinstance(folder, str):
+                metadata['collectionreference'] = folder
+
+            from io import BufferedReader, FileIO
+
+            class ProgressFile(BufferedReader):
+                # For binary opening only
+
+                def __init__(self, filename, upload_callback):
+                    f = FileIO(file=filename, mode='rb')
+                    self.callback = upload_callback
+                    super().__init__(raw=f)
+                    self.length = Path(path_to_zip_package).stat().st_size
+
+                def close(self):
+                    return super(ProgressFile, self).close()
+
+                def read(self, size=None):
+                    calc_sz = size
+                    if not calc_sz:
+                        calc_sz = self.length - self.tell()
+                    self.callback(calc_sz)
+                    return super(ProgressFile, self).read(size)
+
+            properties = None
+
+            if callback is None:
+                with open(path_to_zip_package, "rb") as data:
+                    blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata,
+                                                        length=Path(path_to_zip_package).stat().st_size)
+                    properties = blob_client.get_blob_properties()
+            else:
+                async_file = ProgressFile(filename=path_to_zip_package, upload_callback=callback)
+                blob_client = container.upload_blob(name=upload_key, data=async_file,
+                                                    length=Path(path_to_zip_package).stat().st_size, metadata=metadata)
+                async_file.close()
+                properties = blob_client.get_blob_properties()
+
+            if delete_after_upload:
+                os.remove(path_to_zip_package)
+
+            return properties
 
     def upload_zip_package_to_S3(self, path_to_zip_package, bucket_name, folder=None, callback=None,
                                  delete_after_upload=False):
