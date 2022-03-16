@@ -553,9 +553,9 @@ If you have an Asset object and you would like to fetch all the available bitstr
 
 .. code-block:: python
 
-    for representation in self.representations(asset):
-        for content_object in self.content_objects(representation):
-            for generation in self.generations(content_object):
+    for representation in client.representations(asset):
+        for content_object in client.content_objects(representation):
+            for generation in client.generations(content_object):
                 for bitstream in generation.bitstreams:
 
 If you only need the current or active Generations, then you can use the following short cut method
@@ -572,6 +572,18 @@ The actual content files can be download using ``bitstream_content()``
 .. code-block:: python
 
     client.bitstream_content(bitstream, bitstream.filename)
+
+
+To download all the access bitstreams to the current folder you would use.
+
+.. code-block:: python
+
+    for representation in client.representations(asset):
+        if representation.rep_type  == "Access":
+            for content_object in client.content_objects(representation):
+                for generation in client.generations(content_object):
+                    for bitstream in generation.bitstreams:
+                        client.bitstream_content(bitstream, bitstream.filename)
 
 
 Integrity Check History

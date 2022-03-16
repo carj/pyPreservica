@@ -21,7 +21,7 @@ if sys.argv[-1] == 'publish':
 # This call to setup() does all the work
 setup(
     name=PKG,
-    version="1.2.3",
+    version="1.3.0",
     description="Python library for the Preservica API",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -41,7 +41,7 @@ setup(
         "Topic :: System :: Archiving",
     ],
     keywords='Preservica API Preservation',
-    install_requires=["requests", "certifi", "boto3", "botocore", "s3transfer", "cryptography"],
+    install_requires=["requests", "certifi", "boto3", "botocore", "s3transfer", "cryptography", "azure-storage-blob"],
     project_urls={
         'Documentation': 'https://pypreservica.readthedocs.io',
         'Source': 'https://github.com/carj/pyPreservica',

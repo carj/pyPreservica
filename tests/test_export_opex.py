@@ -7,7 +7,7 @@ from pyPreservica import *
 def test_export_file_wait():
     client = EntityAPI()
     asset = client.asset("683f9db7-ff81-4859-9c03-f68cfa5d9c3d")
-    zip_file = client.export_opex_sync(asset)
+    zip_file = client.export_opex_sync(asset, IncludeContent='true')
     assert os.path.exists(zip_file)
     assert 1066650 < os.stat(zip_file).st_size
     with ZipFile(zip_file, 'r') as zipObj:
