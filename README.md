@@ -2,7 +2,10 @@
 # pyPreservica
 
 
+<!---
 [![Downloads](https://pepy.tech/badge/pyPreservica/month)](https://pepy.tech/project/pyPreservica/month)
+--->
+
 [![Supported Versions](https://img.shields.io/pypi/pyversions/pyPreservica.svg)](https://pypi.org/project/pyPreservica)
 [![CodeQL](https://github.com/carj/pyPreservica/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/carj/pyPreservica/actions/workflows/codeql-analysis.yml)
 

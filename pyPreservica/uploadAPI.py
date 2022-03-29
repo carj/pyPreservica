@@ -1,12 +1,10 @@
 import base64
 import csv
-import os
 import shutil
 import tempfile
 import uuid
 import xml
 from datetime import datetime
-from pathlib import Path
 from time import sleep
 from xml.dom import minidom
 from xml.etree import ElementTree
@@ -22,12 +20,14 @@ from botocore.exceptions import ClientError
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from requests.auth import HTTPBasicAuth
 from s3transfer import S3UploadFailedError
+from tqdm import tqdm
 
 from pyPreservica.common import *
 from pyPreservica.common import _make_stored_zipfile
 
 logger = logging.getLogger(__name__)
 
+MB = 1024 * 1024
 GB = 1024 ** 3
 transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 16))
 
@@ -1677,8 +1677,8 @@ class UploadAPI(AuthenticatedAPI):
                         break
     """
 
-    def upload_zip_package_to_Azure(self, path_to_zip_package, container_name, folder=None, callback=None,
-                                    delete_after_upload=False):
+    def upload_zip_package_to_Azure(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False,
+                                    show_progress=False):
 
         """
          Uploads a zip file package to an Azure container connected to a Preservica Cloud System
@@ -1720,40 +1720,18 @@ class UploadAPI(AuthenticatedAPI):
             elif isinstance(folder, str):
                 metadata['collectionreference'] = folder
 
-            from io import BufferedReader, FileIO
-
-            class ProgressFile(BufferedReader):
-                # For binary opening only
-
-                def __init__(self, filename, upload_callback):
-                    f = FileIO(file=filename, mode='rb')
-                    self.callback = upload_callback
-                    super().__init__(raw=f)
-                    self.length = Path(path_to_zip_package).stat().st_size
-
-                def close(self):
-                    return super(ProgressFile, self).close()
-
-                def read(self, size=None):
-                    calc_sz = size
-                    if not calc_sz:
-                        calc_sz = self.length - self.tell()
-                    self.callback(calc_sz)
-                    return super(ProgressFile, self).read(size)
-
             properties = None
 
-            if callback is None:
-                with open(path_to_zip_package, "rb") as data:
-                    blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata,
-                                                        length=Path(path_to_zip_package).stat().st_size)
+            len_bytes = Path(path_to_zip_package).stat().st_size
+
+            if show_progress:
+                with tqdm.wrapattr(open(path_to_zip_package, 'rb'), "read", total=len_bytes) as data:
+                    blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
                     properties = blob_client.get_blob_properties()
             else:
-                async_file = ProgressFile(filename=path_to_zip_package, upload_callback=callback)
-                blob_client = container.upload_blob(name=upload_key, data=async_file,
-                                                    length=Path(path_to_zip_package).stat().st_size, metadata=metadata)
-                async_file.close()
-                properties = blob_client.get_blob_properties()
+                with open(path_to_zip_package, "rb") as data:
+                    blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
+                    properties = blob_client.get_blob_properties()
 
             if delete_after_upload:
                 os.remove(path_to_zip_package)

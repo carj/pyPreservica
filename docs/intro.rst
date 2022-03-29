@@ -148,9 +148,19 @@ Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/carj/pyPreservica
 
+
+Support
+------------
+
+pyPreservica is 3rd party open source client and is
+not affiliated or supported by `Preservica Ltd <https://preservica.com/>`_
+
 For announcements about new versions and discussion of pyPreservica please subscribe to the google groups
 forum https://groups.google.com/g/pypreservica
 
+Bug reports can be raised directly on either `GitHub <https://github.com/carj/pyPreservica>`_ or on the google group forum
+
+General questions and queries about using pyPreservica posted on the google group forum above.
 
 Examples
 ------------
