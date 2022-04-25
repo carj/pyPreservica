@@ -46,7 +46,7 @@ class EntityAPI(AuthenticatedAPI):
 
         return self.security_tags_base(with_permissions=with_permissions)
 
-    def bitstream_content(self, bitstream: Bitstream, filename: str) -> Optional[int]:
+    def bitstream_content(self, bitstream: Bitstream, filename: str) -> int:
         """
         Download a file represented as a Bitstream to a local filename
 
@@ -353,7 +353,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request)
             raise RuntimeError(request.status_code, "delete_identifier failed")
 
-    def identifiers_for_entity(self, entity: Entity) -> set[tuple]:
+    def identifiers_for_entity(self, entity: Entity) -> set:
         """
              Get all external identifiers on an entity
 
@@ -389,7 +389,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def identifier(self, identifier_type: str, identifier_value: str) -> set[Entity]:
+    def identifier(self, identifier_type: str, identifier_value: str) -> set:
         """
              Get all entities which have the external identifier
 
@@ -767,6 +767,7 @@ class EntityAPI(AuthenticatedAPI):
 
         Returns The updated Entity
 
+        :param custom_type:
         :param entity: The Entity to update
         """
 
@@ -777,6 +778,10 @@ class EntityAPI(AuthenticatedAPI):
         xml.etree.ElementTree.SubElement(xml_object, "Title").text = entity.title
         xml.etree.ElementTree.SubElement(xml_object, "Description").text = entity.description
         xml.etree.ElementTree.SubElement(xml_object, "SecurityTag").text = entity.security_tag
+
+        if entity.custom_type is not None:
+            xml.etree.ElementTree.SubElement(xml_object, "CustomType").text = entity.custom_type
+
         if entity.parent is not None:
             xml.etree.ElementTree.SubElement(xml_object, "Parent").text = entity.parent
 
@@ -788,18 +793,27 @@ class EntityAPI(AuthenticatedAPI):
             xml_response = str(request.content.decode('utf-8'))
             response = self.entity_from_string(xml_response)
             if isinstance(entity, Asset):
-                return Asset(response['reference'], response['title'], response['description'],
-                             response['security_tag'],
-                             response['parent'], response['metadata'])
-            elif isinstance(entity, Folder):
-                return Folder(response['reference'], response['title'], response['description'],
+                asset = Asset(response['reference'], response['title'], response['description'],
                               response['security_tag'],
                               response['parent'], response['metadata'])
+                if 'CustomType' in response:
+                    asset.custom_type = response['CustomType']
+                return asset
+            elif isinstance(entity, Folder):
+                folder = Folder(response['reference'], response['title'], response['description'],
+                                response['security_tag'],
+                                response['parent'], response['metadata'])
+                if 'CustomType' in response:
+                    folder.custom_type = response['CustomType']
+                return folder
             elif isinstance(entity, ContentObject):
-                return ContentObject(response['reference'], response['title'],
-                                     response['description'],
-                                     response['security_tag'],
-                                     response['parent'], response['metadata'])
+                content_object = ContentObject(response['reference'], response['title'],
+                                               response['description'],
+                                               response['security_tag'],
+                                               response['parent'], response['metadata'])
+                if 'CustomType' in response:
+                    content_object.custom_type = response['CustomType']
+                return content_object
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.save(entity)
@@ -954,7 +968,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def all_metadata(self, entity: Entity) -> Tuple[str, str]:
+    def all_metadata(self, entity: Entity) -> Tuple:
         """
         Retrieve all metadata fragments on an entity
 
@@ -966,7 +980,7 @@ class EntityAPI(AuthenticatedAPI):
         for uri, schema in entity.metadata.items():
             yield tuple((str(schema), self.metadata(uri)))
 
-    def metadata_for_entity(self, entity: Entity, schema: str) -> Optional[str]:
+    def metadata_for_entity(self, entity: Entity, schema: str) -> str:
         """
         Retrieve the first metadata fragment on an entity with a matching schema URI
 
@@ -1153,9 +1167,12 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity = self.entity_from_string(xml_response)
-            return Asset(entity['reference'], entity['title'], entity['description'],
-                         entity['security_tag'], entity['parent'],
-                         entity['metadata'])
+            asset = Asset(entity['reference'], entity['title'], entity['description'],
+                          entity['security_tag'], entity['parent'],
+                          entity['metadata'])
+            if 'CustomType' in entity:
+                asset.custom_type = entity['CustomType']
+            return asset
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.asset(reference)
@@ -1182,9 +1199,12 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity = self.entity_from_string(xml_response)
-            return Folder(entity['reference'], entity['title'], entity['description'],
-                          entity['security_tag'], entity['parent'],
-                          entity['metadata'])
+            folder = Folder(entity['reference'], entity['title'], entity['description'],
+                            entity['security_tag'], entity['parent'],
+                            entity['metadata'])
+            if 'CustomType' in entity:
+                folder.custom_type = entity['CustomType']
+            return folder
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.folder(reference)
@@ -1211,9 +1231,12 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity = self.entity_from_string(xml_response)
-            return ContentObject(entity['reference'], entity['title'], entity['description'],
-                                 entity['security_tag'], entity['parent'],
-                                 entity['metadata'])
+            content_object = ContentObject(entity['reference'], entity['title'], entity['description'],
+                                           entity['security_tag'], entity['parent'],
+                                           entity['metadata'])
+            if 'CustomType' in entity:
+                content_object.custom_type = entity['CustomType']
+            return content_object
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.content_object(reference)
@@ -1227,7 +1250,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def content_objects(self, representation: Representation) -> Optional[list[ContentObject]]:
+    def content_objects(self, representation: Representation) -> list:
         """
          Retrieve a list of content objects within a representation
 
@@ -1462,7 +1485,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def generations(self, content_object: ContentObject) -> list[Generation]:
+    def generations(self, content_object: ContentObject) -> list:
         """
         Retrieve list of generations on a content object
 
@@ -1495,7 +1518,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def bitstreams_for_asset(self, asset: Asset) -> Iterable[Bitstream]:
+    def bitstreams_for_asset(self, asset: Asset) -> Iterable:
         """
 
         Return all the bitstreams within an asset.
@@ -1516,7 +1539,7 @@ class EntityAPI(AuthenticatedAPI):
                             bitstream.generation = generation
                             yield bitstream
 
-    def representations(self, asset: Asset) -> Optional[set[Representation]]:
+    def representations(self, asset: Asset) -> set:
         """
         Retrieve set of representations on an Asset
 

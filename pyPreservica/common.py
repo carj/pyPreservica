@@ -436,13 +436,22 @@ class Entity:
         self.entity_type = None
         self.path = None
         self.tag = None
+        self.custom_type = None
 
     def __str__(self):
-        return f"Ref:\t\t\t{self.reference}\n" \
-               f"Title:\t\t\t{self.title}\n" \
-               f"Description:\t{self.description}\n" \
-               f"Security Tag:\t{self.security_tag}\n" \
-               f"Parent:\t\t\t{self.parent}\n\n"
+        if self.custom_type is None:
+            return f"Ref:\t\t\t{self.reference}\n" \
+                   f"Title:\t\t\t{self.title}\n" \
+                   f"Description:\t{self.description}\n" \
+                   f"Security Tag:\t{self.security_tag}\n" \
+                   f"Parent:\t\t\t{self.parent}\n\n"
+        else:
+            return f"Ref:\t\t\t{self.reference}\n" \
+                   f"Title:\t\t\t{self.title}\n" \
+                   f"Description:\t{self.description}\n" \
+                   f"Security Tag:\t{self.security_tag}\n" \
+                   f"Parent:\t\t\t{self.parent}\n" \
+                   f"Type:\t\t\t{self.custom_type}\n\n"
 
     def __repr__(self):
         return self.__str__()
@@ -645,6 +654,8 @@ class AuthenticatedAPI:
         security_tag = entity_response.find(f'.//{{{self.xip_ns}}}SecurityTag')
         description = entity_response.find(f'.//{{{self.xip_ns}}}Description')
         parent = entity_response.find(f'.//{{{self.xip_ns}}}Parent')
+        custom_type = entity_response.find(f'.//{{{self.xip_ns}}}CustomType')
+
         if hasattr(parent, 'text'):
             parent = parent.text
         else:
@@ -655,9 +666,14 @@ class AuthenticatedAPI:
         for fragment in fragments:
             metadata[fragment.text] = fragment.attrib['schema']
 
-        return {'reference': reference.text, 'title': title.text if hasattr(title, 'text') else None,
-                'description': description.text if hasattr(description, 'text') else None,
-                'security_tag': security_tag.text, 'parent': parent, 'metadata': metadata}
+        entity_dict = {'reference': reference.text, 'title': title.text if hasattr(title, 'text') else None,
+                       'description': description.text if hasattr(description, 'text') else None,
+                       'security_tag': security_tag.text, 'parent': parent, 'metadata': metadata}
+
+        if hasattr(custom_type, 'text'):
+            entity_dict['CustomType'] = custom_type.text
+
+        return entity_dict
 
     def __version_namespace__(self):
         """

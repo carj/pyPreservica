@@ -836,6 +836,7 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
 
 
+
         optional kwargs map
         'Title'                                 Asset Title
         'Description'                           Asset Description
@@ -1347,7 +1348,7 @@ class UploadAPI(AuthenticatedAPI):
             folder = entity_client.folder(folder)
         try:
             import tweepy
-            from tweepy import TweepError
+            #from tweepy import TweepError
         except ImportError:
             logger.error("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
             raise RuntimeError("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")

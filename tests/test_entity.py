@@ -32,6 +32,19 @@ def test_get_asset():
     assert asset.reference == ASSET_ID
 
 
+def test_get_asset_custom_type():
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    assert asset is not None
+    assert asset.title == "LC-USZ62-20901"
+    assert asset.description is None
+    assert asset.entity_type is EntityType.ASSET
+    assert asset.parent == FOLDER_ID
+    assert asset.security_tag == "open"
+    assert asset.reference == ASSET_ID
+    assert asset.custom_type is None
+
+
 def test_get_co():
     client = EntityAPI()
     content_object = client.content_object(CO_ID)
@@ -148,6 +161,31 @@ def test_save_asset_name():
     assert asset.title == "NEW TITLE"
     asset.title = "LC-USZ62-20901"
     client.save(asset)
+
+
+def test_save_asset_type():
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    asset.custom_type = None
+    client.save(asset)
+
+    asset = client.asset(ASSET_ID)
+
+    assert asset is not None
+    assert asset.title == "LC-USZ62-20901"
+    assert asset.custom_type is None
+
+    asset.custom_type = "custom"
+    a = client.save(asset)
+
+    assert a.title == "LC-USZ62-20901"
+    assert a.custom_type == "custom"
+
+    a1 = client.asset(a.reference)
+    assert a1.entity_type == EntityType.ASSET
+
+    a.custom_type = None
+    client.save(a)
 
 
 def test_save_asset_description():

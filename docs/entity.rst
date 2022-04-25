@@ -235,6 +235,36 @@ folders and content objects using the ``save()`` method
     content_object = client.save(content_object)
 
 
+This method can also be used to set the Type of an asset or folder. By default Information objects have a type "Asset"
+and Structural objects have a type "Folder". You can use the API to change these defaults for example you may want to
+use the type field to set the level of description of a Structural object to "Fonds" or "Series" etc.
+
+To change the type use the *custom_type* attribute on the object, e.g.
+
+.. code-block:: python
+
+    folder = client.folder("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    folder.custom_type = "Series"
+    folder = client.save(folder)
+
+
+.. code-block:: python
+
+    asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    asset.custom_type = "Manuscript"
+    asset = client.save(asset)
+
+
+If you want to change the type back, just set the value to None
+
+.. code-block:: python
+
+    asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    asset.custom_type = None
+    asset = client.save(asset)
+
+
+
 Security Tags
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
