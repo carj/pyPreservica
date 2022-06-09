@@ -16,7 +16,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx_rtd_theme',
     'sphinx.ext.todo',
-    'sphinx.ext.autosectionlabel'
 ]
 
 html_theme = "sphinx_rtd_theme"
