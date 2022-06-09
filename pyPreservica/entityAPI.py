@@ -12,10 +12,8 @@ import uuid
 import xml.etree.ElementTree
 from datetime import datetime, timedelta, timezone
 from time import sleep
-from types import NoneType
-from typing import Optional, Any, Generator, Tuple, Iterable
+from typing import Any, Generator, Tuple, Iterable
 
-import requests
 
 from pyPreservica.common import *
 
