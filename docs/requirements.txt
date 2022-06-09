@@ -5,3 +5,5 @@ botocore
 s3transfer
 cryptography
 pyPreservica
+azure-storage-blob
+tqdm
