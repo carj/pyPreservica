@@ -714,7 +714,7 @@ class AuthenticatedAPI:
             RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.4 Compatible) " \
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.5 Compatible) " \
                f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
                f"in tenancy {self.tenant}"
 

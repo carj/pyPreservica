@@ -9,11 +9,35 @@ def test_get_tags():
     assert "open" in tags
 
 
+def test_get_roles():
+    client = AdminAPI()
+    roles = client.system_roles()
+    assert type(roles) is list
+    assert "ROLE_SDB_ACCESS_USER" in roles
+    assert "ROLE_SDB_MANAGER_USER" in roles
+
+
 def test_all_tags():
     client = AdminAPI()
     tags = client.security_tags()
     assert type(tags) is list
     assert "open" in tags
+
+
+def test_add_remove_system_role():
+    client = AdminAPI()
+    roles = client.system_roles()
+    assert type(roles) is list
+    assert "ROLE_SDB_ACCESS_USER" in roles
+    assert "ROLE_SDB_MANAGER_USER" in roles
+    assert "ROLE_SDB_CUSTOM_EDIT_USER" not in roles
+    r = client.add_system_role("SDB_CUSTOM_EDIT_USER")
+    assert "ROLE_SDB_CUSTOM_EDIT_USER" == r
+    roles = client.system_roles()
+    assert "ROLE_SDB_CUSTOM_EDIT_USER" in roles
+    client.delete_system_role("ROLE_SDB_CUSTOM_EDIT_USER")
+    roles = client.system_roles()
+    assert "SDB_CUSTOM_EDIT_USER" not in roles
 
 
 def test_add_remove_security_tag():
@@ -41,4 +65,3 @@ def test_add_remove_security_tag_old_version():
     assert "open" in tags
     with pytest.raises(RuntimeError):
         client.add_security_tag("top_secret_tag")
-

@@ -14,6 +14,8 @@ from datetime import datetime, timedelta, timezone
 from time import sleep
 from typing import Optional, Any, Generator, Tuple, Iterable
 
+import requests
+
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
@@ -273,11 +275,35 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE) -> str:
+    def has_thumbnail(self, entity: Entity) -> bool:
+        """
+            Does the entity have a thumbnail image attached
+            Returns false if the entity has no thumbnail
+
+            :param entity: The entity
+         """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+        params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}', 'size': f'{Thumbnail.SMALL.value}'}
+        with self.session.get(f'https://{self.server}/api/content/thumbnail', params=params,
+                              headers=headers) as request:
+            if request.status_code == requests.codes.ok:
+                return True
+            if request.status_code == requests.codes.not_found:
+                return False
+            elif request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.has_thumbnail(entity)
+            else:
+                exception = HTTPException(entity.reference, request.status_code, request.url, "has_thumbnail",
+                                          request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
+
+    def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE) -> str | None:
         """
             Download the thumbnail of an asset or folder
 
-            Returns the filename of the new thumbnail file
+            Returns the filename of the new thumbnail file or None if the entity has no thumbnail
 
             :param entity: The entity containing the file
             :param filename: The filename to write the bytes to
@@ -286,13 +312,15 @@ class EntityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}', 'size': f'{size.value}'}
         with self.session.get(f'https://{self.server}/api/content/thumbnail', params=params,
-                              headers=headers) as request:
+                              headers=headers, stream=True) as request:
             if request.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
                     for chunk in request.iter_content(chunk_size=CHUNK_SIZE):
                         file.write(chunk)
                     file.flush()
                 return filename
+            elif request.status_code == requests.codes.not_found:
+                return None
             elif request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.thumbnail(entity, filename, size=size)
@@ -1611,11 +1639,11 @@ class EntityAPI(AuthenticatedAPI):
         if isinstance(entity, ContentObject):
             raise RuntimeError("Thumbnails cannot be added to Content Objects")
 
-        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+        headers = {HEADER_TOKEN: self.token}  # , 'Content-Type': 'application/octet-stream'}
 
-        with open(image_file, 'rb') as f:
+        with open(image_file, 'rb') as fd:
             request = self.session.put(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/preview',
-                                       data=f, headers=headers)
+                                       data=fd, headers=headers)
 
         if request.status_code == requests.codes.no_content:
             return str(request.content.decode('utf-8'))

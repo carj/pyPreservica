@@ -24,11 +24,35 @@ class AdminAPI(AuthenticatedAPI):
             logger.error(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
             raise RuntimeError(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
 
+    def delete_system_role(self, role_name):
+        """
+        Delete a system role
+
+        :param role_name: The role to delete
+        :type role_name: str
+
+        """
+        if (self.major_version < 7) and (self.minor_version < 5):
+            raise RuntimeError(
+                "delete_system_role API call is only available with a Preservica v6.5.0 system or higher")
+
+        self.__check_if_user_has_manager_role()
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        request = self.session.delete(f'https://{self.server}/api/admin/security/roles/{role_name}', headers=headers)
+        if request.status_code == requests.codes.no_content:
+            return
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.delete_system_role(role_name)
+        else:
+            logger.error(request.content.decode('utf-8'))
+            raise RuntimeError(request.status_code, "delete_system_role failed")
+
     def delete_security_tag(self, tag_name):
         """
         Delete a security tag
 
-        :param tag_name: The new security tag
+        :param tag_name: The security tag to delete
         :type tag_name: str
 
         """
@@ -47,6 +71,40 @@ class AdminAPI(AuthenticatedAPI):
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "delete_security_tag failed")
+
+    def add_system_role(self, role_name) -> str:
+        """
+        Create a new user roles
+
+        :param role_name: The new role
+        :type role_name: str
+
+        :return: The new role
+        :rtype: str
+
+        """
+        if (self.major_version < 7) and (self.minor_version < 5):
+            raise RuntimeError("add_system_role API call is only available with a Preservica v6.5.0 system or higher")
+
+        self.__check_if_user_has_manager_role()
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        xml_tag = xml.etree.ElementTree.Element('Role', {"xmlns": self.admin_ns})
+        xml_tag.text = str(role_name).strip()
+        xml_request = xml.etree.ElementTree.tostring(xml_tag, encoding='utf-8')
+        request = self.session.post(f'https://{self.server}/api/admin/security/roles', data=xml_request,
+                                    headers=headers)
+        if request.status_code == requests.codes.created:
+            xml_response = str(request.content.decode('utf-8'))
+            logger.debug(xml_response)
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            return entity_response.text
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.add_system_role(role_name)
+        else:
+            logger.error(request.content.decode('utf-8'))
+            raise RuntimeError(request.status_code, "add_system_role failed")
 
     def add_security_tag(self, tag_name) -> str:
         """
@@ -82,6 +140,38 @@ class AdminAPI(AuthenticatedAPI):
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_security_tag failed")
+
+    def system_roles(self) -> list:
+        """
+        List all the user access roles in the system
+
+        :return: list of roles
+        :rtype: list
+
+        """
+        self.__check_if_user_has_manager_role()
+
+        if (self.major_version < 7) and (self.minor_version < 5):
+            raise RuntimeError(
+                "system_roles API call is only available with a Preservica v6.5.0 system or higher")
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        request = self.session.get(f'https://{self.server}/api/admin/security/roles', headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            logger.debug(xml_response)
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            roles = entity_response.findall(f'.//{{{self.admin_ns}}}Role')
+            security_roles = []
+            for role in roles:
+                security_roles.append(role.text)
+            return security_roles
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.roles()
+        else:
+            logger.error(request.content.decode('utf-8'))
+            raise RuntimeError(request.status_code, "roles failed")
 
     def security_tags(self) -> list:
         """

@@ -1348,7 +1348,7 @@ class UploadAPI(AuthenticatedAPI):
             folder = entity_client.folder(folder)
         try:
             import tweepy
-            #from tweepy import TweepError
+            # from tweepy import TweepError
         except ImportError:
             logger.error("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
             raise RuntimeError("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
@@ -1575,6 +1575,47 @@ class UploadAPI(AuthenticatedAPI):
         output_bytes = decryptor.update(base64_decoded) + decryptor.finalize()
         return _unpad(output_bytes.decode("utf-8")).strip()
 
+    def upload_credentials(self, location_id: str):
+        """
+        Retrieves temporary upload credentials (Amazon STS, or Azure SAS) for this location.
+
+        :return: dict
+        """
+        headers = {HEADER_TOKEN: self.token}
+        endpoint = f"/upload/{location_id}/upload-credentials"
+        request = self.session.get(f'https://{self.server}/api/location{endpoint}', headers=headers)
+        if request.status_code == requests.codes.ok:
+            json_response = str(request.content.decode('utf-8'))
+            return json.loads(json_response)
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.upload_credentials(location_id)
+        else:
+            exception = HTTPException(location_id, request.status_code, request.url, "upload_credentials",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
+    def upload_locations(self):
+        """
+        Upload locations are configured on the Sources page as 'SIP Upload'.
+        :return: dict
+        """
+        headers = {HEADER_TOKEN: self.token}
+        endpoint = "/api/location/upload"
+        request = self.session.get(f'https://{self.server}{endpoint}', headers=headers)
+        if request.status_code == requests.codes.ok:
+            json_response = str(request.content.decode('utf-8'))
+            return json.loads(json_response)['locations']
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.upload_locations()
+        else:
+            exception = HTTPException("", request.status_code, request.url, "upload_locations",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
     def upload_buckets(self):
         """
         Get a list of available upload buckets
@@ -1753,21 +1794,31 @@ class UploadAPI(AuthenticatedAPI):
 
         """
 
-        request = requests.get(f"https://{self.server}/api/admin/locations/upload?refresh={bucket_name}",
-                               auth=HTTPBasicAuth(self.username, self.password))
+        if (self.major_version < 7) and (self.minor_version < 5):
+            request = requests.get(f"https://{self.server}/api/admin/locations/upload?refresh={bucket_name}",
+                                   auth=HTTPBasicAuth(self.username, self.password))
 
-        if request.status_code is not requests.codes.ok:
-            raise SystemError(request.content)
-        if request.status_code == requests.codes.ok:
-            xml_response = str(request.content.decode('utf-8'))
-            entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            a = entity_response.find('.//a')
-            b = entity_response.find('.//b')
-            c = entity_response.find('.//c')
-            xml_tag = "N2YxcGVsUA=="
-            access_key = self.__convert_(xml_tag, a.text)
-            secret_key = self.__convert_(xml_tag, b.text)
-            session_token = self.__convert_(xml_tag, c.text)
+            if request.status_code is not requests.codes.ok:
+                raise SystemError(request.content)
+            if request.status_code == requests.codes.ok:
+                xml_response = str(request.content.decode('utf-8'))
+                entity_response = xml.etree.ElementTree.fromstring(xml_response)
+                a = entity_response.find('.//a')
+                b = entity_response.find('.//b')
+                c = entity_response.find('.//c')
+                xml_tag = "N2YxcGVsUA=="
+                access_key = self.__convert_(xml_tag, a.text)
+                secret_key = self.__convert_(xml_tag, b.text)
+                session_token = self.__convert_(xml_tag, c.text)
+
+        if (self.major_version > 5) and (self.minor_version > 4):
+            locations = self.upload_locations()
+            for location in locations:
+                if location['containerName'] == bucket_name:
+                    credentials = self.upload_credentials(location['apiId'])
+                    access_key = credentials['key']
+                    secret_key = credentials['secret']
+                    session_token = credentials['sessionToken']
 
             session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
                                     aws_session_token=session_token)
