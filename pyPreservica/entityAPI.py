@@ -14,7 +14,6 @@ from datetime import datetime, timedelta, timezone
 from time import sleep
 from typing import Any, Generator, Tuple, Iterable
 
-
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
