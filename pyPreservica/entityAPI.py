@@ -297,7 +297,7 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE) -> str:
+    def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE):
         """
             Download the thumbnail of an asset or folder
 
