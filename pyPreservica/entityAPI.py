@@ -12,6 +12,7 @@ import uuid
 import xml.etree.ElementTree
 from datetime import datetime, timedelta, timezone
 from time import sleep
+from types import NoneType
 from typing import Optional, Any, Generator, Tuple, Iterable
 
 import requests
@@ -299,7 +300,7 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE) -> str | None:
+    def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE) -> str:
         """
             Download the thumbnail of an asset or folder
 
