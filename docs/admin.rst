@@ -216,6 +216,17 @@ Fetch the full set of user details, such as full name, email address and roles
     print(user['Email'])
 
 
+Create a CSV report containing details of all users within the tenancy
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    client = AdminAPI()
+
+    client.user_report(report_name="users.csv"):
+
+
 Create new user accounts
 
 .. code-block:: python

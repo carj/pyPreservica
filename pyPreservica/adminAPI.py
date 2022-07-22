@@ -8,7 +8,7 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-
+import csv
 import xml.etree.ElementTree
 from typing import List, Any
 
@@ -382,6 +382,23 @@ class AdminAPI(AuthenticatedAPI):
     #     """
     #     self.__check_if_user_has_manager_role()
     #     return self.__account_status_(username, "true", "enable_user")
+
+    def user_report(self, report_name="users.csv"):
+        """
+        Create a report on all tenancy users
+        :return:
+        """
+
+        self.__check_if_user_has_manager_role()
+
+        fieldnames = ['UserName', 'FullName', 'Email', 'Tenant', 'Enabled', 'Roles']
+
+        with open(report_name, newline='', mode="wt", encoding="utf-8") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer.writeheader()
+            for username in self.all_users():
+                user_details = self.user_details(username)
+                writer.writerow(user_details)
 
     def all_users(self) -> list:
         """

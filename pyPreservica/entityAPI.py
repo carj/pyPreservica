@@ -1866,15 +1866,22 @@ class EntityAPI(AuthenticatedAPI):
             event_actions = entity_response.findall(f'.//{{{self.xip_ns}}}EventAction')
             result_list = []
             for event_action in event_actions:
-                result = {'commandType': event_action.attrib['commandType']}
+                result = {'commandType': ''}
+                if 'commandType' in event_action.attrib:
+                    result['commandType'] = event_action.attrib['commandType']
+
                 event = event_action.find(f'.//{{{self.xip_ns}}}Event')
-                result['eventType'] = event.attrib['type']
+                if 'type' in event_action.attrib:
+                    result['eventType'] = event.attrib['type']
+
                 date_node = event.find(f'.//{{{self.xip_ns}}}Date')
                 if date_node is not None:
                     result['Date'] = date_node.text
+
                 user_node = event.find(f'.//{{{self.xip_ns}}}User')
                 if user_node is not None:
                     result['User'] = user_node.text
+
                 ref_node = event.find(f'.//{{{self.xip_ns}}}Ref')
                 if ref_node is not None:
                     result['Ref'] = ref_node.text

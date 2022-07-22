@@ -211,6 +211,30 @@ reference of the parent as the last argument.
     assert  new_folder.parent == folder.reference
 
 
+
+
+Adding Physical Assets
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Preservica supports the creation of intellectual entities which correspond to physical objects. These are similar to
+regular assets, but they do not point to digital files like regular assets.
+
+To use Physical Assets the system needs a system property set to active the functionality, this can be done by the
+Preservica help desk.
+
+.. code-block:: python
+
+    parent = client.folder("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+    physical_asset = client.add_physical_asset("title", "description", parent, "open")
+    print(physical_asset.reference)
+
+
+Physical assets support 3rd party identifiers, thumbnails and descriptive metadata in the same way as regular assets.
+
+.. code-block:: python
+    client.add_identifier(physical_asset, "ISBN", "978-3-16-148410-0")
+    client.add_thumbnail(physical_asset, "icon.png")
+
 Updating Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -466,7 +490,7 @@ These relationships are additional relationships which relate different entities
 For example relationships may be used to link different editions of the same work,
 or a translation of an existing document etc.
 
-Any type of relationship is supported, for example the The Dublin Core Metadata Initiative provide a set of standard relationships between entities,
+Any type of relationship is supported, for example The Dublin Core Metadata Initiative provide a set of standard relationships between entities,
 and these have been provided as part of the Relationship class, but any text string is allowed for the relationship type.
 
 .. code-block:: python

@@ -20,6 +20,6 @@ from .adminAPI import AdminAPI
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "1.5.1"
+__version__ = "1.5.3"
 
 __license__ = "Apache License Version 2.0"
