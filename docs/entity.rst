@@ -232,6 +232,7 @@ Preservica help desk.
 Physical assets support 3rd party identifiers, thumbnails and descriptive metadata in the same way as regular assets.
 
 .. code-block:: python
+
     client.add_identifier(physical_asset, "ISBN", "978-3-16-148410-0")
     client.add_thumbnail(physical_asset, "icon.png")
 
