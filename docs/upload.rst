@@ -638,3 +638,21 @@ file or an environment variable using the keys:  ``TWITTER_CONSUMER_KEY`` and ``
 
     upload.ingest_twitter_feed(twitter_user=twitter_name, num_tweets=number_tweets, folder=folder, twitter_consumer_key="xxxx", twitter_secret_key="zzzz")
 
+
+
+Crawl and ingest from a filesystem
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The UploadAPI class provides a mechanism for users to crawl and ingest all digital files on a filesystem. The crawl will
+replicate the on disk folder structure in Preservica.
+
+You provide the function the path to the data to be ingested, an bucket connected to an ingest workflow and the
+Preservica collection to ingest into.
+
+.. code-block:: python
+
+    upload = UploadAPI()
+
+    upload.crawl_filesystem(filesystem_path="/my/path/data", bucket_name="com.bucket",
+                            preservica_parent="daa88307-4a0b-4962-a5a9-6a1387f9f876")
+

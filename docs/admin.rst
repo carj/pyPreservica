@@ -216,7 +216,8 @@ Fetch the full set of user details, such as full name, email address and roles
     print(user['Email'])
 
 
-Create a CSV report containing details of all users within the tenancy
+Create a CSV/Spreadsheet report containing details of all users within the tenancy, the report has the following columns,
+UserName, FullName, Email, Tenant, Enabled, Roles
 
 .. code-block:: python
 
@@ -224,7 +225,7 @@ Create a CSV report containing details of all users within the tenancy
 
     client = AdminAPI()
 
-    client.user_report(report_name="users.csv"):
+    client.user_report(report_name="users.csv")
 
 
 Create new user accounts

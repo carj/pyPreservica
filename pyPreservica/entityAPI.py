@@ -1015,6 +1015,11 @@ class EntityAPI(AuthenticatedAPI):
         :param entity:       The entity with the metadata
         :param schema:       The schema URI
         """
+
+        # if the entity is a lightweight enum version request the full object
+        if entity.metadata is None:
+            entity = self.entity(entity.entity_type, entity.reference)
+
         for uri, schema_name in entity.metadata.items():
             if schema == schema_name:
                 return self.metadata(uri)

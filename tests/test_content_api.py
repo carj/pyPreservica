@@ -60,7 +60,7 @@ def test_get_indexed_fields():
 def test_simple_search_list():
     client = ContentAPI()
     results = list(client.simple_search_list(query="pyPreservica"))
-    assert len(results) == 1
+    assert len(results) == 2
     assert results.pop()['xip.reference'] == '9fd239eb-19a3-4a46-9495-40fd9a5d8f93'
 
 
@@ -70,7 +70,7 @@ def test_simple_search_list2():
     columns = ["xip.reference", "xip.title", "xip.description", "xip.document_type"]
 
     results = list(client.simple_search_list("pyPreservica", 25, columns))
-    assert len(results) == 1
+    assert len(results) == 2
     assert results.pop()['xip.reference'] == '9fd239eb-19a3-4a46-9495-40fd9a5d8f93'
 
 

@@ -629,6 +629,18 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
                         entity.text = io_ref
                         content = SubElement(metadata, 'Content')
                         content.append(descriptive_metadata.getroot())
+                    elif isinstance(metadata_path, str):
+                        try:
+                            descriptive_metadata = xml.etree.ElementTree.fromstring(metadata_path)
+                            metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
+                            metadata_ref = SubElement(metadata, 'Ref')
+                            metadata_ref.text = str(uuid.uuid4())
+                            entity = SubElement(metadata, 'Entity')
+                            entity.text = io_ref
+                            content = SubElement(metadata, 'Content')
+                            content.append(descriptive_metadata)
+                        except RuntimeError:
+                            logging.info(f"Could not parse asset metadata in namespace {metadata_ns}")
 
     if xip is not None:
         export_folder = export_folder
@@ -1642,52 +1654,53 @@ class UploadAPI(AuthenticatedAPI):
                                                                                                    'region'])
         return buckets
 
-    """
-    def ingest_folder_structure(self, folder_path, bucket_name, parent_folder, callback=None,
-                                security_tag: str = "open",
-                                delete_after_upload=True, max_MB_ingested: int = -1):
+    def crawl_filesystem(self, filesystem_path, bucket_name, preservica_parent, callback=None,
+                         security_tag: str = "open",
+                         delete_after_upload=True, max_MB_ingested: int = -1):
 
-        def get_parent(client, code, parent_ref):
-            identifier = str(os.path.dirname(code))
-            if not identifier:
-                identifier = code
-            entities = client.identifier("code", identifier)
+        def get_parent(client, identifier, parent_reference):
+            id = str(os.path.dirname(identifier))
+            if not id:
+                id = identifier
+            entities = client.identifier("code", id)
             if len(entities) > 0:
                 folder = entities.pop()
                 folder = client.folder(folder.reference)
                 return folder.reference
             else:
-                return parent
+                return parent_reference
 
-        def get_folder(client, name, security_tag, parent_ref, code):
-            entities = client.identifier("code", code)
+        def get_folder(client, name, tag, parent_reference, identifier):
+            entities = client.identifier("code", identifier)
             if len(entities) == 0:
                 logger.info(f"Creating new folder with name {name}")
-                folder = client.create_folder(name, name, security_tag, parent_ref)
-                client.add_identifier(folder, "code", code)
+                folder = client.create_folder(name, name, tag, parent_reference)
+                client.add_identifier(folder, "code", identifier)
             else:
                 logger.info(f"Found existing folder with name {name}")
                 folder = entities.pop()
             return folder
 
         from pyPreservica import EntityAPI
-        entity_client = EntityAPI()
+        entity_client = EntityAPI(username=self.username, password=self.password, server=self.server,
+                                  tenant=self.tenant)
 
-        if parent_folder:
-            parent = entity_client.folder(parent_folder)
+        if preservica_parent:
+            parent = entity_client.folder(preservica_parent)
             logger.info(f"Folders will be created inside Preservica collection {parent.title}")
-            parent = parent.reference
+            parent_ref = parent.reference
         else:
-            parent = None
+            parent_ref = None
 
         bytes_ingested = 0
 
-        folder_path = os.path.normpath(folder_path)
+        folder_path = os.path.normpath(filesystem_path)
 
         for dirname, subdirs, files in os.walk(folder_path):
             base = os.path.basename(dirname)
             code = os.path.relpath(dirname, Path(folder_path).parent)
-            f = get_folder(base, security_tag, get_parent(code, parent), code)
+            p = get_parent(entity_client, code, parent_ref)
+            f = get_folder(entity_client, base, security_tag, p, code)
             identifiers = dict()
             for file in list(files):
                 full_path = os.path.join(dirname, file)
@@ -1717,7 +1730,6 @@ class UploadAPI(AuthenticatedAPI):
                     if bytes_ingested > (1024 * 1024 * max_MB_ingested):
                         logger.info(f"Reached Max Upload Limit")
                         break
-    """
 
     def upload_zip_package_to_Azure(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False,
                                     show_progress=False):

@@ -25,7 +25,7 @@ Fetching Workflow Contexts
 
 The WorkflowAPI allows users to fetch a list of workflow contexts. A workflow context is a workflow definition
 which has been configured and is ready to run.
-Workflow contexts will appear in the "Manage" type
+Workflow contexts will appear in the "Manage" tab in the admin interface under the workflow type.
 
 To fetch list of all workflow contexts by the workflow definition identifier
 
