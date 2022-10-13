@@ -754,3 +754,13 @@ https://eu.preservica.com/sdb/rest/workflow/documentation.html
      :members:
 
 
+Process Monitor  API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+https://us.preservica.com/api/processmonitor/documentation.html
+
+.. py:currentmodule:: pyPreservica
+.. autoclass:: MonitorAPI
+     :members:
+.. autoclass:: MonitorStatus
+.. autoclass:: MonitorCategory

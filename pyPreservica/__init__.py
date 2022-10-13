@@ -15,11 +15,12 @@ from .workflowAPI import WorkflowAPI, WorkflowContext, WorkflowInstance
 from .retentionAPI import RetentionAPI, RetentionAssignment, RetentionPolicy
 from .parAPI import PreservationActionRegistry
 from .adminAPI import AdminAPI
+from .monitorAPI import MonitorAPI, MonitorCategory, MonitorStatus, MessageStatus
 
 
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "1.5.5"
+__version__ = "1.6.0"
 
 __license__ = "Apache License Version 2.0"

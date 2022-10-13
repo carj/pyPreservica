@@ -1781,6 +1781,45 @@ class EntityAPI(AuthenticatedAPI):
             for entity in paged_set.results:
                 yield entity
 
+    def _entity_from_event_page(self, event_id: str, maximum: int = 25, next_page: str = None):
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        if next_page is None:
+            url = f'https://{self.server}/api/entity/events/{event_id}/event-actions'
+            response = requests.get(url, params={'start': 0, 'max': maximum}, headers=headers)
+        else:
+            response = requests.get(next_page, headers=headers)
+        if response.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self._entity_from_event_page(event_id, maximum, next_page)
+        if response.status_code == 200:
+            xml_response = str(response.content.decode('utf-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            actions = entity_response.findall(f'.//{{{self.xip_ns}}}EventAction')
+            result_list = []
+            for action in actions:
+                entity_ref = action.findall(f'.//{{{self.xip_ns}}}Entity')
+                for refs in entity_ref:
+                    result_list.append(refs.text)
+            next_url = entity_response.find(f'.//{{{self.entity_ns}}}Next')
+            total_hits = entity_response.find(f'.//{{{self.entity_ns}}}TotalResults')
+            has_more = True
+            url = None
+            if next_url is None:
+                has_more = False
+            else:
+                url = next_url.text
+            return PagedSet(result_list, has_more, int(total_hits.text), url)
+
+    def entity_from_event(self, event_id: str):
+        self.token = self.__token__()
+        paged_set = self._entity_from_event_page(event_id, 25, None)
+        for entity in paged_set.results:
+            yield entity
+        while paged_set.has_more:
+            paged_set = self._entity_from_event_page(event_id, 25, next_page=paged_set.next_page)
+            for entity in paged_set.results:
+                yield entity
+
     def _all_events_page(self, maximum: int = 25, next_page: str = None, **kwargs) -> PagedSet:
         """
           event actions performed against this repository
