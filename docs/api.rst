@@ -760,7 +760,7 @@ Process Monitor  API
 https://us.preservica.com/api/processmonitor/documentation.html
 
 .. py:currentmodule:: pyPreservica
-.. autoclass:: MonitorAPI
-     :members:
 .. autoclass:: MonitorStatus
 .. autoclass:: MonitorCategory
+.. autoclass:: MonitorAPI
+     :members:

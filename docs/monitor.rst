@@ -7,7 +7,7 @@ This is an API for monitoring certain types of long running process within Prese
 You can find Swagger UI for this API at https://us.preservica.com/api/processmonitor/documentation.html
 
 Monitors
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
 
 Returns a generator of monitors. The ID returned for each monitor can be used as an ID parameter in other endpoints.
 These IDs might change between releases, so you should not persist them as permanent object links.
@@ -60,14 +60,6 @@ Messages can be filtered
 
     for monitor in client.monitors(category=MonitorCategory.INGEST, status=MonitorStatus.SUCCEEDED):
         print(monitor)
-        for message in client.messages(monitor['MonitorId']):
-            print(message)
-
-
-.. code-block:: python
-
-    for monitor in client.monitors(category=MonitorCategory.INGEST, status=MonitorStatus.SUCCEEDED):
-        print(monitor)
         for message in client.messages(monitor['MonitorId'], status=MessageStatus.ERROR):
             print(message)
 
@@ -81,6 +73,6 @@ Get the historical record of progress for a single monitor.
 
     for monitor in client.monitors(category=MonitorCategory.INGEST, status=MonitorStatus.RUNNING):
         print(monitor)
-        for message in client.timeseries(monitor['MonitorId']):
-            print(message)
+        for series in client.timeseries(monitor['MonitorId']):
+            print(series)
 
