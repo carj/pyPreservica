@@ -1684,7 +1684,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def all_descendants(self, folder: str = None) -> Generator:
+    def all_descendants(self, folder: Folder = None) -> Generator:
         """
          Retrieve list of entities below a folder in the repository
 
@@ -1696,7 +1696,7 @@ class EntityAPI(AuthenticatedAPI):
         for entity in self.descendants(folder=folder):
             yield entity
             if entity.entity_type == EntityType.FOLDER:
-                yield from self.all_descendants(folder=entity.reference)
+                yield from self.all_descendants(folder=entity)
 
     def descendants(self, folder: Folder = None) -> Generator:
         maximum = 100

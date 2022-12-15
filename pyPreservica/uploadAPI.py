@@ -319,7 +319,7 @@ def cvs_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additi
 
     if additional_namespaces is not None:
         for prefix, uri in additional_namespaces.items():
-            namespaces["xmlns:" + prefix.trim()] = uri.trim()
+            namespaces["xmlns:" + prefix.strip()] = uri.strip()
 
     xml_schema = xml.etree.ElementTree.Element("xs:schema", namespaces)
 
@@ -1343,14 +1343,15 @@ class UploadAPI(AuthenticatedAPI):
             video_info_ = m["video_info"]
             variants_ = video_info_["variants"]
             for v_ in variants_:
-                video_url_ = v_["url"]
-                req = requests.get(video_url_)
-                if req.status_code == requests.codes.ok:
-                    video_name_ = f"{{{media_id_str}}}_[{twitter_user}].mp4"
-                    video_name_document_ = open(video_name_, "wb")
-                    video_name_document_.write(req.content)
-                    video_name_document_.close()
-                    return video_name_, True
+                if v_['content_type'] == 'video/mp4':
+                    video_url_ = v_["url"]
+                    with requests.get(video_url_, stream=True) as req:
+                        video_name_ = f"{{{media_id_str}}}_[{twitter_user}].mp4"
+                        with open(video_name_, 'wb') as video_name_document_:
+                            for chunk in req.iter_content(chunk_size=1024):
+                                video_name_document_.write(chunk)
+                                video_name_document_.flush()
+                        return video_name_, True
 
         entity_client = pyPreservica.EntityAPI(username=self.username, password=self.password, server=self.server,
                                                tenant=self.tenant)
@@ -1413,6 +1414,7 @@ class UploadAPI(AuthenticatedAPI):
                 content_objects = list()
                 full_tweet = api.get_status(tid, tweet_mode="extended", include_entities=True)
                 text = tweet.text
+                logger.debug(text)
                 full_text = full_tweet.full_text
                 file_name = f"{{{id_str}}}_[{twitter_user}].json"
                 json_doc = json.dumps(full_tweet._json)

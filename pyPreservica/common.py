@@ -73,6 +73,18 @@ class FileHash:
         return hash_algorithm.hexdigest()
 
 
+def identifiersToDict(identifiers: set) -> dict:
+    """
+    Convert a set of tuples to a dict
+    :param identifiers:
+    :return:
+    """
+    result = {}
+    for identifier_tuple in identifiers:
+        result[identifier_tuple[0]] = identifier_tuple[1]
+    return result
+
+
 def strtobool(val) -> bool:
     """
     Convert a string representation of truth to true (1) or false (0).
