@@ -217,6 +217,34 @@ page of a book should be the first item added to the list.
 
 
 
+Creating Packages with Multiple Representations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you have a single preservation and access representation then ``complex_asset_package`` will create the package you need.
+If you have more than one representation of each type than you need to use ``generic_asset_package``
+
+``generic_asset_package`` can be used to create as many representations as required.
+
+``generic_asset_package`` works the same way as ``complex_asset_package`` but instead of a list of content objects
+you pass a dictionary, the key is the representation name and the value is the list of files.
+
+.. code-block:: python
+
+    preservation_representations = dict()
+    preservation_representations["Master"] = ["page-1.tiff", "page-2.tiff"," page-3.tiff"]
+    preservation_representations["BW Master"] = ["page-1.tiff", "page-2.tiff"," page-3.tiff"]
+    preservation_representations["Greyscale Master"] = ["page-1.tiff", "page-2.tiff"," page-3.tiff"]
+
+    access_representations = dict()
+    access_representations["Multi-Page Access"] = ["page-1.jpg", "page-2.jpg"," page-3.jpg"]
+    access_representations["Single Page Access"] = ["book.pdf"]
+
+    package_path = generic_asset_package(preservation_files_dict=preservation_representations, access_files_dict=access_representations, parent_folder=folder)
+
+The additional keyword arguments used by ``complex_asset_package`` such as Title, Description etc are still available.
+
+Preservica will render the first access representation, so the viewer you want to use needs to be the first entry in the dict.
+For example above if you want to use the multi-page book viewer as the default renderer, make "Multi-Page Access" the first entry,
+if you want the PDF viewer to be the default renderer, then make "Single Page Access" the first dict entry.
 
 Custom Fixity Generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -239,7 +267,7 @@ To use one of the default callbacks
                                              parent_folder=folder, Preservation_files_fixity_callback=Sha512FixityCallBack())
 
 If you want to re-use existing externally generated fixity values for performance or integrity reasons then you can create a custom callback.
-The callback takes the filename and the path of the file and should return a tuple containing the algorithm name
+The callback takes the filename and the path of the file which should have its fixity measured and should return a tuple containing the algorithm name
 and fixity value
 
 .. code-block:: python
@@ -249,6 +277,25 @@ and fixity value
         ...
         ...
         return "SHA1", value
+
+For example if your fixity values are stored in a spreadsheet (csv) files you may want something similar to:
+
+.. code-block:: python
+
+    class CSVFixityCallback:
+
+        def __init__(self, csv_file):
+            self.csv_file = csv_file
+
+        def __call__(self, filename, full_path):
+            with open(self.csv_file, mode='r', encoding='utf-8-sig') as csv_file:
+                csv_reader = csv.DictReader(csv_file, delimiter=',')
+                for row in csv_reader:
+                    if row['filename'] == filename
+                        fixity_value = row['file_checksum_sha256']
+                        return "SHA256", fixity_value.lower()
+                sha = FileHash(hashlib.sha256)
+                return "SHA256", sha(full_path)
 
 
 
