@@ -707,7 +707,6 @@ class AuthenticatedAPI:
         Determine the version number of the server
         """
         headers = {HEADER_TOKEN: self.token}
-        self.version_hash = "RHVOMzJHNzdk"
         request = self.session.get(f'https://{self.server}/api/entity/versiondetails/version', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_ = str(request.content.decode('utf-8'))
@@ -726,7 +725,7 @@ class AuthenticatedAPI:
             RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.5 Compatible) " \
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.6 Compatible) " \
                f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
                f"in tenancy {self.tenant}"
 

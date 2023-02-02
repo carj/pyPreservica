@@ -11,14 +11,12 @@ from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 
 import boto3
-import cryptography
 import s3transfer.tasks
 import s3transfer.upload
+
 from boto3.s3.transfer import TransferConfig, S3Transfer
 from botocore.config import Config
 from botocore.exceptions import ClientError
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from requests.auth import HTTPBasicAuth
 from s3transfer import S3UploadFailedError
 from tqdm import tqdm
 
@@ -31,9 +29,12 @@ MB = 1024 * 1024
 GB = 1024 ** 3
 transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 16))
 
+CONTENT_FOLDER = "content"
+PRESERVATION_CONTENT_FOLDER = "p1"
+ACCESS_CONTENT_FOLDER = "a1"
 
-def upload_file(self, filename, bucket, key,
-                callback=None, extra_args=None):
+
+def upload_file(self, filename, bucket, key, callback=None, extra_args=None):
     """Upload a file to an S3 object.
 
     Variants have also been injected into S3 client, Bucket and Object.
@@ -156,7 +157,7 @@ def __make_content_objects__(xip, content_title, co_ref, io_ref, tag, content_de
     parent.text = io_ref
 
 
-def __make_generation__(xip, filename, co_ref, generation_label):
+def __make_generation__(xip, filename, co_ref, generation_label, location=None):
     generation = SubElement(xip, 'Generation', {"original": "true", "active": "true"})
     content_object = SubElement(generation, "ContentObject")
     content_object.text = co_ref
@@ -169,12 +170,12 @@ def __make_generation__(xip, filename, co_ref, generation_label):
     effective_date.text = datetime.now().isoformat()
     bitstreams = SubElement(generation, "Bitstreams")
     bitstream = SubElement(bitstreams, "Bitstream")
-    bitstream.text = filename
+    bitstream.text = f"{location}/{filename}"
     SubElement(generation, "Formats")
     SubElement(generation, "Properties")
 
 
-def __make_bitstream__(xip, file_name, full_path, callback):
+def __make_bitstream__(xip, file_name, full_path, callback, location=None):
     bitstream = SubElement(xip, 'Bitstream')
     filename_element = SubElement(bitstream, "Filename")
     filename_element.text = file_name
@@ -182,6 +183,7 @@ def __make_bitstream__(xip, file_name, full_path, callback):
     file_stats = os.stat(full_path)
     filesize.text = str(file_stats.st_size)
     physical_location = SubElement(bitstream, "PhysicalLocation")
+    physical_location.text = location
     fixities = SubElement(bitstream, "Fixities")
     fixity_result = callback(file_name, full_path)
     if type(fixity_result) == tuple:
@@ -563,19 +565,21 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
 
     if has_preservation_files:
         for representation_name in preservation_representation_refs_dict.keys():
+            location = sanitize(representation_name)
             preservation_refs_dict = preservation_representation_refs_dict[representation_name]
             preservation_generation_label = kwargs.get('Preservation_Generation_Label', "")
             for content_ref, filename in preservation_refs_dict.items():
                 preservation_file_name = os.path.basename(filename)
-                __make_generation__(xip, preservation_file_name, content_ref, preservation_generation_label)
+                __make_generation__(xip, preservation_file_name, content_ref, preservation_generation_label, location)
 
     if has_access_files:
         for representation_name in access_representation_refs_dict.keys():
+            location = sanitize(representation_name)
             access_refs_dict = access_representation_refs_dict[representation_name]
             access_generation_label = kwargs.get('Access_Generation_Label', "")
             for content_ref, filename in access_refs_dict.items():
                 access_file_name = os.path.basename(filename)
-                __make_generation__(xip, access_file_name, content_ref, access_generation_label)
+                __make_generation__(xip, access_file_name, content_ref, access_generation_label, location)
 
     if has_preservation_files:
 
@@ -584,10 +588,11 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
         else:
             callback = Sha1FixityCallBack()
         for representation_name in preservation_representation_refs_dict.keys():
+            location = sanitize(representation_name)
             preservation_refs_dict = preservation_representation_refs_dict[representation_name]
             for content_ref, filename in preservation_refs_dict.items():
                 preservation_file_name = os.path.basename(filename)
-                __make_bitstream__(xip, preservation_file_name, filename, callback)
+                __make_bitstream__(xip, preservation_file_name, filename, callback, location)
 
     if has_access_files:
 
@@ -597,10 +602,11 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
             callback = Sha1FixityCallBack()
 
         for representation_name in access_representation_refs_dict.keys():
+            location = sanitize(representation_name)
             access_refs_dict = access_representation_refs_dict[representation_name]
             for content_ref, filename in access_refs_dict.items():
                 access_file_name = os.path.basename(filename)
-                __make_bitstream__(xip, access_file_name, filename, callback)
+                __make_bitstream__(xip, access_file_name, filename, callback, location)
 
     if 'Identifiers' in kwargs:
         identifier_map = kwargs.get('Identifiers')
@@ -648,22 +654,27 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
         os.mkdir(top_level_folder)
         inner_folder = os.path.join(top_level_folder, io_ref)
         os.mkdir(inner_folder)
-        os.mkdir(os.path.join(inner_folder, "content"))
+        content_folder = os.path.join(inner_folder, CONTENT_FOLDER)
+        os.mkdir(content_folder)
         metadata_path = os.path.join(inner_folder, "metadata.xml")
         metadata = open(metadata_path, "wt", encoding='utf-8')
         metadata.write(prettify(xip))
         metadata.close()
         for representation_name in preservation_representation_refs_dict.keys():
+            location = sanitize(representation_name)
+            Path(os.path.join(content_folder, location)).mkdir(parents=True, exist_ok=True)
             preservation_refs_dict = preservation_representation_refs_dict[representation_name]
             for content_ref, filename in preservation_refs_dict.items():
                 src_file = filename
-                dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(filename))
+                dst_file = os.path.join(os.path.join(content_folder, location), os.path.basename(filename))
                 shutil.copyfile(src_file, dst_file)
         for representation_name in access_representation_refs_dict.keys():
+            location = sanitize(representation_name)
+            Path(os.path.join(content_folder, location)).mkdir(parents=True, exist_ok=True)
             access_refs_dict = access_representation_refs_dict[representation_name]
             for content_ref, filename in access_refs_dict.items():
                 src_file = filename
-                dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(filename))
+                dst_file = os.path.join(os.path.join(content_folder, location), os.path.basename(filename))
                 shutil.copyfile(src_file, dst_file)
         if compress:
             shutil.make_archive(top_level_folder, 'zip', top_level_folder)
@@ -713,7 +724,7 @@ def multi_asset_package(asset_file_list=None, export_folder=None, parent_folder=
     os.mkdir(top_level_folder)
     inner_folder = os.path.join(top_level_folder, package_id)
     os.mkdir(inner_folder)
-    os.mkdir(os.path.join(inner_folder, "content"))
+    os.mkdir(os.path.join(inner_folder, CONTENT_FOLDER))
 
     asset_map = dict()
     xip = Element('XIP')
@@ -803,7 +814,7 @@ def multi_asset_package(asset_file_list=None, export_folder=None, parent_folder=
                             id_io.text = io_ref
 
         src_file = file
-        dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(file))
+        dst_file = os.path.join(os.path.join(inner_folder, CONTENT_FOLDER), os.path.basename(file))
         shutil.copyfile(src_file, dst_file)
 
     if xip is not None:
@@ -960,7 +971,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
         for content_ref, filename in preservation_refs_dict.items():
             preservation_file_name = os.path.basename(filename)
-            __make_generation__(xip, preservation_file_name, content_ref, preservation_generation_label)
+            __make_generation__(xip, preservation_file_name, content_ref, preservation_generation_label,
+                                PRESERVATION_CONTENT_FOLDER)
 
     if has_access_files:
 
@@ -968,7 +980,7 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
         for content_ref, filename in access_refs_dict.items():
             access_file_name = os.path.basename(filename)
-            __make_generation__(xip, access_file_name, content_ref, access_generation_label)
+            __make_generation__(xip, access_file_name, content_ref, access_generation_label, ACCESS_CONTENT_FOLDER)
 
     if has_preservation_files:
 
@@ -979,7 +991,7 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
         for content_ref, filename in preservation_refs_dict.items():
             preservation_file_name = os.path.basename(filename)
-            __make_bitstream__(xip, preservation_file_name, filename, callback)
+            __make_bitstream__(xip, preservation_file_name, filename, callback, PRESERVATION_CONTENT_FOLDER)
 
     if has_access_files:
 
@@ -990,7 +1002,7 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
         for content_ref, filename in access_refs_dict.items():
             access_file_name = os.path.basename(filename)
-            __make_bitstream__(xip, access_file_name, filename, callback)
+            __make_bitstream__(xip, access_file_name, filename, callback, ACCESS_CONTENT_FOLDER)
 
     if 'Identifiers' in kwargs:
         identifier_map = kwargs.get('Identifiers')
@@ -1038,18 +1050,23 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         os.mkdir(top_level_folder)
         inner_folder = os.path.join(top_level_folder, io_ref)
         os.mkdir(inner_folder)
-        os.mkdir(os.path.join(inner_folder, "content"))
+        content_folder = os.path.join(inner_folder, CONTENT_FOLDER)
+        os.mkdir(content_folder)
+        preservation_content_folder = os.path.join(content_folder, PRESERVATION_CONTENT_FOLDER)
+        os.mkdir(preservation_content_folder)
+        access_content_folder = os.path.join(content_folder, ACCESS_CONTENT_FOLDER)
+        os.mkdir(access_content_folder)
         metadata_path = os.path.join(inner_folder, "metadata.xml")
         metadata = open(metadata_path, "wt", encoding='utf-8')
         metadata.write(prettify(xip))
         metadata.close()
         for content_ref, filename in preservation_refs_dict.items():
             src_file = filename
-            dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(filename))
+            dst_file = os.path.join(preservation_content_folder, os.path.basename(filename))
             shutil.copyfile(src_file, dst_file)
         for content_ref, filename in access_refs_dict.items():
             src_file = filename
-            dst_file = os.path.join(os.path.join(inner_folder, "content"), os.path.basename(filename))
+            dst_file = os.path.join(access_content_folder, os.path.basename(filename))
             shutil.copyfile(src_file, dst_file)
         if compress:
             shutil.make_archive(top_level_folder, 'zip', top_level_folder)
@@ -1084,9 +1101,6 @@ def simple_asset_package(preservation_file=None, access_file=None, export_folder
             :param str Access_Content_Description: Description of the Access Representation Content Object
             :param dict Asset_Metadata: Dictionary of Asset metadata documents
             :param dict Identifiers: Dictionary of Asset rd party identifiers
-
-
-
 
     """
 
@@ -1580,15 +1594,6 @@ class UploadAPI(AuthenticatedAPI):
 
             self.upload_zip_package(path_to_zip_package=package, folder=parent_folder, callback=callback)
 
-    def __convert_(self, key, cypher_text):
-        base64_decoded = base64.b64decode(cypher_text)
-        key = base64.b64decode(self.version_hash.encode("utf-8") + key.encode("UTF-8")).decode("utf-8").encode("utf-8")
-        aes = cryptography.hazmat.primitives.ciphers.algorithms.AES(key)
-        cipher = Cipher(algorithm=aes, mode=modes.ECB())
-        decryptor = cipher.decryptor()
-        output_bytes = decryptor.update(base64_decoded) + decryptor.finalize()
-        return _unpad(output_bytes.decode("utf-8")).strip()
-
     def upload_credentials(self, location_id: str):
         """
         Retrieves temporary upload credentials (Amazon STS, or Azure SAS) for this location.
@@ -1636,25 +1641,7 @@ class UploadAPI(AuthenticatedAPI):
 
         :return: dict of bucket names and regions
         """
-        request = self.session.get(f"https://{self.server}/api/admin/locations/upload",
-                                   auth=HTTPBasicAuth(self.username, self.password))
-
-        buckets = {}
-        xml_tag = "N2YxcGVsUA=="
-        if request.status_code == requests.codes.ok:
-            xml_response = str(request.content.decode('utf-8'))
-            entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            data_sources = entity_response.findall('.//dataSource')
-            for data_source in data_sources:
-                sip_locations = data_source.findall('.//sipLocation')
-                for sip_location in sip_locations:
-                    if sip_location.attrib['region'] == "":
-                        buckets[self.__convert_(xml_tag, sip_location.text)] = "Unknown"
-                    else:
-                        buckets[self.__convert_(xml_tag, sip_location.text)] = self.__convert_(xml_tag,
-                                                                                               sip_location.attrib[
-                                                                                                   'region'])
-        return buckets
+        return self.upload_locations()
 
     def crawl_filesystem(self, filesystem_path, bucket_name, preservica_parent, callback=None,
                          security_tag: str = "open",
@@ -1746,53 +1733,47 @@ class UploadAPI(AuthenticatedAPI):
 
         """
 
+        if (self.major_version < 7) and (self.minor_version < 5):
+            raise RuntimeError("This call [upload_zip_package_to_Azure] is only available against v6.5 systems and above")
+
         from azure.storage.blob import ContainerClient
 
-        request = requests.get(f"https://{self.server}/api/admin/locations/upload?refresh={container_name}",
-                               auth=HTTPBasicAuth(self.username, self.password))
+        if (self.major_version > 5) and (self.minor_version > 4):
+            locations = self.upload_locations()
+            for location in locations:
+                if location['containerName'] == container_name:
+                    credentials = self.upload_credentials(location['apiId'])
+                    account_key = credentials['key']
+                    session_token = credentials['sessionToken']
 
-        if request.status_code is not requests.codes.ok:
-            raise SystemError(request.content)
-        if request.status_code == requests.codes.ok:
-            xml_response = str(request.content.decode('utf-8'))
-            entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            a = entity_response.find('.//a')
-            b = entity_response.find('.//b')
-            c = entity_response.find('.//c')
-            t = entity_response.find('.//type')
-            xml_tag = "N2YxcGVsUA=="
-            account_key = self.__convert_(xml_tag, a.text)
-            session_token = self.__convert_(xml_tag, c.text)
-            access_type = self.__convert_(xml_tag, t.text)
+                    sas_url = f"https://{account_key}.blob.core.windows.net/{container_name}"
+                    container = ContainerClient.from_container_url(container_url=sas_url, credential=session_token)
 
-            sas_url = f"https://{account_key}.blob.core.windows.net/{container_name}?{session_token}"
-            container = ContainerClient.from_container_url(sas_url)
+                    upload_key = str(uuid.uuid4())
+                    metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': container_name, 'status': 'ready'}
 
-            upload_key = str(uuid.uuid4())
-            metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': container_name, 'status': 'ready'}
+                    if hasattr(folder, "reference"):
+                        metadata['collectionreference'] = folder.reference
+                    elif isinstance(folder, str):
+                        metadata['collectionreference'] = folder
 
-            if hasattr(folder, "reference"):
-                metadata['collectionreference'] = folder.reference
-            elif isinstance(folder, str):
-                metadata['collectionreference'] = folder
+                    properties = None
 
-            properties = None
+                    len_bytes = Path(path_to_zip_package).stat().st_size
 
-            len_bytes = Path(path_to_zip_package).stat().st_size
+                    if show_progress:
+                        with tqdm.wrapattr(open(path_to_zip_package, 'rb'), "read", total=len_bytes) as data:
+                            blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
+                            properties = blob_client.get_blob_properties()
+                    else:
+                        with open(path_to_zip_package, "rb") as data:
+                            blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
+                            properties = blob_client.get_blob_properties()
 
-            if show_progress:
-                with tqdm.wrapattr(open(path_to_zip_package, 'rb'), "read", total=len_bytes) as data:
-                    blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
-                    properties = blob_client.get_blob_properties()
-            else:
-                with open(path_to_zip_package, "rb") as data:
-                    blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
-                    properties = blob_client.get_blob_properties()
+                    if delete_after_upload:
+                        os.remove(path_to_zip_package)
 
-            if delete_after_upload:
-                os.remove(path_to_zip_package)
-
-            return properties
+                    return properties
 
     def upload_zip_package_to_S3(self, path_to_zip_package, bucket_name, folder=None, callback=None,
                                  delete_after_upload=False):
@@ -1809,21 +1790,7 @@ class UploadAPI(AuthenticatedAPI):
         """
 
         if (self.major_version < 7) and (self.minor_version < 5):
-            request = requests.get(f"https://{self.server}/api/admin/locations/upload?refresh={bucket_name}",
-                                   auth=HTTPBasicAuth(self.username, self.password))
-
-            if request.status_code is not requests.codes.ok:
-                raise SystemError(request.content)
-            if request.status_code == requests.codes.ok:
-                xml_response = str(request.content.decode('utf-8'))
-                entity_response = xml.etree.ElementTree.fromstring(xml_response)
-                a = entity_response.find('.//a')
-                b = entity_response.find('.//b')
-                c = entity_response.find('.//c')
-                xml_tag = "N2YxcGVsUA=="
-                access_key = self.__convert_(xml_tag, a.text)
-                secret_key = self.__convert_(xml_tag, b.text)
-                session_token = self.__convert_(xml_tag, c.text)
+            raise RuntimeError("This call [upload_zip_package_to_S3] is only available against v6.5 systems and above")
 
         if (self.major_version > 5) and (self.minor_version > 4):
             locations = self.upload_locations()
@@ -1833,6 +1800,7 @@ class UploadAPI(AuthenticatedAPI):
                     access_key = credentials['key']
                     secret_key = credentials['secret']
                     session_token = credentials['sessionToken']
+                    endpoint = credentials['endpoint']
 
             session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
                                     aws_session_token=session_token)

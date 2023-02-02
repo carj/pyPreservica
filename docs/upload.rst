@@ -231,7 +231,7 @@ you pass a dictionary, the key is the representation name and the value is the l
 
     preservation_representations = dict()
     preservation_representations["Master"] = ["page-1.tiff", "page-2.tiff"," page-3.tiff"]
-    preservation_representations["BW Master"] = ["page-1.tiff", "page-2.tiff"," page-3.tiff"]
+    preservation_representations["BW Master"] = ["page-1.jp2", "page-2.jp2"," page-3.jp2"]
     preservation_representations["Greyscale Master"] = ["page-1.tiff", "page-2.tiff"," page-3.tiff"]
 
     access_representations = dict()
