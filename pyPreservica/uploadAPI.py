@@ -1,4 +1,3 @@
-import base64
 import csv
 import shutil
 import tempfile
@@ -1375,7 +1374,7 @@ class UploadAPI(AuthenticatedAPI):
             folder = entity_client.folder(folder)
         try:
             import tweepy
-            # from tweepy import TweepError
+            from tweepy import TweepError
         except ImportError:
             logger.error("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
             raise RuntimeError("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
@@ -1727,7 +1726,7 @@ class UploadAPI(AuthenticatedAPI):
          Uploads a zip file package to an Azure container connected to a Preservica Cloud System
 
          :param str path_to_zip_package: Path to the package
-         :param str container_name: container connected to an ingest workflow
+         :param str container_name: container connected to the ingest workflow
          :param Folder folder: The folder to ingest the package into
          :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
 
@@ -1802,29 +1801,29 @@ class UploadAPI(AuthenticatedAPI):
                     session_token = credentials['sessionToken']
                     endpoint = credentials['endpoint']
 
-            session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
-                                    aws_session_token=session_token)
-            s3 = session.resource(service_name="s3")
+                    session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
+                                            aws_session_token=session_token)
+                    s3 = session.resource(service_name="s3")
 
-            upload_key = str(uuid.uuid4())
-            s3_object = s3.Object(bucket_name, upload_key)
-            metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': bucket_name, 'status': 'ready'}
+                    upload_key = str(uuid.uuid4())
+                    s3_object = s3.Object(bucket_name, upload_key)
+                    metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': bucket_name, 'status': 'ready'}
 
-            if hasattr(folder, "reference"):
-                metadata['collectionreference'] = folder.reference
-            elif isinstance(folder, str):
-                metadata['collectionreference'] = folder
+                    if hasattr(folder, "reference"):
+                        metadata['collectionreference'] = folder.reference
+                    elif isinstance(folder, str):
+                        metadata['collectionreference'] = folder
 
-            metadata['size'] = str(Path(path_to_zip_package).stat().st_size)
-            metadata['createdby'] = self.username
+                    metadata['size'] = str(Path(path_to_zip_package).stat().st_size)
+                    metadata['createdby'] = self.username
 
-            metadata_map = {'Metadata': metadata}
+                    metadata_map = {'Metadata': metadata}
 
-            s3_object.upload_file(path_to_zip_package, Callback=callback, ExtraArgs=metadata_map,
-                                  Config=transfer_config)
+                    s3_object.upload_file(path_to_zip_package, Callback=callback, ExtraArgs=metadata_map,
+                                          Config=transfer_config)
 
-            if delete_after_upload:
-                os.remove(path_to_zip_package)
+                    if delete_after_upload:
+                        os.remove(path_to_zip_package)
 
     def upload_zip_package(self, path_to_zip_package, folder=None, callback=None, delete_after_upload=False):
         """
