@@ -1188,7 +1188,6 @@ class UploadAPI(AuthenticatedAPI):
             folder = entity_client.folder(folder)
         try:
             import tweepy
-            from tweepy import TweepError
         except ImportError:
             logger.error("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
             raise RuntimeError("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
@@ -1374,7 +1373,6 @@ class UploadAPI(AuthenticatedAPI):
             folder = entity_client.folder(folder)
         try:
             import tweepy
-            from tweepy import TweepError
         except ImportError:
             logger.error("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
             raise RuntimeError("Package tweepy is required for twitter harvesting. pip install --upgrade tweepy")
@@ -1733,7 +1731,8 @@ class UploadAPI(AuthenticatedAPI):
         """
 
         if (self.major_version < 7) and (self.minor_version < 5):
-            raise RuntimeError("This call [upload_zip_package_to_Azure] is only available against v6.5 systems and above")
+            raise RuntimeError(
+                "This call [upload_zip_package_to_Azure] is only available against v6.5 systems and above")
 
         from azure.storage.blob import ContainerClient
 
@@ -1749,7 +1748,8 @@ class UploadAPI(AuthenticatedAPI):
                     container = ContainerClient.from_container_url(container_url=sas_url, credential=session_token)
 
                     upload_key = str(uuid.uuid4())
-                    metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': container_name, 'status': 'ready'}
+                    metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': container_name,
+                                'status': 'ready'}
 
                     if hasattr(folder, "reference"):
                         metadata['collectionreference'] = folder.reference
@@ -1762,11 +1762,13 @@ class UploadAPI(AuthenticatedAPI):
 
                     if show_progress:
                         with tqdm.wrapattr(open(path_to_zip_package, 'rb'), "read", total=len_bytes) as data:
-                            blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
+                            blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata,
+                                                                length=len_bytes)
                             properties = blob_client.get_blob_properties()
                     else:
                         with open(path_to_zip_package, "rb") as data:
-                            blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
+                            blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata,
+                                                                length=len_bytes)
                             properties = blob_client.get_blob_properties()
 
                     if delete_after_upload:
@@ -1807,7 +1809,8 @@ class UploadAPI(AuthenticatedAPI):
 
                     upload_key = str(uuid.uuid4())
                     s3_object = s3.Object(bucket_name, upload_key)
-                    metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': bucket_name, 'status': 'ready'}
+                    metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': bucket_name,
+                                'status': 'ready'}
 
                     if hasattr(folder, "reference"):
                         metadata['collectionreference'] = folder.reference

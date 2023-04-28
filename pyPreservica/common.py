@@ -615,7 +615,7 @@ class AuthenticatedAPI:
         :return list of roles:
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f"https://{self.server}/api/user/details", headers=headers)
+        request = self.session.get(f"{self.protocol}://{self.server}/api/user/details", headers=headers)
         if request.status_code == requests.codes.ok:
             roles = json.loads(str(request.content.decode('utf-8')))['roles']
             return roles
@@ -636,7 +636,7 @@ class AuthenticatedAPI:
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
-        request = self.session.get(f'https://{self.server}/api/security/tags', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/security/tags', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -707,7 +707,7 @@ class AuthenticatedAPI:
         Determine the version number of the server
         """
         headers = {HEADER_TOKEN: self.token}
-        request = self.session.get(f'https://{self.server}/api/entity/versiondetails/version', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/versiondetails/version', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_ = str(request.content.decode('utf-8'))
             version = xml_[xml_.find("<CurrentVersion>") + len("<CurrentVersion>"):xml_.find("</CurrentVersion>")]
@@ -741,7 +741,7 @@ class AuthenticatedAPI:
 
     def manager_token(self, username: str, password: str):
         data = {'username': username, 'password': password, 'tenant': self.tenant}
-        response = self.session.post(f'https://{self.server}/api/accesstoken/login', data=data)
+        response = self.session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
         if response.status_code == requests.codes.ok:
             return response.json()['token']
         else:
@@ -758,7 +758,7 @@ class AuthenticatedAPI:
                 data = {'username': self.username, 'password': self.password, 'includeUserDetails': 'true'}
             else:
                 data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
-            response = self.session.post(f'https://{self.server}/api/accesstoken/login', data=data)
+            response = self.session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
             if response.status_code == requests.codes.ok:
                 if self.tenant is None:
                     self.tenant = response.json()['tenant']
@@ -776,7 +776,7 @@ class AuthenticatedAPI:
             sha1 = hashlib.sha1()
             sha1.update(to_hash.encode(encoding='utf-8'))
             data = {"username": self.username, "tenant": self.tenant, "timestamp": timestamp, "hash": sha1.hexdigest()}
-            response = self.session.post(f'https://{self.server}/{endpoint}', data=data)
+            response = self.session.post(f'{self.protocol}://{self.server}/{endpoint}', data=data)
             if response.status_code == requests.codes.ok:
                 return response.json()['token']
             else:
@@ -785,12 +785,13 @@ class AuthenticatedAPI:
                 raise RuntimeError(response.status_code, msg)
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False):
+                 use_shared_secret: bool = False, protocol: str = "https"):
 
         config = configparser.ConfigParser(interpolation=configparser.Interpolation())
         config.read('credentials.properties', encoding='utf-8')
         self.session = requests.Session()
         self.shared_secret = bool(use_shared_secret)
+        self.protocol = protocol
 
         if not username:
             username = os.environ.get('PRESERVICA_USERNAME')

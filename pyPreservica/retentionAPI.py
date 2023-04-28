@@ -58,8 +58,8 @@ class RetentionPolicy:
 
 class RetentionAPI(AuthenticatedAPI):
 
-    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
-        super().__init__(username, password, tenant, server, use_shared_secret)
+    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False, protocol: str = "https"):
+        super().__init__(username, password, tenant, server, use_shared_secret, protocol)
         if self.major_version < 7 and self.minor_version < 2:
             raise RuntimeError("Retention API is only available when connected to a v6.2 System")
 
@@ -75,7 +75,7 @@ class RetentionAPI(AuthenticatedAPI):
 
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f'https://{self.server}/api/entity/retention-policies/{reference}', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -96,8 +96,11 @@ class RetentionAPI(AuthenticatedAPI):
             period_unit = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}PeriodUnit').text
             rp.period_unit = period_unit
             expiry_action = entity_response.find(
-                f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}ExpiryAction').text
-            rp.expiry_action = expiry_action
+                f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}ExpiryAction')
+            if expiry_action is not None:
+                rp.expiry_action = expiry_action.text
+            else:
+                rp.expiry_action = None
             restriction = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Restriction')
             if restriction is not None:
                 rp.restriction = restriction.text
@@ -128,7 +131,7 @@ class RetentionAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain;charset=UTF-8'}
         data = str(status)
-        request = self.session.put(f'https://{self.server}/api/entity/retention-policies/{reference}/assignable',
+        request = self.session.put(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}/assignable',
                                    headers=headers, data=data)
         if request.status_code == requests.codes.ok:
             pass
@@ -224,7 +227,7 @@ class RetentionAPI(AuthenticatedAPI):
 
         xml_request = xml.etree.ElementTree.tostring(retention_policy, encoding='utf-8')
 
-        request = self.session.put(f'https://{self.server}/api/entity/retention-policies/{reference}', data=xml_request,
+        request = self.session.put(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}', data=xml_request,
                                    headers=headers)
         if request.status_code == requests.codes.ok:
             return self.policy(reference)
@@ -319,7 +322,7 @@ class RetentionAPI(AuthenticatedAPI):
 
         xml_request = xml.etree.ElementTree.tostring(retention_policy, encoding='utf-8')
 
-        request = self.session.post(f'https://{self.server}/api/entity/retention-policies', data=xml_request,
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity/retention-policies', data=xml_request,
                                     headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -344,7 +347,7 @@ class RetentionAPI(AuthenticatedAPI):
 
         """
         headers = {HEADER_TOKEN: self.token}
-        request = self.session.delete(f'https://{self.server}/api/entity/retention-policies/{reference}',
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}',
                                       headers=headers)
         if request.status_code == requests.codes.no_content:
             pass
@@ -368,7 +371,7 @@ class RetentionAPI(AuthenticatedAPI):
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         data = {'start': str(0), 'max': "250"}
-        request = self.session.get(f'https://{self.server}/api/entity/retention-policies', data=data, headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', data=data, headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -396,7 +399,7 @@ class RetentionAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         data = {'start': str(0), 'max': "250"}
-        request = self.session.get(f'https://{self.server}/api/entity/retention-policies', data=data, headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', data=data, headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
@@ -440,7 +443,7 @@ class RetentionAPI(AuthenticatedAPI):
         xml_request = xml.etree.ElementTree.tostring(assignment, encoding='utf-8').decode('utf-8')
         logger.debug(xml_request)
         request = self.session.post(
-            f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/retention-assignments',
+            f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/retention-assignments',
             headers=headers, data=xml_request)
 
         if request.status_code == requests.codes.ok:
@@ -477,7 +480,7 @@ class RetentionAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}
 
         request = self.session.delete(
-            f'https://{self.server}/api/entity/information-objects/{retention_assignment.entity_reference}/retention'
+            f'{self.protocol}://{self.server}/api/entity/information-objects/{retention_assignment.entity_reference}/retention'
             f'-assignments/{retention_assignment.api_id}', headers=headers)
         if request.status_code == requests.codes.no_content:
             return retention_assignment.entity_reference
@@ -500,7 +503,7 @@ class RetentionAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(
-            f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/retention-assignments',
+            f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/retention-assignments',
             headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))

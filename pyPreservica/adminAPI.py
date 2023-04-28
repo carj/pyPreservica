@@ -38,7 +38,7 @@ class AdminAPI(AuthenticatedAPI):
 
         self.__check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.delete(f'https://{self.server}/api/admin/security/roles/{role_name}', headers=headers)
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/security/roles/{role_name}', headers=headers)
         if request.status_code == requests.codes.no_content:
             return
         elif request.status_code == requests.codes.unauthorized:
@@ -62,7 +62,7 @@ class AdminAPI(AuthenticatedAPI):
 
         self.__check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.delete(f'https://{self.server}/api/admin/security/tags/{tag_name}', headers=headers)
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/security/tags/{tag_name}', headers=headers)
         if request.status_code == requests.codes.no_content:
             return
         elif request.status_code == requests.codes.unauthorized:
@@ -92,7 +92,7 @@ class AdminAPI(AuthenticatedAPI):
         xml_tag = xml.etree.ElementTree.Element('Role', {"xmlns": self.admin_ns})
         xml_tag.text = str(role_name).strip()
         xml_request = xml.etree.ElementTree.tostring(xml_tag, encoding='utf-8')
-        request = self.session.post(f'https://{self.server}/api/admin/security/roles', data=xml_request,
+        request = self.session.post(f'{self.protocol}://{self.server}/api/admin/security/roles', data=xml_request,
                                     headers=headers)
         if request.status_code == requests.codes.created:
             xml_response = str(request.content.decode('utf-8'))
@@ -128,7 +128,7 @@ class AdminAPI(AuthenticatedAPI):
         xml_tag.text = str(tag_name).strip()
         xml_request = xml.etree.ElementTree.tostring(xml_tag, encoding='utf-8')
 
-        request = self.session.post(f'https://{self.server}/api/admin/security/tags', data=xml_request, headers=headers)
+        request = self.session.post(f'{self.protocol}://{self.server}/api/admin/security/tags', data=xml_request, headers=headers)
         if request.status_code == requests.codes.created:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -156,7 +156,7 @@ class AdminAPI(AuthenticatedAPI):
                 "system_roles API call is only available with a Preservica v6.5.0 system or higher")
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f'https://{self.server}/api/admin/security/roles', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/admin/security/roles', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -183,7 +183,7 @@ class AdminAPI(AuthenticatedAPI):
         """
         self.__check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f'https://{self.server}/api/admin/security/tags', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/admin/security/tags', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -211,7 +211,7 @@ class AdminAPI(AuthenticatedAPI):
         self.__check_if_user_has_manager_role()
         self.disable_user(username)
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.delete(f'https://{self.server}/api/admin/users/{username}', headers=headers)
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/users/{username}', headers=headers)
         if request.status_code == requests.codes.no_content:
             return
         elif request.status_code == requests.codes.unauthorized:
@@ -253,7 +253,7 @@ class AdminAPI(AuthenticatedAPI):
             xml.etree.ElementTree.SubElement(xml_roles, "Role").text = role
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         logger.debug(xml_request)
-        request = self.session.post(f'https://{self.server}/api/admin/users', data=xml_request, headers=headers)
+        request = self.session.post(f'{self.protocol}://{self.server}/api/admin/users', data=xml_request, headers=headers)
         if request.status_code == requests.codes.created:
             return self.user_details(username)
         elif request.status_code == requests.codes.unauthorized:
@@ -278,7 +278,7 @@ class AdminAPI(AuthenticatedAPI):
          """
         self.__check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f"https://{self.server}/api/admin/users/{username}", headers=headers)
+        request = self.session.get(f"{self.protocol}://{self.server}/api/admin/users/{username}", headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -287,7 +287,7 @@ class AdminAPI(AuthenticatedAPI):
             fullname.text = new_display_name
             xml_request = xml.etree.ElementTree.tostring(entity_response, encoding='utf-8')
             logger.debug(xml_request)
-            update_request = self.session.put(f'https://{self.server}/api/admin/users/{username}', data=xml_request,
+            update_request = self.session.put(f'{self.protocol}://{self.server}/api/admin/users/{username}', data=xml_request,
                                               headers=headers)
             if update_request.status_code == requests.codes.ok:
                 return self.user_details(username)
@@ -317,7 +317,7 @@ class AdminAPI(AuthenticatedAPI):
 
         self.__check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f"https://{self.server}/api/admin/users/{username}", headers=headers)
+        request = self.session.get(f"{self.protocol}://{self.server}/api/admin/users/{username}", headers=headers)
         return_dict = {}
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -350,7 +350,7 @@ class AdminAPI(AuthenticatedAPI):
     def __account_status_(self, username: str, status: str, name: str):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain;charset=UTF-8'}
         data = {"userEnabledStatus": status}
-        request = self.session.put(f"https://{self.server}/api/admin/users/{username}/enabled", headers=headers,
+        request = self.session.put(f"{self.protocol}://{self.server}/api/admin/users/{username}/enabled", headers=headers,
                                    data=data)
         if request.status_code == requests.codes.ok:
             return request.content.decode("utf-8")
@@ -410,7 +410,7 @@ class AdminAPI(AuthenticatedAPI):
 
         self.__check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f"https://{self.server}/api/admin/users", headers=headers)
+        request = self.session.get(f"{self.protocol}://{self.server}/api/admin/users", headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -458,7 +458,7 @@ class AdminAPI(AuthenticatedAPI):
             pass
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.post(f"https://{self.server}/api/admin/schemas", headers=headers, params=params,
+        request = self.session.post(f"{self.protocol}://{self.server}/api/admin/schemas", headers=headers, params=params,
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return
@@ -507,7 +507,7 @@ class AdminAPI(AuthenticatedAPI):
             pass
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.post(f"https://{self.server}/api/admin/documents", headers=headers, params=params,
+        request = self.session.post(f"{self.protocol}://{self.server}/api/admin/documents", headers=headers, params=params,
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return
@@ -536,7 +536,7 @@ class AdminAPI(AuthenticatedAPI):
 
         for document in self.xml_documents():
             if document['SchemaUri'] == uri.strip():
-                request = self.session.delete(f"https://{self.server}/api/admin/documents/{document['ApiId']}",
+                request = self.session.delete(f"{self.protocol}://{self.server}/api/admin/documents/{document['ApiId']}",
                                               headers=headers)
                 if request.status_code == requests.codes.no_content:
                     return
@@ -565,7 +565,7 @@ class AdminAPI(AuthenticatedAPI):
 
         for schema in self.xml_schemas():
             if schema['SchemaUri'] == uri.strip():
-                request = self.session.delete(f"https://{self.server}/api/admin/schemas/{schema['ApiId']}",
+                request = self.session.delete(f"{self.protocol}://{self.server}/api/admin/schemas/{schema['ApiId']}",
                                               headers=headers)
                 if request.status_code == requests.codes.no_content:
                     return
@@ -591,7 +591,7 @@ class AdminAPI(AuthenticatedAPI):
 
         for schema in self.xml_schemas():
             if schema['SchemaUri'] == uri.strip():
-                request = self.session.get(f"https://{self.server}/api/admin/schemas/{schema['ApiId']}/content",
+                request = self.session.get(f"{self.protocol}://{self.server}/api/admin/schemas/{schema['ApiId']}/content",
                                            headers=headers)
                 if request.status_code == requests.codes.ok:
                     xml_response = str(request.content.decode('utf-8'))
@@ -617,7 +617,7 @@ class AdminAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         for document in self.xml_documents():
             if document['SchemaUri'] == uri.strip():
-                request = self.session.get(f"https://{self.server}/api/admin/documents/{document['ApiId']}/content",
+                request = self.session.get(f"{self.protocol}://{self.server}/api/admin/documents/{document['ApiId']}/content",
                                            headers=headers)
                 if request.status_code == requests.codes.ok:
                     xml_response = str(request.content.decode('utf-8'))
@@ -638,7 +638,7 @@ class AdminAPI(AuthenticatedAPI):
 
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f'https://{self.server}/api/admin/documents', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/admin/documents', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -674,7 +674,7 @@ class AdminAPI(AuthenticatedAPI):
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
-        request = self.session.get(f'https://{self.server}/api/admin/schemas', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/admin/schemas', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -709,7 +709,7 @@ class AdminAPI(AuthenticatedAPI):
 
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f'https://{self.server}/api/admin/transforms', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/admin/transforms', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -762,7 +762,7 @@ class AdminAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         for transform in self.xml_transforms():
             if (transform['FromSchemaUri'] == input_uri.strip()) and (transform['ToSchemaUri'] == output_uri.strip()):
-                request = self.session.get(f"https://{self.server}/api/admin/transforms/{transform['ApiId']}/content",
+                request = self.session.get(f"{self.protocol}://{self.server}/api/admin/transforms/{transform['ApiId']}/content",
                                            headers=headers)
                 if request.status_code == requests.codes.ok:
                     return str(request.content.decode('utf-8'))
@@ -794,7 +794,7 @@ class AdminAPI(AuthenticatedAPI):
 
         for transform in self.xml_transforms():
             if (transform['FromSchemaUri'] == input_uri.strip()) and (transform['ToSchemaUri'] == output_uri.strip()):
-                request = self.session.delete(f"https://{self.server}/api/admin/transforms/{transform['ApiId']}",
+                request = self.session.delete(f"{self.protocol}://{self.server}/api/admin/transforms/{transform['ApiId']}",
                                               headers=headers)
                 if request.status_code == requests.codes.no_content:
                     return
@@ -845,7 +845,7 @@ class AdminAPI(AuthenticatedAPI):
             pass
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.post(f"https://{self.server}/api/admin/transforms", headers=headers, params=params,
+        request = self.session.post(f"{self.protocol}://{self.server}/api/admin/transforms", headers=headers, params=params,
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return

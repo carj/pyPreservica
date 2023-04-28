@@ -99,8 +99,8 @@ class WorkflowAPI(AuthenticatedAPI):
     workflow_types = ['Ingest', 'Access', 'Transformation', 'DataManagement']
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False):
-        super().__init__(username, password, tenant, server, use_shared_secret)
+                 use_shared_secret: bool = False, protocol: str = "https"):
+        super().__init__(username, password, tenant, server, use_shared_secret, protocol)
         self.base_url = "sdb/rest/workflow"
 
     def get_workflow_contexts_by_type(self, workflow_type: str):
@@ -118,7 +118,7 @@ class WorkflowAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}
         params = {"type": workflow_type}
         workflow_contexts = []
-        request = self.session.get(f'https://{self.server}/{self.base_url}/contexts', headers=headers, params=params)
+        request = self.session.get(f'{self.protocol}://{self.server}/{self.base_url}/contexts', headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
@@ -151,7 +151,7 @@ class WorkflowAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}
         params = {"workflowDefinitionId": definition}
         workflow_contexts = []
-        request = self.session.get(f'https://{self.server}/{self.base_url}/contexts', headers=headers, params=params)
+        request = self.session.get(f'{self.protocol}://{self.server}/{self.base_url}/contexts', headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
@@ -202,7 +202,7 @@ class WorkflowAPI(AuthenticatedAPI):
         xml.etree.ElementTree.SubElement(request_payload, "CorrelationId").text = correlation_id
 
         xml_request = xml.etree.ElementTree.tostring(request_payload, encoding='utf-8')
-        request = self.session.post(f'https://{self.server}/{self.base_url}/instances', headers=headers,
+        request = self.session.post(f'{self.protocol}://{self.server}/{self.base_url}/instances', headers=headers,
                                     data=xml_request)
         if request.status_code == requests.codes.created:
             return correlation_id
@@ -230,7 +230,7 @@ class WorkflowAPI(AuthenticatedAPI):
 
         headers = {HEADER_TOKEN: self.token}
         params = {"workflowInstanceIds": param_string}
-        request = self.session.post(f'https://{self.server}/{self.base_url}/instances/terminate',
+        request = self.session.post(f'{self.protocol}://{self.server}/{self.base_url}/instances/terminate',
                                     headers=headers, params=params)
         if request.status_code == requests.codes.accepted:
             return
@@ -255,7 +255,7 @@ class WorkflowAPI(AuthenticatedAPI):
 
         headers = {HEADER_TOKEN: self.token}
         params = {"includeErrors": "true"}
-        request = self.session.get(f'https://{self.server}/{self.base_url}/instances/{str(instance_id)}',
+        request = self.session.get(f'{self.protocol}://{self.server}/{self.base_url}/instances/{str(instance_id)}',
                                    headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -359,7 +359,7 @@ class WorkflowAPI(AuthenticatedAPI):
         params["start"] = int(start_value)
         params["max"] = int(maximum)
 
-        request = self.session.get(f'https://{self.server}/{self.base_url}/instances', headers=headers, params=params)
+        request = self.session.get(f'{self.protocol}://{self.server}/{self.base_url}/instances', headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)

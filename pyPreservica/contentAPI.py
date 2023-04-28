@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 class ContentAPI(AuthenticatedAPI):
 
-    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False):
-        super().__init__(username, password, tenant, server, use_shared_secret)
+    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False, protocol: str = "https"):
+        super().__init__(username, password, tenant, server, use_shared_secret, protocol)
         self.callback = None
 
     class SearchResult:
@@ -55,7 +55,7 @@ class ContentAPI(AuthenticatedAPI):
             params = {'id': f'sdb:{entity_type.value}|{reference}'}
         else:
             params = {'id': f'sdb:{entity_type}|{reference}'}
-        request = self.session.get(f'https://{self.server}/api/content/object-details', params=params, headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/content/object-details', params=params, headers=headers)
         if request.status_code == requests.codes.ok:
             return request.json()["value"]
         elif request.status_code == requests.codes.not_found:
@@ -71,7 +71,7 @@ class ContentAPI(AuthenticatedAPI):
     def download(self, reference, filename):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:IO|{reference}'}
-        with self.session.get(f'https://{self.server}/api/content/download', params=params, headers=headers,
+        with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers,
                               stream=True) as req:
             if req.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
@@ -93,7 +93,7 @@ class ContentAPI(AuthenticatedAPI):
     def thumbnail(self, entity_type, reference, filename, size=Thumbnail.LARGE):
         headers = {HEADER_TOKEN: self.token, 'accept': 'image/png'}
         params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
-        with self.session.get(f'https://{self.server}/api/content/thumbnail', params=params, headers=headers,
+        with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params, headers=headers,
                               stream=True) as req:
             if req.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
@@ -114,7 +114,7 @@ class ContentAPI(AuthenticatedAPI):
 
     def indexed_fields(self):
         headers = {HEADER_TOKEN: self.token}
-        results = self.session.get(f'https://{self.server}/api/content/indexed-fields', headers=headers)
+        results = self.session.get(f'{self.protocol}://{self.server}/api/content/indexed-fields', headers=headers)
         if results.status_code == requests.codes.ok:
             fields = {}
             for ob in results.json()["value"]:
@@ -162,7 +162,7 @@ class ContentAPI(AuthenticatedAPI):
         else:
             metadata_fields = ','.join(list_indexes)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': query_term}
-        results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
+        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = []
         if results.status_code == requests.codes.ok:
             json_doc = results.json()
@@ -248,7 +248,7 @@ class ContentAPI(AuthenticatedAPI):
         query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
 
         payload = {'start': start_from, 'max': str(10), 'metadata': list(filter_values.keys()), 'q': query_term}
-        results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
+        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload, headers=headers)
         if results.status_code == requests.codes.ok:
             json_doc = results.json()
             return int(json_doc['value']['totalHits'])
@@ -277,7 +277,7 @@ class ContentAPI(AuthenticatedAPI):
 
         payload = {'start': start_from, 'max': str(page_size), 'metadata': list(filter_values.keys()), 'q': query_term}
         logger.debug(payload)
-        results = self.session.post(f'https://{self.server}/api/content/search', data=payload, headers=headers)
+        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload, headers=headers)
         results_list = []
         if results.status_code == requests.codes.ok:
             json_doc = results.json()

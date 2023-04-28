@@ -31,8 +31,8 @@ class EntityAPI(AuthenticatedAPI):
     """
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False):
-        super().__init__(username, password, tenant, server, use_shared_secret)
+                 use_shared_secret: bool = False,  protocol: str = "https"):
+        super().__init__(username, password, tenant, server, use_shared_secret, protocol)
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
 
@@ -102,7 +102,7 @@ class EntityAPI(AuthenticatedAPI):
 
         """
         headers = {HEADER_TOKEN: self.__token__(), 'Content-Type': 'application/xml;charset=UTF-8'}
-        download = self.session.get(f'https://{self.server}/api/entity/actions/exports/{pid}/content',
+        download = self.session.get(f'{self.protocol}://{self.server}/api/entity/actions/exports/{pid}/content',
                                     stream=True, headers=headers)
         if download.status_code == requests.codes.ok:
             with open(f'{pid}.zip', 'wb') as file:
@@ -178,7 +178,7 @@ class EntityAPI(AuthenticatedAPI):
 
         logger.debug(xml_request)
 
-        request = self.session.post(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/exports',
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/exports',
                                     headers=headers, data=xml_request)
 
         if request.status_code == requests.codes.accepted:
@@ -256,7 +256,7 @@ class EntityAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}'}
-        with self.session.get(f'https://{self.server}/api/content/download', params=params, headers=headers,
+        with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers,
                               stream=True) as request:
             if request.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
@@ -282,7 +282,7 @@ class EntityAPI(AuthenticatedAPI):
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}', 'size': f'{Thumbnail.SMALL.value}'}
-        with self.session.get(f'https://{self.server}/api/content/thumbnail', params=params,
+        with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params,
                               headers=headers) as request:
             if request.status_code == requests.codes.ok:
                 return True
@@ -309,7 +309,7 @@ class EntityAPI(AuthenticatedAPI):
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}', 'size': f'{size.value}'}
-        with self.session.get(f'https://{self.server}/api/content/thumbnail', params=params,
+        with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params,
                               headers=headers, stream=True) as request:
             if request.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
@@ -343,7 +343,7 @@ class EntityAPI(AuthenticatedAPI):
             raise RuntimeError("delete_identifiers API call is not available when connected to a v6.0 System")
 
         headers = {HEADER_TOKEN: self.token}
-        request = self.session.get(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers',
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers',
                                    headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -362,7 +362,7 @@ class EntityAPI(AuthenticatedAPI):
                         _aipid = identifier.text
                 if _ref == entity.reference and _type == identifier_type and _value == identifier_value:
                     del_req = self.session.delete(
-                        f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers/{_aipid}',
+                        f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers/{_aipid}',
                         headers=headers)
                     if del_req.status_code == requests.codes.unauthorized:
                         self.token = self.__token__()
@@ -389,7 +389,7 @@ class EntityAPI(AuthenticatedAPI):
              :type  entity: Entity
           """
         headers = {HEADER_TOKEN: self.token}
-        request = self.session.get(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers',
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers',
                                    headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -426,7 +426,7 @@ class EntityAPI(AuthenticatedAPI):
           """
         headers = {HEADER_TOKEN: self.token}
         payload = {'type': identifier_type, 'value': identifier_value}
-        request = self.session.get(f'https://{self.server}/api/entity/entities/by-identifier', params=payload,
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/entities/by-identifier', params=payload,
                                    headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -477,7 +477,7 @@ class EntityAPI(AuthenticatedAPI):
         end_point = f"/{entity.path}/{entity.reference}/identifiers"
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         logger.debug(xml_request)
-        request = self.session.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
             xml_string = str(request.content.decode("utf-8"))
             identifier_response = xml.etree.ElementTree.fromstring(xml_string)
@@ -532,7 +532,7 @@ class EntityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}
         entity = self.entity(relationship.entity_type, relationship.this_ref)
         end_point = f"{entity.path}/{entity.reference}/links/{relationship.api_id}"
-        request = self.session.delete(f'https://{self.server}/api/entity/{end_point}', headers=headers)
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/{end_point}', headers=headers)
         if request.status_code == requests.codes.no_content:
             print(relationship)
         elif request.status_code == requests.codes.unauthorized:
@@ -589,7 +589,7 @@ class EntityAPI(AuthenticatedAPI):
 
         if next_page is None:
             params = {'start': '0', 'max': str(maximum)}
-            request = self.session.get(f'https://{self.server}/api/entity/{end_point}', headers=headers, params=params)
+            request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{end_point}', headers=headers, params=params)
         else:
             request = self.session.get(next_page, headers=headers)
 
@@ -660,7 +660,7 @@ class EntityAPI(AuthenticatedAPI):
         end_point = f"/{from_entity.path}/{from_entity.reference}/links"
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         logger.debug(xml_request)
-        request = self.session.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
             xml_string = str(request.content.decode("utf-8"))
             logger.debug(xml_string)
@@ -775,7 +775,7 @@ class EntityAPI(AuthenticatedAPI):
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         end_point = f"/{entity.path}/{entity.reference}/metadata"
         logger.debug(xml_request)
-        request = self.session.post(f'https://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity{end_point}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
             return self.entity(entity_type=entity.entity_type, reference=entity.reference)
         elif request.status_code == requests.codes.unauthorized:
@@ -813,7 +813,7 @@ class EntityAPI(AuthenticatedAPI):
 
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         logger.debug(xml_request)
-        request = self.session.put(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}',
+        request = self.session.put(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}',
                                    data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -869,7 +869,7 @@ class EntityAPI(AuthenticatedAPI):
             data = dest_folder.reference
         else:
             data = "@root@"
-        request = self.session.put(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/parent-ref',
+        request = self.session.put(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/parent-ref',
                                    data=data, headers=headers)
         if request.status_code == requests.codes.accepted:
             return request.content.decode()
@@ -884,7 +884,7 @@ class EntityAPI(AuthenticatedAPI):
 
     def get_async_progress(self, pid: str) -> str:
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
-        request = self.session.get(f"https://{self.server}/api/entity/progress/{pid}", headers=headers)
+        request = self.session.get(f"{self.protocol}://{self.server}/api/entity/progress/{pid}", headers=headers)
         if request.status_code == requests.codes.ok:
             entity_response = xml.etree.ElementTree.fromstring(request.content.decode("utf-8"))
             status = entity_response.find(".//{http://status.preservica.com}Status")
@@ -919,7 +919,7 @@ class EntityAPI(AuthenticatedAPI):
             data = dest_folder.reference
         else:
             data = "@root@"
-        request = self.session.put(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/parent-ref',
+        request = self.session.put(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/parent-ref',
                                    data=data, headers=headers)
         if request.status_code == requests.codes.accepted:
             sleep_sec = 1
@@ -976,7 +976,7 @@ class EntityAPI(AuthenticatedAPI):
 
         xml_request = xml.etree.ElementTree.tostring(structural_object, encoding='utf-8')
         logger.debug(xml_request)
-        request = self.session.post(f'https://{self.server}/api/entity/structural-objects', data=xml_request,
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity/structural-objects', data=xml_request,
                                     headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -1056,7 +1056,7 @@ class EntityAPI(AuthenticatedAPI):
         self.token = self.__token__()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
         end_point = f"/{entity.path}/{entity.reference}/security-descriptor"
-        request = self.session.put(f'https://{self.server}/api/entity{end_point}?includeDescendants=false',
+        request = self.session.put(f'{self.protocol}://{self.server}/api/entity{end_point}?includeDescendants=false',
                                    data=new_tag, headers=headers)
         if request.status_code == requests.codes.accepted:
             sleep_sec = 1
@@ -1087,7 +1087,7 @@ class EntityAPI(AuthenticatedAPI):
           """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
         end_point = f"/{entity.path}/{entity.reference}/security-descriptor"
-        request = self.session.put(f'https://{self.server}/api/entity{end_point}?includeDescendants=false',
+        request = self.session.put(f'{self.protocol}://{self.server}/api/entity{end_point}?includeDescendants=false',
                                    data=new_tag, headers=headers)
         if request.status_code == requests.codes.accepted:
             return request.content.decode("utf-8")
@@ -1169,7 +1169,7 @@ class EntityAPI(AuthenticatedAPI):
 
         xml_request = xml.etree.ElementTree.tostring(xip_object, encoding='utf-8')
 
-        request = self.session.post(f'https://{self.server}/api/entity/{IO_PATH}', data=xml_request, headers=headers)
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity/{IO_PATH}', data=xml_request, headers=headers)
         if request.status_code == requests.codes.ok:
             xml_string = str(request.content.decode("utf-8"))
             entity = self.entity_from_string(xml_string)
@@ -1194,7 +1194,7 @@ class EntityAPI(AuthenticatedAPI):
          :param reference:            The unique identifier of the entity
          """
         headers = {HEADER_TOKEN: self.token}
-        request = self.session.get(f'https://{self.server}/api/entity/{IO_PATH}/{reference}', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{IO_PATH}/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity = self.entity_from_string(xml_response)
@@ -1226,7 +1226,7 @@ class EntityAPI(AuthenticatedAPI):
          :param reference:            The unique identifier of the entity
          """
         headers = {HEADER_TOKEN: self.token}
-        request = self.session.get(f'https://{self.server}/api/entity/{SO_PATH}/{reference}', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{SO_PATH}/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity = self.entity_from_string(xml_response)
@@ -1258,7 +1258,7 @@ class EntityAPI(AuthenticatedAPI):
          :param reference:            The unique identifier of the entity
          """
         headers = {HEADER_TOKEN: self.token}
-        request = self.session.get(f'https://{self.server}/api/entity/{CO_PATH}/{reference}', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{CO_PATH}/{reference}', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity = self.entity_from_string(xml_response)
@@ -1502,7 +1502,7 @@ class EntityAPI(AuthenticatedAPI):
 
         with open(file_name, 'rb') as f:
             request = self.session.post(
-                f'https://{self.server}/api/entity/{CO_PATH}/{content_object.reference}/generations',
+                f'{self.protocol}://{self.server}/api/entity/{CO_PATH}/{content_object.reference}/generations',
                 params=params, data=f, headers=headers)
 
         if request.status_code == requests.codes.ok:
@@ -1526,7 +1526,7 @@ class EntityAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(
-            f'https://{self.server}/api/entity/{CO_PATH}/{content_object.reference}/generations', headers=headers)
+            f'{self.protocol}://{self.server}/api/entity/{CO_PATH}/{content_object.reference}/generations', headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
@@ -1580,7 +1580,7 @@ class EntityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}
         if not isinstance(asset, Asset):
             return None
-        request = self.session.get(f'https://{self.server}/api/entity/{asset.path}/{asset.reference}/representations',
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{asset.path}/{asset.reference}/representations',
                                    headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -1615,7 +1615,7 @@ class EntityAPI(AuthenticatedAPI):
 
         headers = {HEADER_TOKEN: self.token}
 
-        request = self.session.delete(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/preview',
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/preview',
                                       headers=headers)
         if request.status_code == requests.codes.no_content:
             return str(request.content.decode('utf-8'))
@@ -1645,7 +1645,7 @@ class EntityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}  # , 'Content-Type': 'application/octet-stream'}
 
         with open(image_file, 'rb') as fd:
-            request = self.session.put(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/preview',
+            request = self.session.put(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/preview',
                                        data=fd, headers=headers)
 
         if request.status_code == requests.codes.no_content:
@@ -1670,7 +1670,7 @@ class EntityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token}
         params = {'start': str(0), 'max': str(maximum)}
 
-        request = self.session.get(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/event-actions',
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/event-actions',
                                    params=params, headers=headers)
 
         if request.status_code == requests.codes.ok:
@@ -1714,13 +1714,13 @@ class EntityAPI(AuthenticatedAPI):
         folder_reference = folder
         if next_page is None:
             if folder_reference is None:
-                request = self.session.get(f'https://{self.server}/api/entity/root/children', params=data,
+                request = self.session.get(f'{self.protocol}://{self.server}/api/entity/root/children', params=data,
                                            headers=headers)
             else:
                 if hasattr(folder, "reference"):
                     folder_reference = folder.reference
                 request = self.session.get(
-                    f'https://{self.server}/api/entity/structural-objects/{folder_reference}/children',
+                    f'{self.protocol}://{self.server}/api/entity/structural-objects/{folder_reference}/children',
                     params=data, headers=headers)
         else:
             request = self.session.get(next_page, headers=headers)
@@ -1784,7 +1784,7 @@ class EntityAPI(AuthenticatedAPI):
     def _entity_from_event_page(self, event_id: str, maximum: int = 25, next_page: str = None):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         if next_page is None:
-            url = f'https://{self.server}/api/entity/events/{event_id}/event-actions'
+            url = f'{self.protocol}://{self.server}/api/entity/events/{event_id}/event-actions'
             response = requests.get(url, params={'start': 0, 'max': maximum}, headers=headers)
         else:
             response = requests.get(next_page, headers=headers)
@@ -1835,7 +1835,7 @@ class EntityAPI(AuthenticatedAPI):
             params["to"] = kwargs.get("to_date")
 
         if next_page is None:
-            request = self.session.get(f'https://{self.server}/api/entity/events', params=params, headers=headers)
+            request = self.session.get(f'{self.protocol}://{self.server}/api/entity/events', params=params, headers=headers)
         else:
             request = self.session.get(next_page, headers=headers)
 
@@ -1898,7 +1898,7 @@ class EntityAPI(AuthenticatedAPI):
         params = {'start': str(0), 'max': str(maximum)}
         if next_page is None:
             request = self.session.get(
-                f'https://{self.server}/api/entity/{entity.path}/{entity.reference}/event-actions',
+                f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/event-actions',
                 params=params, headers=headers)
         else:
             request = self.session.get(next_page, headers=headers)
@@ -1989,7 +1989,7 @@ class EntityAPI(AuthenticatedAPI):
         today = x.replace(tzinfo=timezone.utc).isoformat()
         if next_page is None:
             params = {'date': today, 'start': '0', 'max': str(maximum)}
-            request = self.session.get(f'https://{self.server}/api/entity/entities/updated-since',
+            request = self.session.get(f'{self.protocol}://{self.server}/api/entity/entities/updated-since',
                                        headers=headers, params=params)
         else:
             request = self.session.get(next_page, headers=headers)
@@ -2085,12 +2085,12 @@ class EntityAPI(AuthenticatedAPI):
         comment_el.text = operator_comment
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         logger.debug(xml_request)
-        request = self.session.delete(f'https://{self.server}/api/entity/{entity.path}/{entity.reference}',
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}',
                                       data=xml_request, headers=headers)
         logger.debug(request.content.decode("utf-8"))
         if request.status_code == requests.codes.accepted:
             progress = request.content.decode("utf-8")
-            req = self.session.get(f"https://{self.server}/api/entity/progress/{progress}", headers=headers)
+            req = self.session.get(f"{self.protocol}://{self.server}/api/entity/progress/{progress}", headers=headers)
             while True:
                 if req.status_code == requests.codes.ok:
                     entity_response = xml.etree.ElementTree.fromstring(req.content.decode("utf-8"))
@@ -2106,7 +2106,7 @@ class EntityAPI(AuthenticatedAPI):
                             xml.etree.ElementTree.SubElement(approval_el, "Comment").text = supervisor_comment
                             xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
                             logger.debug(xml_request)
-                            approve = self.session.put(f"https://{self.server}/api/entity/actions/deletions/{progress}",
+                            approve = self.session.put(f"{self.protocol}://{self.server}/api/entity/actions/deletions/{progress}",
                                                        data=xml_request, headers=headers)
                             if approve.status_code == requests.codes.accepted:
                                 return entity.reference
@@ -2114,7 +2114,7 @@ class EntityAPI(AuthenticatedAPI):
                                 logger.error(approve.content.decode('utf-8'))
                                 raise RuntimeError(approve.status_code, "delete_asset failed during approval")
                         sleep(2.0)
-                req = self.session.get(f"https://{self.server}/api/entity/progress/{progress}", headers=headers)
+                req = self.session.get(f"{self.protocol}://{self.server}/api/entity/progress/{progress}", headers=headers)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self._delete_entity(entity, operator_comment, supervisor_comment)

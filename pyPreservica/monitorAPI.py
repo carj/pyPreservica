@@ -54,7 +54,7 @@ class MonitorAPI(AuthenticatedAPI):
             params = {'monitor': monitor_id, 'start': int(0), 'max': maximum}
             if status:
                 params['status'] = status.value
-            request = self.session.get(f'https://{self.server}/api/processmonitor/messages', headers=headers,
+            request = self.session.get(f'{self.protocol}://{self.server}/api/processmonitor/messages', headers=headers,
                                        params=params)
         else:
             params = {'monitor': monitor_id}
@@ -112,7 +112,7 @@ class MonitorAPI(AuthenticatedAPI):
         :return: List of timeseries information
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
-        request = self.session.get(f'https://{self.server}/api/processmonitor/monitors/{monitor_id}/timeseries',
+        request = self.session.get(f'{self.protocol}://{self.server}/api/processmonitor/monitors/{monitor_id}/timeseries',
                                    headers=headers)
         if request.status_code == requests.codes.ok:
             response = json.loads(str(request.content.decode('utf-8')))
@@ -140,7 +140,7 @@ class MonitorAPI(AuthenticatedAPI):
             params['status'] = status.value
         if category:
             params['category'] = category.value
-        request = self.session.get(f'https://{self.server}/api/processmonitor/monitors', headers=headers, params=params)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/processmonitor/monitors', headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             monitors = json.loads(str(request.content.decode('utf-8')))
             for monitor in monitors['value']['monitors']:
