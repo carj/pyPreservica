@@ -609,7 +609,12 @@ class AuthenticatedAPI:
     Base class for authenticated calls which need access token
     """
 
-    def __find_user_roles_(self) -> list:
+    def _check_if_user_has_manager_role(self):
+        if ('ROLE_SDB_MANAGER_USER' not in self.roles) and ('ROLE_SDB_ADMIN_USER' not in self.roles):
+            logger.error(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
+            raise RuntimeError(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
+
+    def _find_user_roles_(self) -> list:
         """
         Get a list of roles for the user
         :return list of roles:
@@ -621,7 +626,7 @@ class AuthenticatedAPI:
             return roles
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.__find_user_roles_()
+            return self._find_user_roles_()
 
     def security_tags_base(self, with_permissions: bool = False) -> dict:
         """
@@ -850,7 +855,7 @@ class AuthenticatedAPI:
         self.token = self.__token__()
         self.version = self.__version_number__()
         self.__version_namespace__()
-        self.roles = self.__find_user_roles_()
+        self.roles = self._find_user_roles_()
 
         logger.debug(self.xip_ns)
         logger.debug(self.entity_ns)

@@ -666,6 +666,11 @@ https://developer.twitter.com/
 
 You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully.
 
+.. note::
+    Twitter no longer provides free API read access.
+    See: https://developer.twitter.com/
+
+
 You can harvest and ingest tweets using a single call on the upload class using ``ingest_twitter_feed`` method.
 
 You should pass the name of the twitter feed you want to crawl and the number of tweets as the first two arguments.

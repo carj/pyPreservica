@@ -19,11 +19,6 @@ logger = logging.getLogger(__name__)
 
 class AdminAPI(AuthenticatedAPI):
 
-    def __check_if_user_has_manager_role(self):
-        if ('ROLE_SDB_MANAGER_USER' not in self.roles) or ('ROLE_SDB_ADMIN_USER' not in self.roles):
-            logger.error(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
-            raise RuntimeError(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
-
     def delete_system_role(self, role_name):
         """
         Delete a system role
@@ -36,9 +31,10 @@ class AdminAPI(AuthenticatedAPI):
             raise RuntimeError(
                 "delete_system_role API call is only available with a Preservica v6.5.0 system or higher")
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/security/roles/{role_name}', headers=headers)
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/security/roles/{role_name}',
+                                      headers=headers)
         if request.status_code == requests.codes.no_content:
             return
         elif request.status_code == requests.codes.unauthorized:
@@ -60,9 +56,10 @@ class AdminAPI(AuthenticatedAPI):
             raise RuntimeError(
                 "delete_security_tag API call is only available with a Preservica v6.4.0 system or higher")
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/security/tags/{tag_name}', headers=headers)
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/security/tags/{tag_name}',
+                                      headers=headers)
         if request.status_code == requests.codes.no_content:
             return
         elif request.status_code == requests.codes.unauthorized:
@@ -86,7 +83,7 @@ class AdminAPI(AuthenticatedAPI):
         if (self.major_version < 7) and (self.minor_version < 5):
             raise RuntimeError("add_system_role API call is only available with a Preservica v6.5.0 system or higher")
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         xml_tag = xml.etree.ElementTree.Element('Role', {"xmlns": self.admin_ns})
@@ -121,14 +118,15 @@ class AdminAPI(AuthenticatedAPI):
         if (self.major_version < 7) and (self.minor_version < 4):
             raise RuntimeError("add_security_tag API call is only available with a Preservica v6.4.0 system or higher")
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         xml_tag = xml.etree.ElementTree.Element('Tag', {"xmlns": self.admin_ns})
         xml_tag.text = str(tag_name).strip()
         xml_request = xml.etree.ElementTree.tostring(xml_tag, encoding='utf-8')
 
-        request = self.session.post(f'{self.protocol}://{self.server}/api/admin/security/tags', data=xml_request, headers=headers)
+        request = self.session.post(f'{self.protocol}://{self.server}/api/admin/security/tags', data=xml_request,
+                                    headers=headers)
         if request.status_code == requests.codes.created:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -149,7 +147,7 @@ class AdminAPI(AuthenticatedAPI):
         :rtype: list
 
         """
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
 
         if (self.major_version < 7) and (self.minor_version < 5):
             raise RuntimeError(
@@ -181,7 +179,7 @@ class AdminAPI(AuthenticatedAPI):
         :rtype: list
 
         """
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f'{self.protocol}://{self.server}/api/admin/security/tags', headers=headers)
         if request.status_code == requests.codes.ok:
@@ -208,7 +206,7 @@ class AdminAPI(AuthenticatedAPI):
         :type username: str
 
         """
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         self.disable_user(username)
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/users/{username}', headers=headers)
@@ -239,7 +237,7 @@ class AdminAPI(AuthenticatedAPI):
         :return: dictionary of user attributes
         :rtype: dict
         """
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         xml_object = xml.etree.ElementTree.Element('User ', {"xmlns": self.admin_ns})
@@ -253,7 +251,8 @@ class AdminAPI(AuthenticatedAPI):
             xml.etree.ElementTree.SubElement(xml_roles, "Role").text = role
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         logger.debug(xml_request)
-        request = self.session.post(f'{self.protocol}://{self.server}/api/admin/users', data=xml_request, headers=headers)
+        request = self.session.post(f'{self.protocol}://{self.server}/api/admin/users', data=xml_request,
+                                    headers=headers)
         if request.status_code == requests.codes.created:
             return self.user_details(username)
         elif request.status_code == requests.codes.unauthorized:
@@ -276,7 +275,7 @@ class AdminAPI(AuthenticatedAPI):
          :return: dictionary of user attributes
          :rtype: dict
          """
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/admin/users/{username}", headers=headers)
         if request.status_code == requests.codes.ok:
@@ -287,7 +286,8 @@ class AdminAPI(AuthenticatedAPI):
             fullname.text = new_display_name
             xml_request = xml.etree.ElementTree.tostring(entity_response, encoding='utf-8')
             logger.debug(xml_request)
-            update_request = self.session.put(f'{self.protocol}://{self.server}/api/admin/users/{username}', data=xml_request,
+            update_request = self.session.put(f'{self.protocol}://{self.server}/api/admin/users/{username}',
+                                              data=xml_request,
                                               headers=headers)
             if update_request.status_code == requests.codes.ok:
                 return self.user_details(username)
@@ -315,7 +315,7 @@ class AdminAPI(AuthenticatedAPI):
         :rtype: dict
         """
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/admin/users/{username}", headers=headers)
         return_dict = {}
@@ -347,16 +347,17 @@ class AdminAPI(AuthenticatedAPI):
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "user_details failed")
 
-    def __account_status_(self, username: str, status: str, name: str):
+    def _account_status_(self, username: str, status: str, name: str):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain;charset=UTF-8'}
         data = {"userEnabledStatus": status}
-        request = self.session.put(f"{self.protocol}://{self.server}/api/admin/users/{username}/enabled", headers=headers,
+        request = self.session.put(f"{self.protocol}://{self.server}/api/admin/users/{username}/enabled",
+                                   headers=headers,
                                    data=data)
         if request.status_code == requests.codes.ok:
             return request.content.decode("utf-8")
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.__account_status_(username, status, name)
+            return self._account_status_(username, status, name)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"{name} failed")
@@ -369,8 +370,8 @@ class AdminAPI(AuthenticatedAPI):
         :type username: str
 
         """
-        self.__check_if_user_has_manager_role()
-        return self.__account_status_(username, "false", "disable_user")
+        self._check_if_user_has_manager_role()
+        return self._account_status_(username, "false", "disable_user")
 
     # def enable_user(self, username):
     #     """
@@ -389,7 +390,7 @@ class AdminAPI(AuthenticatedAPI):
         :return:
         """
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
 
         fieldnames = ['UserName', 'FullName', 'Email', 'Tenant', 'Enabled', 'Roles']
 
@@ -408,7 +409,7 @@ class AdminAPI(AuthenticatedAPI):
         :rtype: list
         """
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/admin/users", headers=headers)
         if request.status_code == requests.codes.ok:
@@ -447,7 +448,7 @@ class AdminAPI(AuthenticatedAPI):
         :rtype: None
         """
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
 
         params = {"name": name, "description": description, "originalName": originalName}
 
@@ -458,7 +459,8 @@ class AdminAPI(AuthenticatedAPI):
             pass
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.post(f"{self.protocol}://{self.server}/api/admin/schemas", headers=headers, params=params,
+        request = self.session.post(f"{self.protocol}://{self.server}/api/admin/schemas", headers=headers,
+                                    params=params,
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return
@@ -496,7 +498,7 @@ class AdminAPI(AuthenticatedAPI):
 
         """
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
 
         params = {"name": name, "type": document_type}
 
@@ -507,7 +509,8 @@ class AdminAPI(AuthenticatedAPI):
             pass
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.post(f"{self.protocol}://{self.server}/api/admin/documents", headers=headers, params=params,
+        request = self.session.post(f"{self.protocol}://{self.server}/api/admin/documents", headers=headers,
+                                    params=params,
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return
@@ -530,14 +533,15 @@ class AdminAPI(AuthenticatedAPI):
 
         """
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         for document in self.xml_documents():
             if document['SchemaUri'] == uri.strip():
-                request = self.session.delete(f"{self.protocol}://{self.server}/api/admin/documents/{document['ApiId']}",
-                                              headers=headers)
+                request = self.session.delete(
+                    f"{self.protocol}://{self.server}/api/admin/documents/{document['ApiId']}",
+                    headers=headers)
                 if request.status_code == requests.codes.no_content:
                     return
                 elif request.status_code == requests.codes.unauthorized:
@@ -559,7 +563,7 @@ class AdminAPI(AuthenticatedAPI):
 
         """
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
@@ -591,8 +595,9 @@ class AdminAPI(AuthenticatedAPI):
 
         for schema in self.xml_schemas():
             if schema['SchemaUri'] == uri.strip():
-                request = self.session.get(f"{self.protocol}://{self.server}/api/admin/schemas/{schema['ApiId']}/content",
-                                           headers=headers)
+                request = self.session.get(
+                    f"{self.protocol}://{self.server}/api/admin/schemas/{schema['ApiId']}/content",
+                    headers=headers)
                 if request.status_code == requests.codes.ok:
                     xml_response = str(request.content.decode('utf-8'))
                     return xml_response
@@ -617,8 +622,9 @@ class AdminAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         for document in self.xml_documents():
             if document['SchemaUri'] == uri.strip():
-                request = self.session.get(f"{self.protocol}://{self.server}/api/admin/documents/{document['ApiId']}/content",
-                                           headers=headers)
+                request = self.session.get(
+                    f"{self.protocol}://{self.server}/api/admin/documents/{document['ApiId']}/content",
+                    headers=headers)
                 if request.status_code == requests.codes.ok:
                     xml_response = str(request.content.decode('utf-8'))
                     return xml_response
@@ -762,8 +768,9 @@ class AdminAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         for transform in self.xml_transforms():
             if (transform['FromSchemaUri'] == input_uri.strip()) and (transform['ToSchemaUri'] == output_uri.strip()):
-                request = self.session.get(f"{self.protocol}://{self.server}/api/admin/transforms/{transform['ApiId']}/content",
-                                           headers=headers)
+                request = self.session.get(
+                    f"{self.protocol}://{self.server}/api/admin/transforms/{transform['ApiId']}/content",
+                    headers=headers)
                 if request.status_code == requests.codes.ok:
                     return str(request.content.decode('utf-8'))
                 elif request.status_code == requests.codes.unauthorized:
@@ -788,14 +795,15 @@ class AdminAPI(AuthenticatedAPI):
 
         """
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         for transform in self.xml_transforms():
             if (transform['FromSchemaUri'] == input_uri.strip()) and (transform['ToSchemaUri'] == output_uri.strip()):
-                request = self.session.delete(f"{self.protocol}://{self.server}/api/admin/transforms/{transform['ApiId']}",
-                                              headers=headers)
+                request = self.session.delete(
+                    f"{self.protocol}://{self.server}/api/admin/transforms/{transform['ApiId']}",
+                    headers=headers)
                 if request.status_code == requests.codes.no_content:
                     return
                 elif request.status_code == requests.codes.unauthorized:
@@ -833,7 +841,7 @@ class AdminAPI(AuthenticatedAPI):
 
         """
 
-        self.__check_if_user_has_manager_role()
+        self._check_if_user_has_manager_role()
 
         params = {"name": name, "from": input_uri, "to": output_uri, "purpose": purpose.lower(),
                   "originalName": originalName}
@@ -845,7 +853,8 @@ class AdminAPI(AuthenticatedAPI):
             pass
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.post(f"{self.protocol}://{self.server}/api/admin/transforms", headers=headers, params=params,
+        request = self.session.post(f"{self.protocol}://{self.server}/api/admin/transforms", headers=headers,
+                                    params=params,
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return
