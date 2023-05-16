@@ -87,12 +87,13 @@ To unsubscribe to a web hook, you need the subscription id
 Reference Web Server
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-To receive web hook notifications pyPreservica has provided a reference web server implementation which provides the
-support for negotiation of the challenge during the subscription request and verification of the requests.
+To receive web hook notifications pyPreservica has provided a reference web server implementation which provides
+support for negotiation of the challenge request handshake during the subscription request and
+verification of each webhook event request.
 
 To implement the web server, extend the base class `WebHookHandler` and implement a single method `do_WORK()`
 this method is called everytime Preservica calls the web hook.
-This method is therefore where any processing takes place.
+This method is therefore where any processing takes place. For example updating a catalogue system etc.
 
 .. code-block:: python
 
@@ -103,7 +104,7 @@ This method is therefore where any processing takes place.
         """
 
 The handler can then be used to create a web server, the web server should be run from the same directory as a
-`credential.properties` file containing the shared secret
+`credential.properties` file containing the shared secret which was used to create the web hook subscription.
 
  .. code-block:: python
 
@@ -111,7 +112,7 @@ The handler can then be used to create a web server, the web server should be ru
     secret.key=my_shared_secret
 
 
-For example a simple web hook which prints the events to the console as they arrive would be:
+For example a simple web hook server which prints the events to the console as they arrive would be:
 
  .. code-block:: python
 
