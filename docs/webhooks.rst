@@ -82,3 +82,84 @@ To unsubscribe to a web hook, you need the subscription id
      webhook.un_subscribe("c306c99ca3a736124fa711bec53c737d")
 
 
+
+
+Reference Web Server
+^^^^^^^^^^^^^^^^^^^^^^^
+
+To receive web hook notifications pyPreservica has provided a reference web server implementation which provides the
+support for negotiation of the challenge during the subscription request and verification of the requests.
+
+To implement the web server, extend the base class `WebHookHandler` and implement a single method `do_WORK()`
+this method is called everytime Preservica calls the web hook.
+This method is therefore where any processing takes place.
+
+.. code-block:: python
+
+    class MyWebHook(WebHookHandler):
+        def do_WORK(self, json_payload):
+        """
+        Process the event
+        """
+
+The handler can then be used to create a web server, the web server should be run from the same directory as a
+`credential.properties` file containing the shared secret
+
+ .. code-block:: python
+
+    [credentials]
+    secret.key=my_shared_secret
+
+
+For example a simple web hook which prints the events to the console as they arrive would be:
+
+ .. code-block:: python
+
+    from http.server import HTTPServer
+    from sys import argv
+    from pyPreservica import *
+
+    
+    class MyWebHook(WebHookHandler):
+        def do_WORK(self, json_payload):
+            print(json_payload)
+
+
+    if __name__ == '__main__':
+
+        config = configparser.ConfigParser(interpolation=configparser.Interpolation())
+        config.read('credentials.properties', encoding='utf-8')
+        secret_key = config['credentials']['secret.key']
+
+        if len(argv) > 1:
+            arg = argv[1].split(':')
+            BIND_HOST = arg[0]
+            PORT = int(arg[1])
+
+        print(f'Listening on http://{BIND_HOST}:{PORT}\n')
+
+        httpd = HTTPServer((BIND_HOST, PORT), MyWebHook)
+        httpd.secret_key = secret_key
+        httpd.serve_forever()
+
+The web server would then be started using:
+
+ .. code-block:: shell
+
+    $ python3 server.py 0.0.0.0:800
+
+
+A more interesting web hook handler might be one which downloads the thumbnail image from each Asset as it is ingested
+using the pyPreservica EntityAPI()
+
+ .. code-block:: python
+
+    class MyWebHook(WebHookHandler):
+        def do_WORK(self, json_payload):
+            client = EntityAPI()
+            for reference in list(json_payload['events']):
+                ref = reference['entityRef']
+                asset = client.asset(ref)
+                client.thumbnail(asset, f"{ref}.jpg")
+
+

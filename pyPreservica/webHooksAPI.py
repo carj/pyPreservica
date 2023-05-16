@@ -8,12 +8,61 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-
+from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+import hmac
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
 
 BASE_ENDPOINT = '/api/webhook'
+
+
+class WebHookHandler(BaseHTTPRequestHandler):
+    """
+    A sample web hook web server which provides handshake verification
+    The shared secret key is passed in via the HTTPServer
+
+    Extend the class and implement do_WORK() method
+    The JSON document is passed into do_WORK()
+
+    """
+    def hmac(self, key, message):
+        return hmac.new(key=bytes(key, 'latin-1'), msg=bytes(message, 'latin-1'), digestmod=hashlib.sha256).hexdigest()
+
+    def do_POST(self):
+        result = urlparse(self.path)
+        q = parse_qs(result.query)
+        if 'challengeCode' in q:
+            code = q['challengeCode'][0]
+            signature = self.hmac(self.server.secret_key, code)
+            response = f'{{ "challengeCode": "{code}",     "challengeResponse": "{signature}" }}'
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(bytes(response.encode('utf-8')))
+            self.log_message("Handshake Completed.")
+        else:
+            verif_sig = self.headers.get("Preservica-Signature", None)
+            if "chunked" in self.headers.get("Transfer-Encoding", "") and (verif_sig is not None):
+                payload = ""
+                while True:
+                    line = self.rfile.readline().strip()
+                    chunk_length = int(line, 16)
+                    if chunk_length != 0:
+                        chunk = self.rfile.read(chunk_length)
+                        payload = payload + chunk.decode("utf-8")
+                    self.rfile.readline()
+                    if chunk_length == 0:
+                        verify_body = f"preservica-webhook-auth{payload}"
+                        signature = self.hmac(self.server.secret_key, verify_body)
+                        if signature == verif_sig:
+                            self.log_message("Signature Verified. Doing Work...")
+                            self.log_message(payload)
+                            self.send_response(200)
+                            self.end_headers()
+                            self.do_WORK(json.loads(payload))
+                        break
 
 
 class TriggerType(Enum):

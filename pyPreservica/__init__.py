@@ -16,7 +16,7 @@ from .retentionAPI import RetentionAPI, RetentionAssignment, RetentionPolicy
 from .parAPI import PreservationActionRegistry
 from .adminAPI import AdminAPI
 from .monitorAPI import MonitorAPI, MonitorCategory, MonitorStatus, MessageStatus
-from .webHooksAPI import WebHooksAPI, TriggerType
+from .webHooksAPI import WebHooksAPI, TriggerType, WebHookHandler
 
 
 __author__ = "James Carr (drjamescarr@gmail.com)"
