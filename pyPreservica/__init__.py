@@ -22,6 +22,6 @@ from .webHooksAPI import WebHooksAPI, TriggerType
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "1.7.1"
+__version__ = "1.7.8"
 
 __license__ = "Apache License Version 2.0"

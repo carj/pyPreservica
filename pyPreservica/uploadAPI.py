@@ -1,3 +1,13 @@
+"""
+pyPreservica UploadAPI module definition
+
+A client library for the Preservica Repository Upload API
+
+author:     James Carr
+licence:    Apache License 2.0
+
+"""
+
 import csv
 import shutil
 import tempfile

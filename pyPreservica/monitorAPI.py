@@ -1,4 +1,3 @@
-
 """
 pyPreservica MonitorAPI module definition
 
