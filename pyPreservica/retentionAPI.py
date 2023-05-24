@@ -1,5 +1,5 @@
 """
-pyPreservica EntityAPI module definition
+pyPreservica RetentionAPI module definition
 
 A client library for the Preservica Repository web services Entity API
 https://us.preservica.com/api/entity/documentation.html

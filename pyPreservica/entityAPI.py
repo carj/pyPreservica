@@ -12,7 +12,7 @@ import uuid
 import xml.etree.ElementTree
 from datetime import datetime, timedelta, timezone
 from time import sleep
-from typing import Any, Generator, Tuple, Iterable
+from typing import Any, Generator, Tuple, Iterable, Union
 
 from pyPreservica.common import *
 
@@ -31,7 +31,7 @@ class EntityAPI(AuthenticatedAPI):
     """
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False,  protocol: str = "https"):
+                 use_shared_secret: bool = False, protocol: str = "https") -> object:
         super().__init__(username, password, tenant, server, use_shared_secret, protocol)
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
@@ -1698,7 +1698,7 @@ class EntityAPI(AuthenticatedAPI):
             if entity.entity_type == EntityType.FOLDER:
                 yield from self.all_descendants(folder=entity)
 
-    def descendants(self, folder: Folder = None) -> Generator:
+    def descendants(self, folder: Union[str, Folder] = None) -> Generator:
         maximum = 100
         paged_set = self.children(folder, maximum=maximum, next_page=None)
         for entity in paged_set.results:
@@ -1708,7 +1708,7 @@ class EntityAPI(AuthenticatedAPI):
             for entity in paged_set.results:
                 yield entity
 
-    def children(self, folder: Folder = None, maximum: int = 100, next_page: str = None) -> PagedSet:
+    def children(self, folder: Union[str, Folder] = None, maximum: int = 100, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
         data = {'start': str(0), 'max': str(maximum)}
         folder_reference = folder

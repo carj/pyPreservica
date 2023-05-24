@@ -79,9 +79,16 @@ To unsubscribe to a web hook, you need the subscription id
 
     webhook = WebHooksAPI()
 
-     webhook.un_subscribe("c306c99ca3a736124fa711bec53c737d")
+    webhook.unsubscribe("c306c99ca3a736124fa711bec53c737d")
 
 
+To unsubscribe to all web hooks use
+
+.. code-block:: python
+
+    webhook = WebHooksAPI()
+
+    webhook.unsubscribe_all()
 
 
 Reference Web Server

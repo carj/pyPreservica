@@ -1,5 +1,5 @@
 """
-pyPreservica EntityAPI module definition
+pyPreservica WebHooksAPI module definition
 
 A client library for the Preservica Repository web services Webhook API
 https://us.preservica.com/api/webhook/documentation.html
@@ -8,6 +8,7 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
+import json
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import hmac
@@ -27,6 +28,7 @@ class WebHookHandler(BaseHTTPRequestHandler):
     The JSON document is passed into do_WORK()
 
     """
+
     def hmac(self, key, message):
         return hmac.new(key=bytes(key, 'latin-1'), msg=bytes(message, 'latin-1'), digestmod=hashlib.sha256).hexdigest()
 
@@ -41,7 +43,7 @@ class WebHookHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(bytes(response.encode('utf-8')))
-            self.log_message("Handshake Completed.")
+            self.log_message(f"Handshake Completed. {response.encode('utf-8')}")
         else:
             verif_sig = self.headers.get("Preservica-Signature", None)
             if "chunked" in self.headers.get("Transfer-Encoding", "") and (verif_sig is not None):
@@ -81,7 +83,7 @@ class WebHooksAPI(AuthenticatedAPI):
 
     def subscriptions(self):
         """
-        Return all the current active web hook subscriptions
+        Return all the current active web hook subscriptions as a json document
 
         :return: list of web hooks
         """
@@ -101,9 +103,19 @@ class WebHooksAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def un_subscribe(self, subscription_id: str):
+    def unsubscribe_all(self):
         """
-        Unsubscribe from provided webhook.
+        Unsubscribe from all webhooks.
+        :return:
+        """
+        self._check_if_user_has_manager_role()
+        subscriptions = self.subscriptions()
+        for sub in subscriptions:
+            self.unsubscribe(sub['id'])
+
+    def unsubscribe(self, subscription_id: str):
+        """
+        Unsubscribe from the provided webhook.
 
         :param subscription_id:
         :return:
@@ -115,13 +127,13 @@ class WebHooksAPI(AuthenticatedAPI):
             headers=headers)
         if response.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.un_subscribe(subscription_id)
+            return self.unsubscribe(subscription_id)
         if response.status_code == requests.codes.no_content:
             json_response = str(response.content.decode('utf-8'))
             logger.debug(json_response)
             return json_response
         else:
-            exception = HTTPException(str(subscription_id), response.status_code, response.url, "un_subscribe",
+            exception = HTTPException(str(subscription_id), response.status_code, response.url, "unsubscribe",
                                       response.content.decode('utf-8'))
             logger.error(exception)
             raise exception

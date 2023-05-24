@@ -17,11 +17,12 @@ from .parAPI import PreservationActionRegistry
 from .adminAPI import AdminAPI
 from .monitorAPI import MonitorAPI, MonitorCategory, MonitorStatus, MessageStatus
 from .webHooksAPI import WebHooksAPI, TriggerType, WebHookHandler
+from .vocabularyAPI import ControlledVocabularyAPI, Table
 
 
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "1.7.8"
+__version__ = "1.7.9"
 
 __license__ = "Apache License Version 2.0"
