@@ -99,8 +99,8 @@ class WorkflowAPI(AuthenticatedAPI):
     workflow_types = ['Ingest', 'Access', 'Transformation', 'DataManagement']
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, protocol: str = "https"):
-        super().__init__(username, password, tenant, server, use_shared_secret, protocol)
+                 use_shared_secret: bool = False, two_fa_secret_key: str = None, protocol: str = "https"):
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key, protocol)
         self.base_url = "sdb/rest/workflow"
 
     def get_workflow_contexts_by_type(self, workflow_type: str):

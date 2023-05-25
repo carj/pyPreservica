@@ -21,6 +21,7 @@ import unicodedata
 import xml.etree.ElementTree
 from enum import Enum
 from pathlib import Path
+import pyotp
 
 import requests
 
@@ -712,7 +713,8 @@ class AuthenticatedAPI:
         Determine the version number of the server
         """
         headers = {HEADER_TOKEN: self.token}
-        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/versiondetails/version', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/versiondetails/version',
+                                   headers=headers)
         if request.status_code == requests.codes.ok:
             xml_ = str(request.content.decode('utf-8'))
             version = xml_[xml_.find("<CurrentVersion>") + len("<CurrentVersion>"):xml_.find("</CurrentVersion>")]
@@ -741,6 +743,9 @@ class AuthenticatedAPI:
         config = configparser.RawConfigParser(interpolation=None)
         config['credentials'] = {'username': self.username, 'password': self.password, 'tenant': self.tenant,
                                  'server': self.server}
+        if self.two_fa_secret_key is not None:
+            config['credentials']['twoFactorToken'] = self.two_fa_secret_key
+
         with open('credentials.properties', 'wt', encoding="utf-8") as configfile:
             config.write(configfile)
 
@@ -769,6 +774,36 @@ class AuthenticatedAPI:
                     self.tenant = response.json()['tenant']
                 return response.json()['token']
             else:
+                if 'message' in response.json():
+                    if response.json()['message'] == "needs.2fa":
+                        logger.debug("2FA Found")
+                        if self.tenant is None:
+                            self.tenant = response.json()['tenant']
+                        if self.two_fa_secret_key:
+                            totp = pyotp.TOTP(self.two_fa_secret_key)
+                            data = {'username': self.username,
+                                    'continuationToken': response.json()['continuationToken'],
+                                    'tenant': self.tenant, 'twoFactorToken': totp.now()}
+                            response_2fa = self.session.post(
+                                f'{self.protocol}://{self.server}/api/accesstoken/complete-2fa',
+                                data=data)
+                            if response_2fa.status_code == requests.codes.ok:
+                                return response_2fa.json()['token']
+                            else:
+                                msg = "Failed to create a 2FA authentication token. Check your credentials are correct"
+                                logger.error(msg)
+                                logger.error(str(response.content))
+                                raise RuntimeError(response.status_code, msg)
+                        else:
+                            msg = "2FA twoFactorToken required to authenticate against this account using 2FA"
+                            logger.error(msg)
+                            logger.error(str(response.content))
+                            raise RuntimeError(response.status_code, msg)
+                    if response.json()['message'] == "needs.2fa.setup":
+                        msg = "2FA is activated but not yet set up"
+                        logger.error(msg)
+                        logger.error(str(response.content))
+                        raise RuntimeError(response.status_code, msg)
                 msg = "Failed to create a password based authentication token. Check your credentials are correct"
                 logger.error(msg)
                 logger.error(str(response.content))
@@ -790,7 +825,7 @@ class AuthenticatedAPI:
                 raise RuntimeError(response.status_code, msg)
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, protocol: str = "https"):
+                 use_shared_secret: bool = False, two_fa_secret_key: str = None, protocol: str = "https"):
 
         config = configparser.ConfigParser(interpolation=configparser.Interpolation())
         config.read('credentials.properties', encoding='utf-8')
@@ -798,6 +833,14 @@ class AuthenticatedAPI:
         self.shared_secret = bool(use_shared_secret)
         self.protocol = protocol
 
+        if not two_fa_secret_key:
+            two_fa_secret_key = os.environ.get('PRESERVICA_2FA_TOKEN')
+            if two_fa_secret_key is None:
+                try:
+                    two_fa_secret_key = config['credentials']['twoFactorToken']
+                except KeyError:
+                    pass
+        self.two_fa_secret_key = two_fa_secret_key
         if not username:
             username = os.environ.get('PRESERVICA_USERNAME')
             if username is None:

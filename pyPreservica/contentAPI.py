@@ -18,8 +18,9 @@ logger = logging.getLogger(__name__)
 
 class ContentAPI(AuthenticatedAPI):
 
-    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False, protocol: str = "https"):
-        super().__init__(username, password, tenant, server, use_shared_secret, protocol)
+    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False,
+                 two_fa_secret_key: str = None, protocol: str = "https"):
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key, protocol)
         self.callback = None
 
     class SearchResult:

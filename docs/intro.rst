@@ -317,10 +317,68 @@ If you are using a credentials.properties file then
     client = EntityAPI(use_shared_secret=True)
 
 
+2 Factor Authentication
+------------------------
+
+pyPreservica now supports the new 2-Factor authentication for APIs introduced with Preservica 6.8
+
+The Preservica system should be first setup for 2-Factor authentication and the one time password key used to
+seed the 2FA (HMAC-Based One-Time Password Algorithm) should be retained and used with the API.
+
+The one time password or seed key is available to view and should be saved when setting up the 2FA for a user.
+You can find the two factor seed key from the user 2FA setup page under the "Reveal Key" button at the bottom of the page.
+
+Keep this key secret along with your account password as it will be required when authenticating the API calls.
+
+.. image:: images/2fa.PNG
+
+To call pyPreservica once 2-Factor authentication process has been setup, you need the username and password as normal along
+with the additional two factor key.
+
+You can pass the additional two factor key as an argument to the constructor for the API classes or use environment
+variables or the credentials file.
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    client = EntityAPI(username="test@test.com", password="my-login-password", tenant="PREVIEW",
+                          server="preview.preservica.com", two_fa_secret_key="AJC5DEGUVM6UQ1TT")
+
+
+
+The environment variable for holding the 2 factor seed key is called `PRESERVICA_2FA_TOKEN` and the credential file
+property name is `twoFactorToken`.
+
+.. code-block:: console
+
+    $ export PRESERVICA_2FA_TOKEN=AJC5DEGUVM6UQ1TT
+
+i.e ::
+
+    [credentials]
+    username=test@test.com
+    password=123444
+    tenant=PREVIEW
+    server=preview.preservica.com
+    twoFactorToken=AJC5DEGUVM6UQ1TT
+
+.. tip::
+    Preservica uses time based One Time Passwords (OTP), this means the time on your local machine must match time
+    on the server.
+
+
 SSL Certificates
 -----------------
 
-pyPreservica will only connect to servers which use the https:// protocol and will always validate certificates.
+pyPreservica will by default connect to servers which use the https:// protocol and will always validate certificates
+when connected via https.
+
+For Enterprise on Premise customers on secure networks, you can change the default protocol to use http:// via the constructor.
+
+.. code-block:: python
+
+    client = EntityAPI(protocol="http")
 
 pyPreservica uses the `Certifi <https://pypi.org/project/certifi/>`_  project to provide SSL certificate validation.
 

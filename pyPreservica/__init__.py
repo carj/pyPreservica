@@ -23,6 +23,6 @@ from .vocabularyAPI import ControlledVocabularyAPI, Table
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the Preservica API package
-__version__ = "1.7.9"
+__version__ = "2.0.0"
 
 __license__ = "Apache License Version 2.0"
