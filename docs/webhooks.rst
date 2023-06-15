@@ -1,4 +1,4 @@
-Web Hook API
+WebHook API
 ~~~~~~~~~~~~~~~
 
 pyPreservica now contains APIs for accessing the web hook API.

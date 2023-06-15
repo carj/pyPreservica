@@ -1856,7 +1856,7 @@ class UploadAPI(AuthenticatedAPI):
 
         """
         bucket = f'{self.tenant.lower()}.package.upload'
-        endpoint = f'https://{self.server}/api/s3/buckets'
+        endpoint = f'{self.protocol}://{self.server}/api/s3/buckets'
         self.token = self.__token__()
 
         s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=self.token,

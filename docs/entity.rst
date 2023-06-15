@@ -138,7 +138,9 @@ You can pass a parent reference to get the children of any folder in the same wa
     for entity in client.descendants(folder.parent):
         print(entity.title)
 
-This is the preferred way to get children of folders as the paging is managed automatically.
+
+.. tip::
+    This is the preferred way to get children of folders as the paging is managed automatically.
 
 If you only need the folders or Assets from a parent you can filter the results using a pre-defined filter
 
@@ -418,7 +420,7 @@ An alternative is to call the ``metadata_for_entity``  directly
 
 .. code-block:: python
 
-    xml_string = client.metadata_for_entity(entity, "https://www.person.com/person")
+    xml_string = client.metadata_for_entity(entity, "https://person.org/person")
 
 this will fetch the first metadata document which matches the schema argument on the entity
 
@@ -439,14 +441,14 @@ Metadata can be attached to entities either by passing an XML document as a stri
 
     folder = entity.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
 
-    xml = "<person:Person  xmlns:person='https://www.person.com/person'>" \
+    xml = "<person:Person  xmlns:person='https://person.org/person'>" \
         "<person:Name>Bob Smith</person:Name>" \
         "<person:Phone>01234 100 100</person:Phone>" \
         "<person:Email>test@test.com</person:Email>" \
         "<person:Address>Abingdon, UK</person:Address>" \
         "</person:Person>"
 
-    folder = client.add_metadata(folder, "https://www.person.com/person", xml)
+    folder = client.add_metadata(folder, "https://person.org/person", xml)
 
 or by reading the metadata from a file
 
@@ -454,6 +456,21 @@ or by reading the metadata from a file
 
     with open("DublinCore.xml", 'r', encoding="utf-8") as md:
         asset = client.add_metadata(asset, "http://purl.org/dc/elements/1.1/", md)
+
+
+Adding descriptive metadata may change the namespace prefix values, this does not change
+the meaning of the XML document as the prefix values are arbitrary labels.
+XML namespace prefixes themselves are arbitrary; it's only through their binding to a full
+XML namespace name that they derive their significance.
+
+If you want to preserve the namespace prefix you can add the following to the start of your Python scripts
+
+
+.. code-block:: python
+
+    xml.etree.ElementTree.register_namespace("person", "https://person.org/person")
+
+This will associate the namespace prefix “person” with the actual XML namespace
 
 
 Descriptive metadata can also be updated to amend values or change the document structure
@@ -470,10 +487,10 @@ For example the following python fragment appends a new element to an existing d
     folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")   # call into the API
 
     for url, schema in folder.metadata.items():
-        if schema == "https://www.person.com/person":
+        if schema == "https://person.org/person":
             xml_string = client.metadata(url)                    # call into the API
             xml_document = ElementTree.fromstring(xml_string)
-            postcode = ElementTree.Element('{https://www.person.com/person}Postcode')
+            postcode = ElementTree.Element('{https://person.org/person}Postcode')
             postcode.text = "OX14 3YS"
             xml_document.append(postcode)
             xml_string = ElementTree.tostring(xml_document, encoding='UTF-8').decode("utf-8")

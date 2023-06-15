@@ -36,6 +36,18 @@ class Table:
 
 class ControlledVocabularyAPI(AuthenticatedAPI):
 
+
+    def load_skos(self, uri):
+        """
+        Load a SKOS controlled vocabulary in skos RDF format
+
+        Simple Knowledge Organization System (SKOS)
+
+        :param uri:
+        :return:
+        """
+        pass
+
     def record(self, reference: str):
         """
         Get individual record by its ref.

@@ -755,7 +755,7 @@ https://eu.preservica.com/sdb/rest/workflow/documentation.html
 
 
 Process Monitor  API
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 
 https://us.preservica.com/api/processmonitor/documentation.html
 
@@ -763,4 +763,16 @@ https://us.preservica.com/api/processmonitor/documentation.html
 .. autoclass:: MonitorStatus
 .. autoclass:: MonitorCategory
 .. autoclass:: MonitorAPI
+     :members:
+
+
+
+WebHook  API
+^^^^^^^^^^^^^^^^^^^
+
+https://us.preservica.com/api/webhook/documentation.html
+
+.. py:currentmodule:: pyPreservica
+.. autoclass:: TriggerType
+.. autoclass:: WebHooksAPI
      :members:
