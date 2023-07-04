@@ -776,3 +776,16 @@ https://us.preservica.com/api/webhook/documentation.html
 .. autoclass:: TriggerType
 .. autoclass:: WebHooksAPI
      :members:
+
+
+Authority Records API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+https://eu.preservica.com/api/reference-metadata/documentation.html
+
+This API is used for managing the Authority records within Preservica.
+
+.. py:currentmodule:: pyPreservica
+.. autoclass:: Table
+.. autoclass:: AuthorityAPI
+     :members:

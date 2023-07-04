@@ -8,6 +8,9 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
+import json
+import csv
+import requests
 
 from pyPreservica.common import *
 
@@ -34,26 +37,98 @@ class Table:
                f"Fields:\t\t\t{self.fields}\n"
 
 
-class ControlledVocabularyAPI(AuthenticatedAPI):
+class AuthorityAPI(AuthenticatedAPI):
 
-
-    def load_skos(self, uri):
+    def delete_record(self, reference: str):
         """
-        Load a SKOS controlled vocabulary in skos RDF format
+          Delete a record from a table by its reference
 
-        Simple Knowledge Organization System (SKOS)
+          :param reference:    The reference of the record to delete
+          :type: reference:    str
 
-        :param uri:
-        :return:
-        """
-        pass
+          """
+        headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
+        response = self.session.delete(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/records/{reference}',
+                                       headers=headers)
+        if response.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.delete_record(reference)
+        if response.status_code == requests.codes.no_content:
+            return
+        else:
+            exception = HTTPException("", response.status_code, response.url, "delete_record",
+                                      response.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
-    def record(self, reference: str):
+    def add_records(self, table: Table, csv_file, encoding=None):
         """
-        Get individual record by its ref.
-        :param reference:
-        :return:
+         Add new records to an existing table from a CSV document
+
+         :param table:    The Table to add the record to
+         :type: table:    Table
+
+         :param csv_file:    The path to the CSV document
+         :type: csv_file:    str
+
+         :param encoding:    The encoding used to open the csv document
+         :type: encoding:    str
+
+         """
+        with open(csv_file, newline='', encoding=encoding) as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if ('ID' in row) or ('id' in row):
+                    pass
+                else:
+                    row['id'] = reader.line_num
+                self.add_record(table, row)
+
+    def add_record(self, table: Table, record: dict):
         """
+         Add a new record to an existing table
+
+         :param table:    The Table to add the record to
+         :type: table:    Table
+
+         :param record:    The record
+         :type: record:    dict
+
+         :return: A single record
+         :rtype: dict
+
+         """
+        headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
+
+        body = {"securityDescriptor": "open", "fieldValues": []}
+        for key, val in record.items():
+            body["fieldValues"].append({"name": str(key).lower(), "value": val})
+
+        response = self.session.post(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables/{table.reference}/records',
+                                     headers=headers, json=body)
+
+        if response.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.add_record(table, record)
+        if response.status_code == requests.codes.created:
+            return str(response.content.decode('utf-8'))
+        else:
+            exception = HTTPException("", response.status_code, response.url, "add_record",
+                                      response.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
+    def record(self, reference: str) -> dict:
+        """
+         Return a record by its reference
+
+         :param reference:    The record reference
+         :type: reference:    str
+
+         :return: A single record
+         :rtype: dict
+
+         """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/records/{reference}',
                                     headers=headers)
@@ -69,14 +144,20 @@ class ControlledVocabularyAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def records(self, table: Table):
+    def records(self, table: Table) -> list[dict]:
         """
-        Get all records from a table.
-        :return:
-        """
+         Return all records from a table
+
+         :param table:    The authority table
+         :type: table:    Table
+
+         :return: List of records
+         :rtype: list[dict]
+
+         """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables/{table.reference}/records',
-                                    headers=headers)
+                                    headers=headers, params={"expand": "true"})
         if response.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.records(table)
@@ -89,12 +170,16 @@ class ControlledVocabularyAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def table(self, reference: str):
+    def table(self, reference: str) -> Table:
         """
-        fetch a metadata table by id
+        fetch an authority table by its reference
 
-        :param reference:
-        :return:
+        :param reference:    The reference for the authority table
+        :type: reference:    str
+
+        :return: An authority table
+        :rtype: Table
+
         """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables/{reference}',
@@ -115,10 +200,13 @@ class ControlledVocabularyAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def tables(self):
+    def tables(self) -> set[Table]:
         """
-        List reference metadata tables, optionally filtering by metadata connections.
-        :return:
+        List reference metadata tables
+
+        :return: Set of authority tables
+        :rtype: set(Table)
+
         """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables', headers=headers)

@@ -154,7 +154,7 @@ The web server would then be started using:
 
  .. code-block:: shell
 
-    $ python3 server.py 0.0.0.0:800
+    $ python3 server.py 0.0.0.0:8000
 
 
 A more interesting web hook handler might be one which downloads the thumbnail image from each Asset as it is ingested

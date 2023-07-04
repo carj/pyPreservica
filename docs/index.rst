@@ -31,7 +31,7 @@ This library provides classes for working with a range of the Preservica APIs.
 
 https://developers.preservica.com/api-reference
 
-This version of the documentation is for use against a Preservica 6.8-6.2 systems
+This version of the documentation is for use against a Preservica 6.9-6.2 systems
 
 For Preservica 6.0 and 6.1 see `the previous version <https://pypreservica.readthedocs.io/en/v6.1/>`_
 
@@ -61,6 +61,7 @@ There is no support for use of the library by Preservica Ltd. For support see :r
    par
    monitor
    webhooks
+   authority
    example
    api
 

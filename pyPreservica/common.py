@@ -103,9 +103,10 @@ def strtobool(val) -> bool:
         raise ValueError("invalid truth value %r" % (val,))
 
 
-def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0, zlogger=None):
+def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0, logger=None):
     """
     Create a non compressed zip file from all the files under 'base_dir'.
+
 
     The output zip file will be named 'base_name' + ".zip".  Returns the
     name of the output zip file.
@@ -116,13 +117,13 @@ def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0
     archive_dir = os.path.dirname(base_name)
 
     if archive_dir and not os.path.exists(archive_dir):
-        if zlogger is not None:
-            zlogger.info("creating %s", archive_dir)
+        if logger is not None:
+            logger.info("creating %s", archive_dir)
         if not dry_run:
             os.makedirs(archive_dir)
 
-    if zlogger is not None:
-        zlogger.info("creating '%s' and adding '%s' to it",
+    if logger is not None:
+        logger.info("creating '%s' and adding '%s' to it",
                      zip_filename, base_dir)
 
     if not dry_run:
@@ -130,20 +131,20 @@ def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0
             path = os.path.normpath(base_dir)
             if path != os.curdir:
                 zf.write(path, path)
-                if zlogger is not None:
-                    zlogger.info("adding '%s'", path)
+                if logger is not None:
+                    logger.info("adding '%s'", path)
             for dirpath, dirnames, filenames in os.walk(base_dir):
                 for name in sorted(dirnames):
                     path = os.path.normpath(os.path.join(dirpath, name))
                     zf.write(path, path)
-                    if zlogger is not None:
-                        zlogger.info("adding '%s'", path)
+                    if logger is not None:
+                        logger.info("adding '%s'", path)
                 for name in filenames:
                     path = os.path.normpath(os.path.join(dirpath, name))
                     if os.path.isfile(path):
                         zf.write(path, path)
-                        if zlogger is not None:
-                            zlogger.info("adding '%s'", path)
+                        if logger is not None:
+                            logger.info("adding '%s'", path)
 
     return zip_filename
 
@@ -732,7 +733,7 @@ class AuthenticatedAPI:
             RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.6 Compatible) " \
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.9 Compatible) " \
                f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
                f"in tenancy {self.tenant}"
 
