@@ -639,7 +639,7 @@ which returns each Bitstream from all the Representations and Content Objects wi
         do_something(bitstream)
 
 
-The actual content files can be download using ``bitstream_content()``
+The actual content files can be downloaded to a disk file using ``bitstream_content()``
 
 .. code-block:: python
 
@@ -657,6 +657,13 @@ To download all the access bitstreams to the current folder you would use.
                     for bitstream in generation.bitstreams:
                         client.bitstream_content(bitstream, bitstream.filename)
 
+
+The content files can be written to a byte array using ``bitstream_bytes()`` this
+returns a BytesIO object
+
+.. code-block:: python
+
+    byte_array = client.bitstream_bytes(bitstream)
 
 Integrity Check History
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

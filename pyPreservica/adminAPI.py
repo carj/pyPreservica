@@ -695,7 +695,10 @@ class AdminAPI(AuthenticatedAPI):
                 aip_id = schema.find(f'.//{{{self.admin_ns}}}ApiId')
                 schema_dict['SchemaUri'] = schema_uri.text
                 schema_dict['Name'] = name.text
-                schema_dict['Description'] = description.text
+                if description is not None:
+                    schema_dict['Description'] = description.text
+                else:
+                    schema_dict['Description'] = ""
                 schema_dict['ApiId'] = aip_id.text
                 results.append(schema_dict)
             return results

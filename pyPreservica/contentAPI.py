@@ -56,7 +56,8 @@ class ContentAPI(AuthenticatedAPI):
             params = {'id': f'sdb:{entity_type.value}|{reference}'}
         else:
             params = {'id': f'sdb:{entity_type}|{reference}'}
-        request = self.session.get(f'{self.protocol}://{self.server}/api/content/object-details', params=params, headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/content/object-details', params=params,
+                                   headers=headers)
         if request.status_code == requests.codes.ok:
             return request.json()["value"]
         elif request.status_code == requests.codes.not_found:
@@ -163,7 +164,8 @@ class ContentAPI(AuthenticatedAPI):
         else:
             metadata_fields = ','.join(list_indexes)
         payload = {'start': start_from, 'max': str(page_size), 'metadata': metadata_fields, 'q': query_term}
-        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload, headers=headers)
+        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload,
+                                    headers=headers)
         results_list = []
         if results.status_code == requests.codes.ok:
             json_doc = results.json()
@@ -192,7 +194,8 @@ class ContentAPI(AuthenticatedAPI):
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"simple_search failed with error code: {results.status_code}")
 
-    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", filter_values: dict = None):
+    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", filter_values: dict = None,
+                                sort_values: dict = None):
         page_size = 50
         if filter_values is None:
             filter_values = {}
@@ -205,23 +208,25 @@ class ContentAPI(AuthenticatedAPI):
         with open(csv_file, newline='', mode="wt", encoding="utf-8") as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=header_fields)
             writer.writeheader()
-            writer.writerows(self.search_index_filter_list(query, page_size, filter_values))
+            writer.writerows(self.search_index_filter_list(query, page_size, filter_values, sort_values))
 
-    def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict = None) -> Generator:
+    def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict = None,
+                                 sort_values: dict = None) -> Generator:
         """
         Run a search query with optional filters
 
         :param query: The main search query.
         :param page_size:  The default search page size
         :param filter_values:  Dictionary of index names and values
+        :param sort_values:    Dictionary of sort index names and values
         :return: search result
         """
-        search_result = self._search_index_filter(query, 0, page_size, filter_values)
+        search_result = self._search_index_filter(query, 0, page_size, filter_values, sort_values)
         for e in search_result.results_list:
             yield e
         found = len(search_result.results_list)
         while search_result.hits > found:
-            search_result = self._search_index_filter(query, found, page_size, filter_values)
+            search_result = self._search_index_filter(query, found, page_size, filter_values, sort_values)
             for e in search_result.results_list:
                 yield e
             found = found + len(search_result.results_list)
@@ -249,7 +254,8 @@ class ContentAPI(AuthenticatedAPI):
         query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
 
         payload = {'start': start_from, 'max': str(10), 'metadata': list(filter_values.keys()), 'q': query_term}
-        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload, headers=headers)
+        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload,
+                                    headers=headers)
         if results.status_code == requests.codes.ok:
             json_doc = results.json()
             return int(json_doc['value']['totalHits'])
@@ -261,7 +267,7 @@ class ContentAPI(AuthenticatedAPI):
             raise RuntimeError(results.status_code, f"_search_index_filter_hits failed")
 
     def _search_index_filter(self, query: str = "%", start_index: int = 0, page_size: int = 25,
-                             filter_values: dict = None):
+                             filter_values: dict = None, sort_values: dict = None):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
 
@@ -274,11 +280,23 @@ class ContentAPI(AuthenticatedAPI):
 
         filter_terms = ','.join(field_list)
 
-        query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
+        if sort_values is None:
+            query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
+        else:
+            sort_list = []
+            for key, value in sort_values.items():
+                direction = "asc"
+                if str(value).lower().startswith("d"):
+                    direction = "desc"
+                sort_list.append(f'{{"sortFields": ["{key}"], "sortOrder": "{direction}"}}')
+            sort_terms = ','.join(sort_list)
+            query_term = ('{ "q":  "%s",  "fields":  [ %s ],  "sort": [ %s ]}' % (query, filter_terms, sort_terms))
 
         payload = {'start': start_from, 'max': str(page_size), 'metadata': list(filter_values.keys()), 'q': query_term}
+        print(payload)
         logger.debug(payload)
-        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload, headers=headers)
+        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload,
+                                    headers=headers)
         results_list = []
         if results.status_code == requests.codes.ok:
             json_doc = results.json()
