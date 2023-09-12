@@ -11,6 +11,7 @@ licence:    Apache License 2.0
 import json
 import csv
 import requests
+from typing import List, Set
 
 from pyPreservica.common import *
 
@@ -144,7 +145,7 @@ class AuthorityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def records(self, table: Table) -> list[dict]:
+    def records(self, table: Table) -> List[dict]:
         """
          Return all records from a table
 
@@ -200,7 +201,7 @@ class AuthorityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def tables(self) -> set[Table]:
+    def tables(self) -> Set[Table]:
         """
         List reference metadata tables
 

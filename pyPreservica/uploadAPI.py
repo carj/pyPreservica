@@ -13,7 +13,7 @@ import shutil
 import tempfile
 import uuid
 import xml
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 from xml.dom import minidom
 from xml.etree import ElementTree
@@ -25,6 +25,7 @@ import s3transfer.upload
 
 from boto3.s3.transfer import TransferConfig, S3Transfer
 from botocore.config import Config
+from botocore.credentials import RefreshableCredentials
 from botocore.exceptions import ClientError
 from s3transfer import S3UploadFailedError
 from tqdm import tqdm
@@ -1800,6 +1801,25 @@ class UploadAPI(AuthenticatedAPI):
 
         """
 
+        class Refresh:
+            def __init__(self,  parent, location_id: str):
+                self.location_id = location_id
+                self.parent = parent
+
+            def __call__(self):
+                expected_keys = ['access_key', 'secret_key', 'token', 'expiry_time']
+                metadata = {}
+                print("Refresh Credentials")
+                creds = self.parent.upload_credentials(self.location_id)
+                metadata['access_key'] = creds['key']
+                metadata['secret_key'] = creds['secret']
+                metadata['token'] = creds['sessionToken']
+                time_n = datetime.now().astimezone()
+                metadata['expiry_time'] = (time_n + timedelta(minutes=1)).isoformat()
+                print(metadata['expiry_time'])
+                return metadata
+
+
         if (self.major_version < 7) and (self.minor_version < 5):
             raise RuntimeError("This call [upload_zip_package_to_S3] is only available against v6.5 systems and above")
 
@@ -1807,14 +1827,25 @@ class UploadAPI(AuthenticatedAPI):
             locations = self.upload_locations()
             for location in locations:
                 if location['containerName'] == bucket_name:
-                    credentials = self.upload_credentials(location['apiId'])
+                    location_id = location['apiId']
+                    credentials = self.upload_credentials(location_id)
                     access_key = credentials['key']
                     secret_key = credentials['secret']
                     session_token = credentials['sessionToken']
                     endpoint = credentials['endpoint']
 
+                    time_now = datetime.now().astimezone()
+                    expiry_time = time_now + timedelta(minutes=1)
+
                     session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
                                             aws_session_token=session_token)
+
+                    session._session._credentials = RefreshableCredentials(access_key=access_key,
+                                                                           secret_key=secret_key, token=session_token,
+                                                                           expiry_time=expiry_time,
+                                                                           refresh_using=Refresh(self, location_id),
+                                                                           method="method")
+
                     s3 = session.resource(service_name="s3")
 
                     upload_key = str(uuid.uuid4())

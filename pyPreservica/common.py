@@ -651,10 +651,10 @@ class AuthenticatedAPI:
             security_tags = {}
             tags = entity_response.findall(f'.//{{{self.sec_ns}}}Tag')
             for tag in tags:
-                permissions = []
-                for p in tag.findall(f'.//{{{self.sec_ns}}}Permission'):
-                    permissions.append(p.text)
                 if with_permissions:
+                    permissions = []
+                    for p in tag.findall(f'.//{{{self.sec_ns}}}Permission'):
+                        permissions.append(p.text)
                     security_tags[tag.attrib['name']] = permissions
                 else:
                     security_tags[tag.attrib['name']] = tag.attrib['name']

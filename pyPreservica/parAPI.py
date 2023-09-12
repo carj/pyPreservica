@@ -169,8 +169,8 @@ class PreservationActionRegistry:
     def business_rule(self, guid: str) -> str:
         return self.__guid__(guid, "business-rules")
 
-    def business_rules(self) -> str:
-        return self.__all_("business-rules")
+    def business_rules(self, action_type: str = None) -> str:
+        return self.__all_("business-rules", action_type)
 
     def add_business_rule(self, document) -> str:
         return self.__add__("business-rules", document)
@@ -204,7 +204,10 @@ class PreservationActionRegistry:
             logger.debug(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"{endpoint} failed")
 
-    def __all_(self, endpoint: str) -> str:
+    def __all_(self, endpoint: str, action_type: str = None) -> str:
+        headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        if action_type is not None:
+            headers['preservation-action-type'] = action_type
         request = self.session.get(f'{self.protocol}://{self.server}/Registry/par/{endpoint}')
         if request.status_code == requests.codes.ok:
             return request.content.decode('utf-8')

@@ -41,13 +41,16 @@ class EntityAPI(AuthenticatedAPI):
         """
              Return  security tags available for the  current user
 
+             :param with_permissions: Return the permissions for each security tag
+             :type with_permissions: bool
+
              :return: dict of security tags
              :rtype:  dict
          """
 
         return self.security_tags_base(with_permissions=with_permissions)
 
-    def bitstream_bytes(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> BytesIO:
+    def bitstream_bytes(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> Union[BytesIO, None]:
         """
                 Download a file represented as a Bitstream to a byteIO array
 
@@ -85,7 +88,7 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def bitstream_content(self, bitstream: Bitstream, filename: str, chunk_size: int = CHUNK_SIZE) -> int:
+    def bitstream_content(self, bitstream: Bitstream, filename: str, chunk_size: int = CHUNK_SIZE) -> Union[int, None]:
         """
         Download a file represented as a Bitstream to a local filename
 
@@ -246,7 +249,7 @@ class EntityAPI(AuthenticatedAPI):
             Initiates export of the entity and downloads the opex package
             Blocks until the package is downloaded
 
-            By default includes content, metadata with the latest active generations
+            By default, includes content, metadata with the latest active generations
             and the parent hierarchy.
 
             Arguments are kwargs map
@@ -421,13 +424,13 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request)
             raise RuntimeError(request.status_code, "delete_identifier failed")
 
-    def identifiers_for_entity(self, entity: Entity) -> set:
+    def identifiers_for_entity(self, entity: Entity) -> set[Tuple]:
         """
              Get all external identifiers on an entity
 
              Returns the set of external identifiers on the entity
 
-             :param entity: The entity
+             :param entity: The Entity (Asset or Folder)
              :type  entity: Entity
           """
         headers = {HEADER_TOKEN: self.token}
@@ -458,7 +461,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def identifier(self, identifier_type: str, identifier_value: str) -> set:
+    def identifier(self, identifier_type: str, identifier_value: str) -> set[Entity]:
         """
              Get all entities which have the external identifier
 
@@ -588,7 +591,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def relationships(self, entity: Entity, page_size: int = 25) -> Generator:
+    def relationships(self, entity: Entity, page_size: int = 25) -> Generator[Relationship, None, None]:
         """
             List the relationship links between entities
 
@@ -840,7 +843,6 @@ class EntityAPI(AuthenticatedAPI):
 
         Returns The updated Entity
 
-        :param custom_type:
         :param entity: The Entity to update
         """
 
@@ -1332,17 +1334,19 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def content_objects(self, representation: Representation) -> list:
+    def content_objects(self, representation: Representation) -> list[ContentObject]:
         """
          Retrieve a list of content objects within a representation
 
          :param representation:
+
          :returns list[ContentObject]
+
          """
         headers = {HEADER_TOKEN: self.token}
         if not isinstance(representation, Representation):
             logger.warning("representation is not of type Representation")
-            return None
+            return []
         request = self.session.get(f'{representation.url}', headers=headers)
         if request.status_code == requests.codes.ok:
             results = []
@@ -1567,7 +1571,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def generations(self, content_object: ContentObject) -> list:
+    def generations(self, content_object: ContentObject) -> list[Generation]:
         """
         Retrieve list of generations on a content object
 
@@ -1601,7 +1605,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def bitstreams_for_asset(self, asset: Asset) -> Iterable:
+    def bitstreams_for_asset(self, asset: Union[Asset, Entity]) -> Iterable[Bitstream]:
         """
 
         Return all the bitstreams within an asset.
@@ -1622,7 +1626,7 @@ class EntityAPI(AuthenticatedAPI):
                             bitstream.generation = generation
                             yield bitstream
 
-    def representations(self, asset: Asset) -> set:
+    def representations(self, asset: Asset) -> set[Representation]:
         """
         Retrieve set of representations on an Asset
 
@@ -1631,7 +1635,7 @@ class EntityAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token}
         if not isinstance(asset, Asset):
-            return None
+            return set()
         request = self.session.get(
             f'{self.protocol}://{self.server}/api/entity/{asset.path}/{asset.reference}/representations',
             headers=headers)
@@ -1740,7 +1744,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def all_descendants(self, folder: Folder = None) -> Generator:
+    def all_descendants(self, folder: Union[Folder, Entity] = None) -> Generator[Entity, None, None]:
         """
          Retrieve list of entities below a folder in the repository
 
@@ -1753,7 +1757,7 @@ class EntityAPI(AuthenticatedAPI):
             if entity.entity_type == EntityType.FOLDER:
                 yield from self.all_descendants(folder=entity)
 
-    def descendants(self, folder: Union[str, Folder] = None) -> Generator:
+    def descendants(self, folder: Union[str, Folder] = None) -> Generator[Entity, None, None]:
         maximum = 100
         paged_set = self.children(folder, maximum=maximum, next_page=None)
         for entity in paged_set.results:
@@ -1865,7 +1869,7 @@ class EntityAPI(AuthenticatedAPI):
                 url = next_url.text
             return PagedSet(result_list, has_more, int(total_hits.text), url)
 
-    def entity_from_event(self, event_id: str):
+    def entity_from_event(self, event_id: str) -> Generator:
         self.token = self.__token__()
         paged_set = self._entity_from_event_page(event_id, 25, None)
         for entity in paged_set.results:

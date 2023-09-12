@@ -8,7 +8,7 @@ def test_get_tables():
     assert isinstance(results, set)
     t = results.pop()
     assert isinstance(t, Table)
-    assert t.name == "Physical Storage"
+    assert t.name == "Countries"
 
 
 def test_get_records():
