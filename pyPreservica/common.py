@@ -9,6 +9,7 @@ licence:    Apache License 2.0
 """
 
 import configparser
+import functools
 import hashlib
 import json
 import logging
@@ -22,14 +23,13 @@ import xml.etree.ElementTree
 from enum import Enum
 from pathlib import Path
 import pyotp
-
+from urllib3.util import Retry
 import requests
+from requests.adapters import HTTPAdapter
 
 import pyPreservica
 
 logger = logging.getLogger(__name__)
-
-CHUNK_SIZE = 1024 * 2
 
 NS_XIP_ROOT = "http://preservica.com/XIP/"
 NS_ENTITY_ROOT = "http://preservica.com/EntityAPI/"
@@ -50,6 +50,8 @@ SO_PATH = "structural-objects"
 CO_PATH = "content-objects"
 
 HASH_BLOCK_SIZE = 65536
+TIME_OUT = 62
+CHUNK_SIZE = 1024 * 4
 
 
 class FileHash:
@@ -124,7 +126,7 @@ def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0
 
     if logger is not None:
         logger.info("creating '%s' and adding '%s' to it",
-                     zip_filename, base_dir)
+                    zip_filename, base_dir)
 
     if not dry_run:
         with zipfile.ZipFile(zip_filename, "w", compression=zipfile.ZIP_STORED) as zf:
@@ -565,7 +567,7 @@ def sanitize(filename) -> str:
     We don't limit ourselves to ascii, because we want to keep municipality
     names, etc, but we do want to get rid of anything potentially harmful,
     and make sure we do not exceed Windows filename length limits.
-    Hence a less safe blacklist, rather than a whitelist.
+    Hence, a less safe blacklist, rather than a whitelist.
     """
     blacklist = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", "\0"]
     reserved = [
@@ -831,8 +833,20 @@ class AuthenticatedAPI:
         config = configparser.ConfigParser(interpolation=configparser.Interpolation())
         config.read('credentials.properties', encoding='utf-8')
         self.session = requests.Session()
+
+        retries = Retry(
+            total=3,
+            backoff_factor=0.1,
+            status_forcelist=[502, 503, 504],
+            allowed_methods=Retry.DEFAULT_ALLOWED_METHODS
+        )
+
         self.shared_secret = bool(use_shared_secret)
         self.protocol = protocol
+
+        self.session.mount(f'{self.protocol}://', HTTPAdapter(max_retries=retries))
+
+        self.session.request = functools.partial(self.session.request, timeout=TIME_OUT)
 
         if not two_fa_secret_key:
             two_fa_secret_key = os.environ.get('PRESERVICA_2FA_TOKEN')
