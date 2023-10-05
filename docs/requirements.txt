@@ -7,3 +7,5 @@ cryptography
 pyPreservica
 azure-storage-blob
 tqdm
+urllib3
+sphinx_rtd_theme
