@@ -271,6 +271,9 @@ class ContentAPI(AuthenticatedAPI):
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
 
+        if filter_values is None:
+            filter_values = {}
+
         field_list = []
         for key, value in filter_values.items():
             if value == "":
@@ -293,7 +296,6 @@ class ContentAPI(AuthenticatedAPI):
             query_term = ('{ "q":  "%s",  "fields":  [ %s ],  "sort": [ %s ]}' % (query, filter_terms, sort_terms))
 
         payload = {'start': start_from, 'max': str(page_size), 'metadata': list(filter_values.keys()), 'q': query_term}
-        print(payload)
         logger.debug(payload)
         results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload,
                                     headers=headers)

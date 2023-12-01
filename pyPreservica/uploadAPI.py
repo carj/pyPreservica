@@ -1031,7 +1031,7 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         metadata_map = kwargs.get('Asset_Metadata')
         for metadata_ns, metadata_path in metadata_map.items():
             if metadata_ns:
-                if metadata_path:
+                if metadata_path and isinstance(metadata_path, str):
                     if os.path.exists(metadata_path) and os.path.isfile(metadata_path):
                         descriptive_metadata = xml.etree.ElementTree.parse(source=metadata_path)
                         metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
@@ -1053,6 +1053,17 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
                             content.append(descriptive_metadata)
                         except RuntimeError:
                             logging.info(f"Could not parse asset metadata in namespace {metadata_ns}")
+                if metadata_path and isinstance(metadata_path, list):
+                    for path in metadata_path:
+                        if os.path.exists(path) and os.path.isfile(path):
+                            descriptive_metadata = xml.etree.ElementTree.parse(source=path)
+                            metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
+                            metadata_ref = SubElement(metadata, 'Ref')
+                            metadata_ref.text = str(uuid.uuid4())
+                            entity = SubElement(metadata, 'Entity')
+                            entity.text = io_ref
+                            content = SubElement(metadata, 'Content')
+                            content.append(descriptive_metadata.getroot())
 
     if xip is not None:
         export_folder = export_folder
@@ -1727,6 +1738,38 @@ class UploadAPI(AuthenticatedAPI):
                     if bytes_ingested > (1024 * 1024 * max_MB_ingested):
                         logger.info(f"Reached Max Upload Limit")
                         break
+
+    def upload_zip_to_Source(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False,
+                             show_progress=False):
+
+        """
+             Uploads a zip file package to either an Azure container or S3 bucket
+             depending on the Preservica system deployment
+
+             :param str path_to_zip_package: Path to the package
+             :param str container_name: container connected to the ingest workflow
+             :param Folder folder: The folder to ingest the package into
+             :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
+             :param bool show_progress:  Show upload progress bar
+
+        """
+
+        locations = self.upload_locations()
+        for location in locations:
+            if location['containerName'] == container_name:
+                if location['type'] == 'AWS':
+                    callback = None
+                    if show_progress:
+                        callback = UploadProgressConsoleCallback(path_to_zip_package)
+                    self.upload_zip_package_to_S3(path_to_zip_package=path_to_zip_package,
+                                                  bucket_name=container_name, folder=folder, callback=callback,
+                                                  delete_after_upload=delete_after_upload)
+                else:
+                    self.upload_zip_package_to_Azure(path_to_zip_package=path_to_zip_package,
+                                                     container_name=container_name, folder=folder,
+                                                     delete_after_upload=delete_after_upload,
+                                                     show_progress=show_progress)
+
 
     def upload_zip_package_to_Azure(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False,
                                     show_progress=False):

@@ -8,6 +8,7 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
+import hashlib
 import uuid
 import xml.etree.ElementTree
 from datetime import datetime, timedelta, timezone
@@ -1540,7 +1541,14 @@ class EntityAPI(AuthenticatedAPI):
             bitstream = generation.bitstreams.pop()
             for algo, value in bitstream.fixity.items():
                 fixity_algorithm = algo
-                fixity_value = value
+                if "MD5" in fixity_algorithm.upper():
+                    fixity_value = FileHash(hashlib.md5)
+                if "SHA1" in fixity_algorithm.upper() or "SHA-1" in fixity_algorithm.upper():
+                    fixity_value = FileHash(hashlib.sha1)
+                if "SHA256" in fixity_algorithm.upper() or "SHA-256" in fixity_algorithm.upper():
+                    fixity_value = FileHash(hashlib.sha256)
+                if "SHA512" in fixity_algorithm.upper() or "SHA-512" in fixity_algorithm.upper():
+                    fixity_value = FileHash(hashlib.sha512)
 
         if fixity_algorithm and fixity_value:
             if "MD5" in fixity_algorithm.upper():

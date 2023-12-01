@@ -70,7 +70,32 @@ The ingest can then be triggered automatically once the submission is saved to t
 
 
 .. note::
-    This upload mechanism is only available to AWS users.
+    This upload method is only available to AWS users.
+
+If your Preservica system is deployed on Azure you can use:
+
+.. code-block:: python
+
+    upload = UploadAPI()
+    client = EntityAPI()
+
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    bucket = "com.preservica.<Tenent-ID>.upload"
+    upload.upload_zip_package_to_Azure(path_to_zip_package="my-large-package.zip", container_name=bucket, folder=folder)
+
+
+If you are writing client code which could be used on both AWS or Azure platforms than you can use the following
+which will upload into a monitored cloud location on either platform
+
+.. code-block:: python
+
+    upload = UploadAPI()
+    client = EntityAPI()
+
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    bucket = "com.preservica.<Tenent-ID>.upload"
+    upload.upload_zip_to_Source(path_to_zip_package="my-large-package.zip", container_name=bucket, folder=folder)
+
 
 Monitoring Upload Progress
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
