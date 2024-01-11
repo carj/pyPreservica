@@ -22,7 +22,7 @@ Subscribing
 
 Before a system can receive notifications from Preservica, it must subscribe to a notification trigger.
 
-Preservica currently supports two different triggers, "Moved" and "Indexed".
+Preservica currently supports three different triggers, "MOVED", "SECURITY_CHANGED" and "INDEXED".
 
 The "Indexed" notification is sent after an object has been ingested and the full text index has been extracted,
 at this point the thumbnail and search contents are available.

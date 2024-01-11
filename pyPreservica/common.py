@@ -700,6 +700,13 @@ class AuthenticatedAPI:
         """
         Generate version specific namespaces from the server version
         """
+        if self.major_version == 7:
+            self.xip_ns = f"{NS_XIP_ROOT}v{self.major_version}.{self.minor_version}"
+            self.entity_ns = f"{NS_ENTITY_ROOT}v{self.major_version}.{self.minor_version}"
+            self.rm_ns = f"{NS_RM_ROOT}v{self.major_version}.{2}"
+            self.sec_ns = f"{NS_SEC_ROOT}/v{self.major_version}.{self.minor_version}"
+            self.admin_ns = f"{NS_ADMIN}/v{self.major_version}.{self.minor_version}"
+
         if self.major_version == 6:
             if self.minor_version < 2:
                 self.xip_ns = NS_XIP_V6
@@ -735,7 +742,7 @@ class AuthenticatedAPI:
             RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.10 Compatible) " \
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.12 Compatible) " \
                f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
                f"in tenancy {self.tenant}"
 
@@ -762,7 +769,7 @@ class AuthenticatedAPI:
             logger.error(msg)
             logger.error(response.status_code)
             logger.error(str(response.content))
-            RuntimeError(response.status_code, "Could not generate valid manager approval password")
+            RuntimeError(response.status_code, "Could not generate valid manager approval token")
 
     def __token__(self):
         logger.debug("Token Expired Requesting New Token")

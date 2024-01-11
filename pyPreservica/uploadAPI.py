@@ -1662,9 +1662,9 @@ class UploadAPI(AuthenticatedAPI):
         """
         return self.upload_locations()
 
-    def crawl_filesystem(self, filesystem_path, bucket_name, preservica_parent, callback=None,
+    def crawl_filesystem(self, filesystem_path, bucket_name, preservica_parent, callback: bool = False,
                          security_tag: str = "open",
-                         delete_after_upload=True, max_MB_ingested: int = -1):
+                         delete_after_upload: bool = True, max_MB_ingested: int = -1):
 
         def get_parent(client, identifier, parent_reference):
             id = str(os.path.dirname(identifier))
@@ -1730,8 +1730,13 @@ class UploadAPI(AuthenticatedAPI):
                 full_path_list = [os.path.join(dirname, file) for file in files]
                 package = multi_asset_package(asset_file_list=full_path_list, parent_folder=f, SecurityTag=security_tag,
                                               Identifiers=identifiers)
+                if callback:
+                    progress_display = UploadProgressConsoleCallback(package)
+                else:
+                    progress_display = None
+
                 self.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket_name,
-                                              callback=callback, delete_after_upload=delete_after_upload)
+                                              callback=progress_display, delete_after_upload=delete_after_upload)
                 logger.info(f"Uploaded " + "{:.1f}".format(bytes_ingested / (1024 * 1024)) + " MB")
 
                 if max_MB_ingested > 0:
@@ -1848,9 +1853,13 @@ class UploadAPI(AuthenticatedAPI):
             raise RuntimeError("This call [upload_zip_package_to_S3] is only available against v6.5 systems and above")
 
         if (self.major_version > 5) and (self.minor_version > 4):
+            logger.debug("Finding Upload Locations")
+            self.token = self.__token__()
             locations = self.upload_locations()
             for location in locations:
                 if location['containerName'] == bucket_name:
+                    logger.debug(f"Found Upload Location {location['containerName']}")
+                    logger.debug(f"Fetching Upload Credentials for {location['containerName']}")
                     credentials = self.upload_credentials(location['apiId'])
                     access_key = credentials['key']
                     secret_key = credentials['secret']
@@ -1860,6 +1869,8 @@ class UploadAPI(AuthenticatedAPI):
                     session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
                                             aws_session_token=session_token)
                     s3 = session.resource(service_name="s3")
+
+                    logger.debug(f"S3 Session: {s3}")
 
                     upload_key = str(uuid.uuid4())
                     s3_object = s3.Object(bucket_name, upload_key)

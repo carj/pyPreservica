@@ -9,6 +9,7 @@ licence:    Apache License 2.0
 
 """
 import hashlib
+import os.path
 import uuid
 import xml.etree.ElementTree
 from datetime import datetime, timedelta, timezone
@@ -1694,6 +1695,34 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
+    def add_access_representation(self, entity: Entity, access_file: str, name: str = "Access"):
+        """
+        Add a new representation to an existing asset.
+
+        :param entity:          The existing asset which will receive the new representation
+        :param access_file:     The new digital file
+        :param name:            The name of the new access representation defaults to "Access"
+        :return:
+        """
+
+        if self.major_version < 7 and self.minor_version < 12:
+            raise RuntimeError("Add Representation API is only available when connected to a v6.12 System")
+
+        if isinstance(entity, Folder) or isinstance(entity, ContentObject):
+            raise RuntimeError("Add Representation cannot be added to Folders and Content Objects")
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+
+        filename = os.path.basename(access_file)
+
+        params = {'type': 'Access', 'name': name, 'filename': filename}
+
+        with open(access_file, 'rb') as fd:
+            request = self.session.post(
+                f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/representations',
+                data=fd, headers=headers, params=params)
+
+
     def add_thumbnail(self, entity: Entity, image_file: str):
         """
          add a thumbnail icon to a folder or asset
@@ -1708,7 +1737,7 @@ class EntityAPI(AuthenticatedAPI):
         if isinstance(entity, ContentObject):
             raise RuntimeError("Thumbnails cannot be added to Content Objects")
 
-        headers = {HEADER_TOKEN: self.token}  # , 'Content-Type': 'application/octet-stream'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
 
         with open(image_file, 'rb') as fd:
             request = self.session.put(
