@@ -30,7 +30,7 @@ This library provides classes for working with a range of the Preservica APIs.
 
 https://developers.preservica.com/api-reference
 
-This version of the documentation is for use against a Preservica 6.10-6.2 systems
+This version of the documentation is for use against a Preservica 7.0-6.2 systems
 For Preservica 6.0 and 6.1 see `the previous version <https://pypreservica.readthedocs.io/en/v6.1/>`_
 
 

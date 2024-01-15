@@ -703,7 +703,7 @@ class AuthenticatedAPI:
         if self.major_version == 7:
             self.xip_ns = f"{NS_XIP_ROOT}v{self.major_version}.{self.minor_version}"
             self.entity_ns = f"{NS_ENTITY_ROOT}v{self.major_version}.{self.minor_version}"
-            self.rm_ns = f"{NS_RM_ROOT}v{self.major_version}.{2}"
+            self.rm_ns = f"{NS_RM_ROOT}v{6}.{2}"
             self.sec_ns = f"{NS_SEC_ROOT}/v{self.major_version}.{self.minor_version}"
             self.admin_ns = f"{NS_ADMIN}/v{self.major_version}.{self.minor_version}"
 
@@ -742,7 +742,7 @@ class AuthenticatedAPI:
             RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 6.12 Compatible) " \
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 7.0 Compatible) " \
                f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
                f"in tenancy {self.tenant}"
 
@@ -850,6 +850,7 @@ class AuthenticatedAPI:
 
         self.shared_secret = bool(use_shared_secret)
         self.protocol = protocol
+        self.two_fa_secret_key = two_fa_secret_key
 
         self.session.mount(f'{self.protocol}://', HTTPAdapter(max_retries=retries))
 

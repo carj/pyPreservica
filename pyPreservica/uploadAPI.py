@@ -1691,7 +1691,8 @@ class UploadAPI(AuthenticatedAPI):
 
         from pyPreservica import EntityAPI
         entity_client = EntityAPI(username=self.username, password=self.password, server=self.server,
-                                  tenant=self.tenant)
+                                  tenant=self.tenant,  two_fa_secret_key=self.two_fa_secret_key,
+                                  use_shared_secret=self.shared_secret, protocol=self.protocol)
 
         if preservica_parent:
             parent = entity_client.folder(preservica_parent)

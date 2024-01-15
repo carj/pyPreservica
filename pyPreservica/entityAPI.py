@@ -52,6 +52,23 @@ class EntityAPI(AuthenticatedAPI):
 
         return self.security_tags_base(with_permissions=with_permissions)
 
+    def bitstream_chunks(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> Generator:
+        if not isinstance(bitstream, Bitstream):
+            logger.error("bitstream_content argument is not a Bitstream object")
+            raise RuntimeError("bitstream_bytes argument is not a Bitstream object")
+        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as request:
+            if request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.bitstream_chunks(bitstream)
+            elif request.status_code == requests.codes.ok:
+                for chunk in request.iter_content(chunk_size=chunk_size):
+                    yield chunk
+            else:
+                exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_content",
+                                          request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
+
     def bitstream_bytes(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> Union[BytesIO, None]:
         """
                 Download a file represented as a Bitstream to a byteIO array
@@ -1543,13 +1560,13 @@ class EntityAPI(AuthenticatedAPI):
             for algo, value in bitstream.fixity.items():
                 fixity_algorithm = algo
                 if "MD5" in fixity_algorithm.upper():
-                    fixity_value = FileHash(hashlib.md5)
+                    fixity_value = FileHash(hashlib.md5)(file_name)
                 if "SHA1" in fixity_algorithm.upper() or "SHA-1" in fixity_algorithm.upper():
-                    fixity_value = FileHash(hashlib.sha1)
+                    fixity_value = FileHash(hashlib.sha1)(file_name)
                 if "SHA256" in fixity_algorithm.upper() or "SHA-256" in fixity_algorithm.upper():
-                    fixity_value = FileHash(hashlib.sha256)
+                    fixity_value = FileHash(hashlib.sha256)(file_name)
                 if "SHA512" in fixity_algorithm.upper() or "SHA-512" in fixity_algorithm.upper():
-                    fixity_value = FileHash(hashlib.sha512)
+                    fixity_value = FileHash(hashlib.sha512)(file_name)
 
         if fixity_algorithm and fixity_value:
             if "MD5" in fixity_algorithm.upper():
@@ -1721,7 +1738,6 @@ class EntityAPI(AuthenticatedAPI):
             request = self.session.post(
                 f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/representations',
                 data=fd, headers=headers, params=params)
-
 
     def add_thumbnail(self, entity: Entity, image_file: str):
         """
