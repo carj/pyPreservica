@@ -586,6 +586,23 @@ Each Representation will contain one or more Content Objects.
 Simple Assets contain a single Content Object whereas more complex objects such as 3D models, books, multi-page documents
 may have several content objects.
 
+Since version 6.12 the API allows new Access representations to be added to an existing Asset.
+This allows organisations to migrate content outside of Preservica or add new access versions after the preservation
+versions have been ingested.
+
+To add a new Access representation to an existing Asset call ``add_access_representation`` and pass the Asset
+and a new content file. The function returns a process id which can be used to track the status of the ingest.
+
+The Preservica tenancy requires the ``post.new.representation.feature`` flag to be set.
+
+
+.. code-block:: python
+
+    asset = client.asset("723f6f27-c894-4ce0-8e58-4c15a526330e")
+    pid = client.add_access_representation(asset, access_file="access.jpg")
+
+
+
 .. code-block:: python
 
     for content_object in client.content_objects(representation):

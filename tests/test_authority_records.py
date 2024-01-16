@@ -6,9 +6,9 @@ def test_get_tables():
     client = AuthorityAPI()
     results = client.tables()
     assert isinstance(results, set)
-    t = results.pop()
-    assert isinstance(t, Table)
-    assert t.name == "Countries"
+    for table in results:
+        assert isinstance(table, Table)
+        assert table.name in ["Countries",  'Physical Storage']
 
 
 def test_get_records():

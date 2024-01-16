@@ -1,3 +1,4 @@
+import uuid
 import xml
 
 import pytest
@@ -289,3 +290,34 @@ def test_xdelete_links():
     client.delete_relationships(from_asset)
     links = list(client.relationships(from_asset))
     assert len(links) == 0
+
+
+def test_add_access_representation():
+    class IDGen:
+        def __init__(self, id_val):
+            self.id_val = id_val
+
+        def __call__(self):
+            return self.id_val
+
+    client = EntityAPI()
+    upload = UploadAPI()
+    folder_id = "9fd239eb-19a3-4a46-9495-40fd9a5d8f93"
+    folder = client.folder(folder_id)
+    file = "./test_data/LC-USZ62-20901.tiff"
+    access_file = "./test_data/LC-USZ62-20901.jpg"
+    gener = str(uuid.uuid4())
+    package = simple_asset_package(preservation_file=file, parent_folder=folder,
+                                   IO_Identifier_callback=IDGen(gener))
+    token = upload.upload_zip_package(package)
+
+    status = "ACTIVE"
+    while status == "ACTIVE":
+        status = client.get_async_progress(token)
+
+    asset = client.asset(gener)
+
+    token = client.add_access_representation(asset, access_file=access_file)
+    status = client.get_async_progress(token)
+    assert status == "RUNNING"
+

@@ -1738,6 +1738,16 @@ class EntityAPI(AuthenticatedAPI):
             request = self.session.post(
                 f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/representations',
                 data=fd, headers=headers, params=params)
+            if request.status_code == requests.codes.accepted:
+                return str(request.content.decode('utf-8'))
+            elif request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.add_access_representation(entity, access_file, name)
+            else:
+                exception = HTTPException(entity.reference, request.status_code, request.url,
+                                          "add_access_representation", request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
 
     def add_thumbnail(self, entity: Entity, image_file: str):
         """
