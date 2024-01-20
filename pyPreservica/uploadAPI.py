@@ -81,7 +81,7 @@ class CompleteMultipartUploadTask(s3transfer.tasks.Task):
     # Copied from s3transfer/tasks.py, changed to return a result.
     def _main(self, client, bucket, key, upload_id, parts, extra_args):
         return client.complete_multipart_upload(Bucket=bucket, Key=key, UploadId=upload_id, MultipartUpload={"Parts": parts},
-            **extra_args, )
+                                                **extra_args, )
 
 
 s3transfer.upload.PutObjectTask = PutObjectTask
@@ -1747,42 +1747,41 @@ class UploadAPI(AuthenticatedAPI):
 
         from azure.storage.blob import ContainerClient
 
-        if ((self.major_version == 6) and (self.minor_version > 4)) or (self.major_version > 6):
-            locations = self.upload_locations()
-            for location in locations:
-                if location['containerName'] == container_name:
-                    credentials = self.upload_credentials(location['apiId'])
-                    account_key = credentials['key']
-                    session_token = credentials['sessionToken']
+        locations = self.upload_locations()
+        for location in locations:
+            if location['containerName'] == container_name:
+                credentials = self.upload_credentials(location['apiId'])
+                account_key = credentials['key']
+                session_token = credentials['sessionToken']
 
-                    sas_url = f"https://{account_key}.blob.core.windows.net/{container_name}"
-                    container = ContainerClient.from_container_url(container_url=sas_url, credential=session_token)
+                sas_url = f"https://{account_key}.blob.core.windows.net/{container_name}"
+                container = ContainerClient.from_container_url(container_url=sas_url, credential=session_token)
 
-                    upload_key = str(uuid.uuid4())
-                    metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': container_name, 'status': 'ready'}
+                upload_key = str(uuid.uuid4())
+                metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': container_name, 'status': 'ready'}
 
-                    if hasattr(folder, "reference"):
-                        metadata['collectionreference'] = folder.reference
-                    elif isinstance(folder, str):
-                        metadata['collectionreference'] = folder
+                if hasattr(folder, "reference"):
+                    metadata['collectionreference'] = folder.reference
+                elif isinstance(folder, str):
+                    metadata['collectionreference'] = folder
 
-                    properties = None
+                properties = None
 
-                    len_bytes = Path(path_to_zip_package).stat().st_size
+                len_bytes = Path(path_to_zip_package).stat().st_size
 
-                    if show_progress:
-                        with tqdm.wrapattr(open(path_to_zip_package, 'rb'), "read", total=len_bytes) as data:
-                            blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
-                            properties = blob_client.get_blob_properties()
-                    else:
-                        with open(path_to_zip_package, "rb") as data:
-                            blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
-                            properties = blob_client.get_blob_properties()
+                if show_progress:
+                    with tqdm.wrapattr(open(path_to_zip_package, 'rb'), "read", total=len_bytes) as data:
+                        blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
+                        properties = blob_client.get_blob_properties()
+                else:
+                    with open(path_to_zip_package, "rb") as data:
+                        blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
+                        properties = blob_client.get_blob_properties()
 
-                    if delete_after_upload:
-                        os.remove(path_to_zip_package)
+                if delete_after_upload:
+                    os.remove(path_to_zip_package)
 
-                    return properties
+                return properties
 
     def upload_zip_package_to_S3(self, path_to_zip_package, bucket_name, folder=None, callback=None, delete_after_upload=False):
 
@@ -1800,43 +1799,42 @@ class UploadAPI(AuthenticatedAPI):
         if (self.major_version < 7) and (self.minor_version < 5):
             raise RuntimeError("This call [upload_zip_package_to_S3] is only available against v6.5 systems and above")
 
-        if ((self.major_version == 6) and (self.minor_version > 4)) or (self.major_version > 6):
-            logger.debug("Finding Upload Locations")
-            self.token = self.__token__()
-            locations = self.upload_locations()
-            for location in locations:
-                if location['containerName'] == bucket_name:
-                    logger.debug(f"Found Upload Location {location['containerName']}")
-                    logger.debug(f"Fetching Upload Credentials for {location['containerName']}")
-                    credentials = self.upload_credentials(location['apiId'])
-                    access_key = credentials['key']
-                    secret_key = credentials['secret']
-                    session_token = credentials['sessionToken']
-                    endpoint = credentials['endpoint']
+        logger.debug("Finding Upload Locations")
+        self.token = self.__token__()
+        locations = self.upload_locations()
+        for location in locations:
+            if location['containerName'] == bucket_name:
+                logger.debug(f"Found Upload Location {location['containerName']}")
+                logger.debug(f"Fetching Upload Credentials for {location['containerName']}")
+                credentials = self.upload_credentials(location['apiId'])
+                access_key = credentials['key']
+                secret_key = credentials['secret']
+                session_token = credentials['sessionToken']
+                endpoint = credentials['endpoint']
 
-                    session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key, aws_session_token=session_token)
-                    s3 = session.resource(service_name="s3")
+                session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key, aws_session_token=session_token)
+                s3 = session.resource(service_name="s3")
 
-                    logger.debug(f"S3 Session: {s3}")
+                logger.debug(f"S3 Session: {s3}")
 
-                    upload_key = str(uuid.uuid4())
-                    s3_object = s3.Object(bucket_name, upload_key)
-                    metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': bucket_name, 'status': 'ready'}
+                upload_key = str(uuid.uuid4())
+                s3_object = s3.Object(bucket_name, upload_key)
+                metadata = {'key': upload_key, 'name': upload_key + ".zip", 'bucket': bucket_name, 'status': 'ready'}
 
-                    if hasattr(folder, "reference"):
-                        metadata['collectionreference'] = folder.reference
-                    elif isinstance(folder, str):
-                        metadata['collectionreference'] = folder
+                if hasattr(folder, "reference"):
+                    metadata['collectionreference'] = folder.reference
+                elif isinstance(folder, str):
+                    metadata['collectionreference'] = folder
 
-                    metadata['size'] = str(Path(path_to_zip_package).stat().st_size)
-                    metadata['createdby'] = self.username
+                metadata['size'] = str(Path(path_to_zip_package).stat().st_size)
+                metadata['createdby'] = self.username
 
-                    metadata_map = {'Metadata': metadata}
+                metadata_map = {'Metadata': metadata}
 
-                    s3_object.upload_file(path_to_zip_package, Callback=callback, ExtraArgs=metadata_map, Config=transfer_config)
+                s3_object.upload_file(path_to_zip_package, Callback=callback, ExtraArgs=metadata_map, Config=transfer_config)
 
-                    if delete_after_upload:
-                        os.remove(path_to_zip_package)
+                if delete_after_upload:
+                    os.remove(path_to_zip_package)
 
     def upload_zip_package(self, path_to_zip_package, folder=None, callback=None, delete_after_upload=False):
         """

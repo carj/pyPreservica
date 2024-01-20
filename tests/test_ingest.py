@@ -100,4 +100,3 @@ def test_s3_upload():
     upload.upload_zip_package_to_S3(path_to_zip_package=package,
                                     bucket_name="com.preservica.dev.preview.sales.autoupload", folder=folder)
 
-
