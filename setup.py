@@ -21,7 +21,7 @@ if sys.argv[-1] == 'publish':
 # This call to setup() does all the work
 setup(
     name=PKG,
-    version="2.5.1",
+    version="2.6.0",
     description="Python library for the Preservica API",
     long_description=README,
     long_description_content_type="text/markdown",

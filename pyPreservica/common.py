@@ -427,11 +427,15 @@ class Generation:
         self.format_group = format_group
         self.effective_date = effective_date
         self.bitstreams = bitstreams
+        self.properties = list()
+        self.formats = list()
 
     def __str__(self):
         return f"Active:\t\t\t{self.active}\n" \
                f"Original:\t\t\t{self.original}\n" \
-               f"Format_group:\t{self.format_group}"
+               f"Format_group:\t\t\t{self.format_group}\n" \
+               f"Formats:\t\t\t{self.formats}\n" \
+               f"Properties:\t\t\t{self.properties}\n"
 
     def __repr__(self):
         return self.__str__()

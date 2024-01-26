@@ -1405,14 +1405,46 @@ class EntityAPI(AuthenticatedAPI):
             ge = entity_response.find(f'.//{{{self.xip_ns}}}Generation')
             format_group = entity_response.find(f'.//{{{self.xip_ns}}}FormatGroup')
             effective_date = entity_response.find(f'.//{{{self.xip_ns}}}EffectiveDate')
+
+            formats = entity_response.findall(f'.//{{{self.xip_ns}}}Formats/{{{self.xip_ns}}}Format')
+            formats_list = []
+            for tech_format in formats:
+                format_dict = {'Valid': tech_format.attrib['valid']}
+                puid = tech_format.find(f'.//{{{self.xip_ns}}}PUID')
+                format_dict['PUID'] = puid.text if hasattr(puid, 'text') else None
+                priority = tech_format.find(f'.//{{{self.xip_ns}}}Priority')
+                format_dict['Priority'] = priority.text if hasattr(priority, 'text') else None
+                method = tech_format.find(f'.//{{{self.xip_ns}}}IdentificationMethod')
+                format_dict['IdentificationMethod'] = method.text if hasattr(method, 'text') else None
+                name = tech_format.find(f'.//{{{self.xip_ns}}}FormatName')
+                format_dict['FormatName'] = name.text if hasattr(name, 'text') else None
+                version = tech_format.find(f'.//{{{self.xip_ns}}}FormatVersion')
+                format_dict['FormatVersion'] = version.text if hasattr(version, 'text') else None
+                formats_list.append(format_dict)
+
+            properties = entity_response.findall(f'.//{{{self.xip_ns}}}Properties/{{{self.xip_ns}}}Property')
+            property_set = []
+            for tech_props in properties:
+                tech_props_dict = {}
+                puid = tech_props.find(f'.//{{{self.xip_ns}}}PUID')
+                tech_props_dict['PUID'] = puid.text if hasattr(puid, 'text') else None
+                name = tech_props.find(f'.//{{{self.xip_ns}}}PropertyName')
+                tech_props_dict['PropertyName'] = name.text if hasattr(name, 'text') else None
+                value = tech_props.find(f'.//{{{self.xip_ns}}}Value')
+                tech_props_dict['Value'] = value.text if hasattr(value, 'text') else None
+                property_set.append(tech_props_dict)
+
             bitstreams = entity_response.findall(f'./{{{self.entity_ns}}}Bitstreams/{{{self.entity_ns}}}Bitstream')
             bitstream_list = []
             for bit in bitstreams:
                 bitstream_list.append(self.bitstream(bit.text))
-            return Generation(strtobool(ge.attrib['original']), strtobool(ge.attrib['active']),
-                              format_group.text if hasattr(format_group, 'text') else None,
-                              effective_date.text if hasattr(effective_date, 'text') else None,
-                              bitstream_list)
+            generation = Generation(strtobool(ge.attrib['original']), strtobool(ge.attrib['active']),
+                                    format_group.text if hasattr(format_group, 'text') else None,
+                                    effective_date.text if hasattr(effective_date, 'text') else None,
+                                    bitstream_list)
+            generation.formats = formats_list
+            generation.properties = property_set
+            return generation
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.generation(url)

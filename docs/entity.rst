@@ -586,7 +586,7 @@ Each Representation will contain one or more Content Objects.
 Simple Assets contain a single Content Object whereas more complex objects such as 3D models, books, multi-page documents
 may have several content objects.
 
-Since version 6.12 the API allows new Access representations to be added to an existing Asset.
+Since version Preservica 6.12 the API allows new Access representations to be added to an existing Asset.
 This allows organisations to migrate content outside of Preservica or add new access versions after the preservation
 versions have been ingested.
 
@@ -626,7 +626,28 @@ Each content object will contain a least one Generation, migrated content may ha
         print(generation.bitstreams)
 
 Each Generation has a list of BitStream ids which can be used to fetch the actual content from the server or
-fetch technical metadata about the bitstream itself
+fetch technical metadata about the bitstream itself.
+
+Technical information such as formats and properties can be accessed from the ``Generation`` object.
+The information is stored as dictionary objects within lists.
+
+.. code-block:: python
+
+    for format in generation.formats:
+        for key,value in format.items():
+            print(key, value)
+
+
+.. code-block:: python
+
+    for property in generation.properties:
+        for key,value in property.items():
+            print(key, value)
+
+
+
+Generations also contain a list of bitstreams, these contain information about the bitstreams such as file size
+and fixity etc.
 
 .. code-block:: python
 
