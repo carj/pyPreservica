@@ -452,6 +452,15 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     list of Bitstream objects
 
+    .. py:attribute:: properties
+
+    list of technical properties
+
+    .. py:attribute:: formats
+
+    list of technical formats
+
+
 
 .. py:class:: Bitstream
 
