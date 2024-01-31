@@ -455,10 +455,12 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     .. py:attribute:: properties
 
     list of technical properties
+    each property is dict object containing PUID, PropertyName and Value
 
     .. py:attribute:: formats
 
     list of technical formats
+    each format is dict object containing PUID, FormatName and FormatVersion
 
 
 
@@ -477,7 +479,8 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 
     .. py:attribute:: fixity
 
-    Map of fixity values for this bitstream, the key is the algorithm name and the value is the fixity value
+    Dictionary object of fixity values for this bitstream,
+    the key is the algorithm name and the value is the fixity value
 
 .. py:class:: Representation
 

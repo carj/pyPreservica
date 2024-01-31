@@ -571,9 +571,13 @@ If only need to delete a specific relationship, you can pass the relationship na
 Representations, Content Objects & Generations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Each asset in Preservica contains one or more representations, such as Preservation or Access etc.
+Each Asset in Preservica contains one or more representations, such as Preservation or Access etc.
+All Assets have at least one Preservation representation which is created when the Asset is ingested.
 
-To get a list of all the representations of an Asset
+To get a list of all the representations of an Asset use ``representations()`` which returns a set of
+``Representation`` objects for the Asset.
+
+The ``Representation`` contains the name and type and also contains a reference back to its parent Asset object.
 
 .. code-block:: python
 
@@ -583,25 +587,12 @@ To get a list of all the representations of an Asset
         print(representation.asset.title)
 
 Each Representation will contain one or more Content Objects.
-Simple Assets contain a single Content Object whereas more complex objects such as 3D models, books, multi-page documents
-may have several content objects.
+Simple Assets contain a single Content Object per Representation whereas more complex objects such as 3D models,
+books, multi-page documents may have several content objects within each Representation.
 
-Since version Preservica 6.12 the API allows new Access representations to be added to an existing Asset.
-This allows organisations to migrate content outside of Preservica or add new access versions after the preservation
-versions have been ingested.
-
-To add a new Access representation to an existing Asset call ``add_access_representation`` and pass the Asset
-and a new content file. The function returns a process id which can be used to track the status of the ingest.
-
-The Preservica tenancy requires the ``post.new.representation.feature`` flag to be set.
-
-
-.. code-block:: python
-
-    asset = client.asset("723f6f27-c894-4ce0-8e58-4c15a526330e")
-    pid = client.add_access_representation(asset, access_file="access.jpg")
-
-
+Content Objects are similar to Assets and Folders, in that they can also contain descriptive metadata and identifiers etc.
+The Content Objects within a Representation do have a natural order which is preserved within the Asset and therefore
+are returned as a ``list`` object.
 
 .. code-block:: python
 
@@ -613,7 +604,7 @@ The Preservica tenancy requires the ``post.new.representation.feature`` flag to 
         print(content_object.metadata)
         print(content_object.asset.title)
 
-Each content object will contain a least one Generation, migrated content may have multiple Generations.
+Each Content Object will contain a least one Generation, migrated content may have multiple Generations.
 
 .. code-block:: python
 
@@ -629,7 +620,10 @@ Each Generation has a list of BitStream ids which can be used to fetch the actua
 fetch technical metadata about the bitstream itself.
 
 Technical information such as formats and properties can be accessed from the ``Generation`` object.
-The information is stored as dictionary objects within lists.
+The format information is stored as dictionary object within a list as there may be multiple formats associated
+with each object.
+
+The key values for the format dictionary are: Valid, PUID, Priority, IdentificationMethod, FormatName, FormatVersion
 
 .. code-block:: python
 
@@ -637,6 +631,9 @@ The information is stored as dictionary objects within lists.
         for key,value in format.items():
             print(key, value)
 
+
+The technical properties of the file can be accessed via the properties attribute which is a list of dictionary
+objects. Each property is a single dictionary object with the following keys: PUID, PropertyName, Value
 
 .. code-block:: python
 
@@ -679,6 +676,9 @@ which returns each Bitstream from all the Representations and Content Objects wi
 
 The actual content files can be downloaded to a disk file using ``bitstream_content()``
 
+This will download the bitstream to the file path given by the second argument, to save the object using
+the original file name use the following:
+
 .. code-block:: python
 
     client.bitstream_content(bitstream, bitstream.filename)
@@ -697,11 +697,30 @@ To download all the access bitstreams to the current folder you would use.
 
 
 The content files can be written to a byte array using ``bitstream_bytes()`` this
-returns a BytesIO object
+returns a BytesIO object.
 
 .. code-block:: python
 
     byte_array = client.bitstream_bytes(bitstream)
+
+
+Since version Preservica 6.12 the API allows new Access representations to be added to an existing Asset.
+This allows organisations to migrate content outside of Preservica or add new access versions after the preservation
+versions have been ingested.
+
+To add a new Access representation to an existing Asset call ``add_access_representation`` and pass the Asset
+and a new content file. The function returns a process id which can be used to track the status of the ingest.
+
+The Preservica tenancy requires the ``post.new.representation.feature`` flag to be set.
+
+
+.. code-block:: python
+
+    asset = client.asset("723f6f27-c894-4ce0-8e58-4c15a526330e")
+    pid = client.add_access_representation(asset, access_file="access.jpg")
+
+
+
 
 Integrity Check History
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

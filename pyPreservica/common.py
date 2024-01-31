@@ -418,7 +418,7 @@ class Bitstream:
 class Generation:
     """
          Class to represent the Generation Object in the Preservica data model
-     """
+    """
 
     def __init__(self, original: bool, active: bool, format_group: str, effective_date: str, bitstreams: list):
         self.original = bool(original)
@@ -614,18 +614,25 @@ def sanitize(filename) -> str:
 
 class AuthenticatedAPI:
     """
-    Base class for authenticated calls which need access token
+        Base class for authenticated calls which need an access token
+        Authenticated calls include a "Preservica-Access-Token" header in the request
     """
 
     def _check_if_user_has_manager_role(self):
+        """
+        Check if the current user has a least a manager role
+        :return: None
+
+        Throws RuntimeError if the user does not have required roles
+        """
         if ('ROLE_SDB_MANAGER_USER' not in self.roles) and ('ROLE_SDB_ADMIN_USER' not in self.roles):
             logger.error(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
-            raise RuntimeError(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
+            raise RuntimeError(f"The API requires the user to have at least the ROLE_SDB_MANAGER_USER")
 
     def _find_user_roles_(self) -> list:
         """
-        Get a list of roles for the user
-        :return list of roles:
+            Get a list of roles for the user
+            :return list of roles:
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/user/details", headers=headers)
@@ -673,6 +680,12 @@ class AuthenticatedAPI:
             raise RuntimeError(request.status_code, "security_tags failed")
 
     def entity_from_string(self, xml_data: str) -> dict:
+        """
+        Create a basic entity from XML data
+
+        :param xml_data:
+        :return: dict
+        """
         entity_response = xml.etree.ElementTree.fromstring(xml_data)
         reference = entity_response.find(f'.//{{{self.xip_ns}}}Ref')
         title = entity_response.find(f'.//{{{self.xip_ns}}}Title')
@@ -776,6 +789,10 @@ class AuthenticatedAPI:
             RuntimeError(response.status_code, "Could not generate valid manager approval token")
 
     def __token__(self):
+        """
+            Generate am API token to use to authenticate calls
+            :return: API Token
+        """
         logger.debug("Token Expired Requesting New Token")
         if self.shared_secret is False:
             if self.tenant is None:

@@ -1422,6 +1422,8 @@ class EntityAPI(AuthenticatedAPI):
                 format_dict['FormatVersion'] = version.text if hasattr(version, 'text') else None
                 formats_list.append(format_dict)
 
+            index = int(url.rsplit("/", 1)[-1])
+
             properties = entity_response.findall(f'.//{{{self.xip_ns}}}Properties/{{{self.xip_ns}}}Property')
             property_set = []
             for tech_props in properties:
@@ -1444,6 +1446,7 @@ class EntityAPI(AuthenticatedAPI):
                                     bitstream_list)
             generation.formats = formats_list
             generation.properties = property_set
+            generation.gen_index = index
             return generation
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -1537,12 +1540,17 @@ class EntityAPI(AuthenticatedAPI):
             filesize = entity_response.find(f'.//{{{self.xip_ns}}}FileSize')
             fixity_values = entity_response.findall(f'.//{{{self.xip_ns}}}Fixity')
             content = entity_response.find(f'.//{{{self.entity_ns}}}Content')
+
+            index = int(url.rsplit("/", 1)[-1])
+
             fixity = {}
             for f in fixity_values:
                 fixity[f[0].text] = f[1].text
             bitstream = Bitstream(filename.text if hasattr(filename, 'text') else None,
                                   int(filesize.text) if hasattr(filesize, 'text') else None, fixity,
                                   content.text if hasattr(content, 'text') else None)
+
+            bitstream.bs_index = index
             return bitstream
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
