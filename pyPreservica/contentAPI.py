@@ -193,7 +193,7 @@ class ContentAPI(AuthenticatedAPI):
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"simple_search failed with error code: {results.status_code}")
 
-    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", page_size: int = 50 filter_values: dict = None,
+    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", page_size: int = 50, filter_values: dict = None,
                                 sort_values: dict = None):
         if filter_values is None:
             filter_values = {}
