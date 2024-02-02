@@ -130,8 +130,7 @@ class ContentAPI(AuthenticatedAPI):
             logger.error(f"indexed_fields failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"indexed_fields failed with error code: {results.status_code}")
 
-    def simple_search_csv(self, query: str = "%", csv_file="search.csv", list_indexes: list = None):
-        page_size = 50
+    def simple_search_csv(self, query: str = "%", page_size: int = 50, csv_file="search.csv", list_indexes: list = None):
         if list_indexes is None or len(list_indexes) == 0:
             metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type",
                                "xip.parent_ref", "xip.security_descriptor"]
@@ -194,9 +193,8 @@ class ContentAPI(AuthenticatedAPI):
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"simple_search failed with error code: {results.status_code}")
 
-    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", filter_values: dict = None,
+    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", page_size: int = 50 filter_values: dict = None,
                                 sort_values: dict = None):
-        page_size = 50
         if filter_values is None:
             filter_values = {}
         if "xip.reference" not in filter_values:
