@@ -177,7 +177,7 @@ You can find the reference when viewing the object metadata within Explorer. Lat
 entities using other 3rd party external identifiers which may be more meaningful such as ISBNs DOIs etc.
 
 To create the client object you will need valid credentials to connect to the Preservica server. See the following
-section on aavailable authentication options.
+section on available authentication options.
 
 
 .. code-block:: python
@@ -199,7 +199,7 @@ section on aavailable authentication options.
     >>> asset.entity_type
     <EntityType.ASSET: 'IO'>
 
-If your credentials are valid, pyPreservica returns a client object which is the connetection to the server. Printing the client
+If your credentials are valid, pyPreservica returns a client object which is the connection to the server. Printing the client
 returns information about the connection such as the server and the user name etc. This can be useful to check that you are connected to
 the correct system.
 
