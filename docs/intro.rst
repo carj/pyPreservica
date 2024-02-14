@@ -176,6 +176,10 @@ This is a universally unique identifier `(UUID) <https://en.wikipedia.org/wiki/U
 You can find the reference when viewing the object metadata within Explorer. Later on we will look at how we can fetch
 entities using other 3rd party external identifiers which may be more meaningful such as ISBNs DOIs etc.
 
+To create the client object you will need valid credentials to connect to the Preservica server. See the following
+section on aavailable authentication options.
+
+
 .. code-block:: python
 
     >>> from pyPreservica import *
@@ -195,14 +199,21 @@ entities using other 3rd party external identifiers which may be more meaningful
     >>> asset.entity_type
     <EntityType.ASSET: 'IO'>
 
+If your credentials are valid, pyPreservica returns a client object which is the connetection to the server. Printing the client
+returns information about the connection such as the server and the user name etc. This can be useful to check that you are connected to
+the correct system.
 
 All entities have a parent reference attribute, for Assets this always points to the parent Folder.
 For Content Objects the parent points to the Asset and for Folders it points to the parent Folder if it exists.
 Folders at the root level of the repository do not have a parent and the attribute returns the special Python
 value of ``None``
 
-This example shows how pyPreservica can be used to upload and ingest a local file into Preservica using the UploadAPI
-class.
+This example shows how pyPreservica can be used to upload and ingest a local file, picture.tiff
+into Preservica using the UploadAPI class. The tiff file will be ingested as a new Asset object inside the existing Preservica folder given 
+by the folder UUID.
+The ``simple_asset_package`` function creates the package, in this case an XIPv6 formatted package and the ``upload_zip_package`` method
+uploads it directly to the Preservica server using the S3 protocol.
+
 
 .. code-block:: python
 
@@ -238,8 +249,8 @@ Include the user credentials as arguments to the EntityAPI Class
 
 
 
-If you don't want to include your Preservica credentials within your python script then the following two methods should
-be used.
+If you don't want to include your Preservica credentials within your python script because you are sharing scripts or 
+using a version control system then one of the following two methods should be used.
 
 2 **Environment Variable**
 
@@ -295,6 +306,8 @@ You can create a new credentials.properties file automatically using the ``save_
 pyPreservica now supports authentication using shared secrets rather than a login account username and password.
 This allows a trusted external applications such as pyPreservica to acquire a Preservica API authentication token
 without having to use a set of login credentials.
+
+This option is useful if you want to provide limited API access to a 3rd party without providing login access to Preservica.
 
 To use the shared secret authentication you need to add a secure secret key to your Preservica system.
 

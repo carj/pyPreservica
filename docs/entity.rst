@@ -3,17 +3,23 @@ Entity API
 
 Making a call to the Preservica repository is very simple.
 
-Begin by importing the pyPreservica module
+Begin by importing the pyPreservica module, you can import only the API you need or the
+whole library.
+
+To import all the pyPreservica functionality use:
 
 .. code-block:: python
 
     from pyPreservica import *
 
-Now, let's create the ``EntityAPI`` client
+Now, let's create the ``EntityAPI`` client object, this can have any name, but lets call it 
+``client`` to keep things simple. 
 
 .. code-block:: python
 
     client = EntityAPI()
+
+    
 
 Fetching Entities (Assets, Folders & Content Objects)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
