@@ -591,6 +591,10 @@ To get a list of all the representations of an Asset use ``representations()`` w
 
 The ``Representation`` contains the name and type and also contains a reference back to its parent Asset object.
 
+Currently Preservica supports two representation types "Access" and "Preservation", you can have as many representations of each type
+as you need. For example a book may need two "Access" representations one containing a single PDF document and another containing multiple 
+JPEG images, one for each page etc.  
+
 .. code-block:: python
 
     for representation in client.representations(asset):
@@ -616,6 +620,11 @@ are returned as a ``list`` object.
         print(content_object.metadata)
         print(content_object.asset.title)
 
+By default the title of a Content Object will probably be the name of the underlying computer file, but it does not have to be. 
+You can explicitly set the title and description of each Content Object within an Asset.
+Preservica also supports adding external identifiers and descriptive metadata documents to Content Objects.
+
+
 Each Content Object will contain a least one Generation, migrated content may have multiple Generations.
 
 .. code-block:: python
@@ -628,7 +637,7 @@ Each Content Object will contain a least one Generation, migrated content may ha
         print(generation.effective_date)
         print(generation.bitstreams)
 
-Each Generation has a list of BitStream ids which can be used to fetch the actual content from the server or
+Each Generation has a list of BitStreams which can be used to fetch the actual content from the server or
 fetch technical metadata about the bitstream itself.
 
 Technical information such as formats and properties can be accessed from the ``Generation`` object.
