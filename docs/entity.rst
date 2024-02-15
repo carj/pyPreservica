@@ -3,7 +3,7 @@ Entity API
 
 Making a call to the Preservica repository is very simple.
 
-Begin by importing the pyPreservica module, you can import only the API you need or the
+Begin by importing the pyPreservica module at the start of the Python script. You can import only the API you need or the
 whole library.
 
 To import all the pyPreservica functionality use:
@@ -19,14 +19,22 @@ Now, let's create the ``EntityAPI`` client object, this can have any name, but l
 
     client = EntityAPI()
 
-    
+
+The ``client`` object will manage the connection to the server and will be responsible for 
+creating the API authentication tokens as needed.
+
 
 Fetching Entities (Assets, Folders & Content Objects)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Fetch an Asset by its reference and print its attributes
+The following Python code examples show how data model entities, (Assets, Folders & Content Objects) 
+can be returned from Preservica using their internal Preservica identifiers.
+
+The following shows how you can fetch an Asset by its reference and then print its attributes to the screen.
 
 .. code-block:: python
+
+    from pyPreservica import *
 
     asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
     print(asset.reference)
@@ -61,16 +69,24 @@ and Content Objects
     print(content_object.parent)
     print(content_object.entity_type)
 
+
+Assets, Folders & Content Objects actually have a number of attributes in common, such as ``title``, ``description`` etc. 
+Technically they are all objects of type ``Entity``.
+    
+
 We can fetch any of Assets, Folders and Content Objects using the entity type and the unique reference
 
 .. code-block:: python
 
     asset = client.entity(EntityType.ASSET, "9bad5acf-e7a1-458a-927d-2d1e7f15974d")
+
     folder = client.entity(EntityType.FOLDER, asset.parent)
 
 To get a list of parent Folders of an Asset all the way to the root of the repository
 
 .. code-block:: python
+
+    asset = client.asset("9bad5acf-e7a1-458a-927d-2d1e7f15974d")
 
     folder = client.folder(asset.parent)
     print(folder.title)
@@ -84,91 +100,55 @@ Fetching Children of Entities
 
 The immediate children of a Folder can also be retrieved using the library.
 
-To get a set of all the root Folders use
+To get all the top level or root Folders use
 
 .. code-block:: python
 
-    root_folders = client.children(None)
+    for root_folder in client.descendants(None):
+        print(root_folder.title)
 
-or
-
-.. code-block:: python
-
-    root_folders = client.children()
-
-To get a set of children of a particular Folder use
+or you can leave the arguments empty:
 
 .. code-block:: python
 
-     entities = client.children(folder.reference)
+    for root_folder in client.descendants():
+        print(root_folder.title)
+
+
+The ``descendants`` method is a generator function. 
+The method behaves like an iterator, i.e. it can be used in a for loop, the advantage of this approach is that
+the paging of results is taken care of automatically. If a Folder has many thousands of Assets then the method will
+make multiple calls to the server. It will default to 100 items between server requests.
+
+The performance improvement from the use of generators is the result of the lazy (on demand) generation of values, 
+which translates to lower memory usage. 
+Furthermore, you do not need to wait until all the children have been generated before you start to use them.
+
+
+To get a set of the immediate children of a particular Folder use
+
+.. code-block:: python
+
+     for entity in client.descendants(folder.reference):
+        print(entity.title)
 
 To get the siblings of an Asset you can use
 
 .. code-block:: python
 
-     entities = client.children(asset.parent)
+     for entity in client.descendants(asset.parent):
+        print(entity.title)
 
 The set of entities returned may contain both Assets and other Folders.
-The default size of the result set is 50 items. The size can be configured and for large result sets
-paging is available.
-
-.. code-block:: python
-
-     next_page = None
-     while True:
-         root_folders = client.children(None, maximum=10, next_page=next_page)
-         for e in root_folders.results:
-             print(f'{e.title} : {e.reference} : {e.entity_type}')
-             if not root_folders.has_more:
-                 break
-             else:
-                 next_page = root_folders.next_page
-
-
-
-
-A version of this method is also available as a generator function which does not require explicit paging.
-This version returns a lazy iterator which does the paging internally.
-It will default to 100 items between server requests
-
-.. code-block:: python
-
-    for entity in client.descendants():
-        print(entity.title)
-
-
-You can pass a parent reference to get the children of any folder in the same way as the explict paging version
-
-.. code-block:: python
-
-    for entity in client.descendants(folder.parent):
-        print(entity.title)
-
-
-.. tip::
-    This is the preferred way to get children of folders as the paging is managed automatically.
-
-If you only need the folders or Assets from a parent you can filter the results using a pre-defined filter
-
-.. code-block:: python
-
-    for asset in filter(only_assets, client.descendants(asset.parent)):
-        print(asset.title)
-
-or
-
-.. code-block:: python
-
-    for folders in filter(only_folders, client.descendants(asset.parent)):
-        print(folders.title)
-
 
 
 .. note::
     Entities within the returned set only contain the attributes (type, reference and title).
-    If you need the full object you have to request it.
+    If you need the full object you have to request it from the server.
 
     You can request the entity back without knowing exactly what type it is by using the ``entity()`` call
+
+To fetch the full object back you can use:
 
 .. code-block:: python
 
@@ -177,9 +157,26 @@ or
         print(e)
 
 
+If you only need the Folders or Assets from a parent you can filter the results using a pre-defined filter.
 
-If you want **all** the entities below a point in the hierarchy, i.e a recursive list of all folders and Assets the you can
-call ``all_descendants()`` this is a generator function which returns a lazy iterator which will make
+For example the following will only return Asset objects and will ignore Folders:
+
+.. code-block:: python
+
+    for asset in filter(only_assets, client.descendants(asset.parent)):
+        print(asset.title)
+
+To return only Folder objects use:
+
+.. code-block:: python
+
+    for folders in filter(only_folders, client.descendants(asset.parent)):
+        print(folders.title)
+
+
+
+If you want **all** the entities below a point in the hierarchy, i.e a recursive list of all folders and Assets then you can
+call ``all_descendants()`` this is also generator function which returns a lazy iterator which will make
 repeated calls to the server for each page of results.
 
 The following will return all entities within the repository from the root folders down
@@ -188,6 +185,15 @@ The following will return all entities within the repository from the root folde
 
     for e in client.all_descendants():
         print(e.title)
+
+
+.. warning::
+    The code above will fetch every Asset or Folder back from the system.
+    This could take a long time depending on the size of the repository.
+
+    It may be more efficient to search using the ``ContentAPI`` if you are looking for particular objects in the repository.
+
+
 
 again if you need a list of every Asset in the system you can filter using
 
@@ -247,8 +253,8 @@ Physical assets support 3rd party identifiers, thumbnails and descriptive metada
 Updating Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-We can update either the title or description attribute for assets,
-folders and content objects using the ``save()`` method
+We can update either the title or description attribute for Assets,
+Folders and Content Objects using the ``save()`` method
 
 .. code-block:: python
 
@@ -899,11 +905,11 @@ Return a generator of ingest events over the last n days
         print(ingest_event)
 
 
-Get, Add or Remove asset and folder icons
+Asset and Folder Thumbnail Images
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can now add and remove icons on assets and folders using the API. The icons will be displayed in the Explorer and
-Universal Access interfaces.
+You can now add and remove icons on Assets and Folders using the API. 
+The icons will be displayed in the Explorer and Universal Access interfaces.
 
 .. code-block:: python
 
