@@ -53,6 +53,13 @@ class EntityAPI(AuthenticatedAPI):
         return self.security_tags_base(with_permissions=with_permissions)
 
     def bitstream_chunks(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> Generator:
+        """
+        Generator function to return bitstream chunks
+
+        :param bitstream:   The bitstream
+        :param chunk_size:  The chunk size to return
+        :return:
+        """
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")
             raise RuntimeError("bitstream_bytes argument is not a Bitstream object")

@@ -1,7 +1,7 @@
 Content API
 ~~~~~~~~~~~~~~~
 
-pyPreservica now contains some experimental interfaces to the content API
+pyPreservica now contains interfaces to the content API which supports searching the repository.
 
 https://us.preservica.com/api/content/documentation.html
 

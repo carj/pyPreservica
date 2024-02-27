@@ -15,8 +15,11 @@ synchronisation with 3rd party systems etc.
 
 
 
-Entity API Features
+SDK Features
 -----------------------
+
+Entity API Features
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Fetch and Update Entity Objects (Folders, Assets, Content Objects)
 -  Add, Delete and Update External Identifiers
@@ -37,14 +40,14 @@ Entity API Features
 -  Create Relationships between Assets
 
 Content API Features
----------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Fetch a list of indexed Solr Fields
 -  Search based on a single query term
 -  Filtered searches on indexed fields
 
 Upload API Features
----------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Create single Content Object Packages with multiple Representations
 -  Create multiple Content Object Packages with multiple Representations
@@ -54,21 +57,46 @@ Upload API Features
 -  Ingest Twitter Feeds
 
 Admin API Features
----------------------
--  Schema Management (XML Templates, XSD Schema's & XSLT Transforms) (**New**)
--  User Management (create and remove user accounts)  (**New**)
--  Security Tags (add and remove security tags)   (**New**)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  Schema Management (XML Templates, XSD Schema's & XSLT Transforms)
+-  User Management (create and remove user accounts)
+-  Security Tags (add and remove security tags)
 
 Retention Management API Features
-------------------------------------
--  Create new retention policies (**New**)
--  Delete retention policies (**New**)
--  Update retention policies (**New**)
--  Assign retention policies to entities (**New**)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  Create new retention policies
+-  Delete retention policies
+-  Update retention policies
+-  Assign retention policies to entities
+
+Workflow API Features
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Get Workflow Contexts
+- Get Workflow Instance
+- Start Workflow Instances
+
+Webhook API Features
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Subscribe to Webhook endpoints
+- Unsubscribe
+- List Subscriptions
+
+Authority Records API Features
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  Get an Authority table by its reference
+-  List all Authority tables
+-  Return all records from a Authority table
+-  Add records to an Authority table
+-  Delete records from an Authority table
 
 
 Background
------------
+------------
 
 They key to working with the pyPreservica library is that the services follow the Preservica core data model closely.
 

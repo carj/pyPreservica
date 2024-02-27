@@ -7,13 +7,13 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-
 import configparser
 import functools
 import hashlib
 import json
 import logging
 import os
+import platform
 import re
 import sys
 import threading
@@ -943,6 +943,9 @@ class AuthenticatedAPI:
         self.version = self.__version_number__()
         self.__version_namespace__()
         self.roles = self._find_user_roles_()
+
+        self.session.headers.update({'User-Agent': f'pyPreservica SDK/({pyPreservica.__version__}) '
+                                                   f' ({platform.platform()}/{os.name}/{sys.platform})'})
 
         logger.debug(self.xip_ns)
         logger.debug(self.entity_ns)
