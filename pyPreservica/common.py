@@ -406,10 +406,11 @@ class Bitstream:
         self.content_url = content_url
 
     def __str__(self):
-        return f"Filename:\t\t\t{self.filename}\n" \
-               f"FileSize:\t\t\t{self.length}\n" \
-               f"Content:\t{self.content_url}\n" \
-               f"Fixity:\t{self.fixity}"
+        return f"""
+           Filename:       {self.filename}
+           File Length:    {self.length}
+           Fixity:         {self.fixity}
+        """
 
     def __repr__(self):
         return self.__str__()
@@ -431,11 +432,14 @@ class Generation:
         self.formats = list()
 
     def __str__(self):
-        return f"Active:\t\t\t{self.active}\n" \
-               f"Original:\t\t\t{self.original}\n" \
-               f"Format_group:\t\t\t{self.format_group}\n" \
-               f"Formats:\t\t\t{self.formats}\n" \
-               f"Properties:\t\t\t{self.properties}\n"
+        return f"""
+           Active:         {self.active}
+           Original:       {self.original}
+           Format Group:   {self.format_group}
+           Effective Date: {self.effective_date}
+           Formats:        {self.formats}
+           Properties:     {self.properties}
+           """
 
     def __repr__(self):
         return self.__str__()
@@ -459,19 +463,15 @@ class Entity:
         self.custom_type = None
 
     def __str__(self):
-        if self.custom_type is None:
-            return f"Ref:\t\t\t{self.reference}\n" \
-                   f"Title:\t\t\t{self.title}\n" \
-                   f"Description:\t{self.description}\n" \
-                   f"Security Tag:\t{self.security_tag}\n" \
-                   f"Parent:\t\t\t{self.parent}\n\n"
-        else:
-            return f"Ref:\t\t\t{self.reference}\n" \
-                   f"Title:\t\t\t{self.title}\n" \
-                   f"Description:\t{self.description}\n" \
-                   f"Security Tag:\t{self.security_tag}\n" \
-                   f"Parent:\t\t\t{self.parent}\n" \
-                   f"Type:\t\t\t{self.custom_type}\n\n"
+        return f"""
+            Entity:         {self.entity_type}
+            Entity Ref:     {self.reference}
+            Title:          {self.title}
+            Description:    {self.description}
+            Security Tag:   {self.security_tag}
+            Parent:         {self.parent}
+            Custom Type:    {self.custom_type}
+            """
 
     def __repr__(self):
         return self.__str__()

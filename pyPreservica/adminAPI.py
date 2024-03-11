@@ -373,16 +373,16 @@ class AdminAPI(AuthenticatedAPI):
         self._check_if_user_has_manager_role()
         return self._account_status_(username, "false", "disable_user")
 
-    # def enable_user(self, username):
-    #     """
-    #      Enable a Preservica User
-    #
-    #     :param username: email address of the preservica user
-    #     :type username: str
-    #
-    #     """
-    #     self.__check_if_user_has_manager_role()
-    #     return self.__account_status_(username, "true", "enable_user")
+    def enable_user(self, username):
+        """
+        Enable a Preservica User
+
+        :param username: email address of the preservica user
+        :type username: str
+
+        """
+        self._check_if_user_has_manager_role()
+        return self._account_status_(username, "true", "enable_user")
 
     def user_report(self, report_name="users.csv"):
         """

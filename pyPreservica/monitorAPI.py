@@ -108,7 +108,7 @@ class MonitorAPI(AuthenticatedAPI):
 
         :param monitor_id:  The Process ID
         :type monitor_id:   str
-        :return: List of timeseries information
+        :return:            List of timeseries information
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         request = self.session.get(f'{self.protocol}://{self.server}/api/processmonitor/monitors/{monitor_id}/timeseries',

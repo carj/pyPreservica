@@ -58,7 +58,7 @@ class EntityAPI(AuthenticatedAPI):
 
         :param bitstream:   The bitstream
         :param chunk_size:  The chunk size to return
-        :return:
+        :return:            A chunk of the requested bitstream content
         """
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")

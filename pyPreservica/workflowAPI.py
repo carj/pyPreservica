@@ -11,7 +11,6 @@ licence:    Apache License 2.0
 
 import uuid
 import datetime
-from xml.dom import minidom
 from xml.etree import ElementTree
 
 from pyPreservica.common import *
@@ -19,23 +18,10 @@ from pyPreservica.common import *
 logger = logging.getLogger(__name__)
 
 
-def prettify(elem):
-    """Return a pretty-printed XML string for the Element.
-    """
-    rough_string = ElementTree.tostring(elem, 'utf-8')
-    re_parsed = minidom.parseString(rough_string)
-    return re_parsed.toprettyxml(indent="  ")
-
-
 class WorkflowInstance:
     """
         Defines a workflow Instance.
         The workflow Instance is context which has been executed
-
-
-        :param instance_id: The Workflow instance Id
-        :type instance_id: int
-
     """
 
     def __init__(self, instance_id: int):
@@ -62,14 +48,6 @@ class WorkflowContext:
     """
         Defines a workflow context.
         The workflow context is the pre-defined workflow which is ready to run
-
-
-        :param workflow_name: The Workflow context name
-        :type workflow_name: str
-
-        :param workflow_id: The Workflow context id
-        :type workflow_id: str
-
     """
 
     def __init__(self, workflow_id, workflow_name: str):
@@ -77,8 +55,10 @@ class WorkflowContext:
         self.workflow_name = workflow_name
 
     def __str__(self):
-        return f"Workflow ID:\t\t\t{self.workflow_id}\n" \
-               f"Workflow Name:\t\t\t{self.workflow_name}\n"
+        return f"""
+              Workflow ID:    {self.workflow_id}
+              Workflow Name:  {self.workflow_name}
+        """
 
     def __repr__(self):
         return self.__str__()

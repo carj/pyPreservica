@@ -724,6 +724,26 @@ returns a BytesIO object.
 
     byte_array = client.bitstream_bytes(bitstream)
 
+If you need to process bitstream content as it is downloaded from Preservica pyPreservica provides the following API.
+
+.. code-block:: python
+
+    for bitstream in client.bitstreams_for_asset(asset):
+        for chunk in client.bitstream_chunks(bitstream):
+            doSomeThing(chunk)
+
+This function returns a Generator which allows the client to process parts of the file as its downloading.
+
+The method also allows a second argument which defines the size of chunk returned.
+
+.. code-block:: python
+
+    chunk_size8k = 8*1024
+    for bitstream in client.bitstreams_for_asset(asset):
+        for chunk in client.bitstream_chunks(bitstream, chunk_size8k):
+            doSomeThing(chunk)
+
+
 
 Since version Preservica 6.12 the API allows new Access representations to be added to an existing Asset.
 This allows organisations to migrate content outside of Preservica or add new access versions after the preservation
