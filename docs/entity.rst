@@ -506,7 +506,7 @@ For example the following python fragment appends a new element to an existing d
             postcode.text = "OX14 3YS"
             xml_document.append(postcode)
             xml_string = ElementTree.tostring(xml_document, encoding='UTF-8').decode("utf-8")
-            entity.update_metadata(folder, schema, xml_string)   # call into the API
+            client.update_metadata(folder, schema, xml_string)   # call into the API
 
 
 Relationships Between Entities
