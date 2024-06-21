@@ -18,11 +18,11 @@ from .adminAPI import AdminAPI
 from .monitorAPI import MonitorAPI, MonitorCategory, MonitorStatus, MessageStatus
 from .webHooksAPI import WebHooksAPI, TriggerType, WebHookHandler
 from .authorityAPI import AuthorityAPI, Table
-
+from .mdformsAPI import MDFormsAPI
 
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
-# Version of the Preservica API package
-__version__ = "2.6.7"
+# Version of the pyPreservica package
+__version__ = "2.7.2"
 
 __license__ = "Apache License Version 2.0"

@@ -796,11 +796,11 @@ class EntityAPI(AuthenticatedAPI):
         for url in entity.metadata:
             if schema == entity.metadata[url]:
                 mref = url[url.rfind(f"{entity.reference}/metadata/") + len(f"{entity.reference}/metadata/"):]
-                xml_object = xml.etree.ElementTree.Element('MetadataContainer',
-                                                           {"schemaUri": schema, "xmlns": self.xip_ns})
-                xml.etree.ElementTree.SubElement(xml_object, "Ref").text = mref
-                xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
-                content = xml.etree.ElementTree.SubElement(xml_object, "Content")
+                xml_object = xml.etree.ElementTree.Element('xip:MetadataContainer',
+                                                           {"schemaUri": schema, "xmlns:xip": self.xip_ns})
+                xml.etree.ElementTree.SubElement(xml_object, "xip:Ref").text = mref
+                xml.etree.ElementTree.SubElement(xml_object, "xip:Entity").text = entity.reference
+                content = xml.etree.ElementTree.SubElement(xml_object, "xip:Content")
                 if isinstance(data, str):
                     ob = xml.etree.ElementTree.fromstring(data)
                     content.append(ob)
@@ -836,9 +836,10 @@ class EntityAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
-        xml_object = xml.etree.ElementTree.Element('MetadataContainer', {"schemaUri": schema, "xmlns": self.xip_ns})
-        xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
-        content = xml.etree.ElementTree.SubElement(xml_object, "Content")
+        xml_object = xml.etree.ElementTree.Element('xip:MetadataContainer', {"schemaUri": schema,
+                                                                             "xmlns:xip": self.xip_ns})
+        xml.etree.ElementTree.SubElement(xml_object, "xip:Entity").text = entity.reference
+        content = xml.etree.ElementTree.SubElement(xml_object, "xip:Content")
         if isinstance(data, str):
             ob = xml.etree.ElementTree.fromstring(data)
             content.append(ob)
@@ -1880,7 +1881,11 @@ class EntityAPI(AuthenticatedAPI):
     def children(self, folder: Union[str, Folder] = None, maximum: int = 100, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
         data = {'start': str(0), 'max': str(maximum)}
-        folder_reference = folder
+
+        if isinstance(folder, Folder):
+            folder_reference = folder.reference
+        else:
+            folder_reference = folder
         if next_page is None:
             if folder_reference is None:
                 request = self.session.get(f'{self.protocol}://{self.server}/api/entity/root/children', params=data,

@@ -98,11 +98,11 @@ def prettify(elem):
 
 def __create_io__(xip=None, file_name=None, parent_folder=None, **kwargs):
     if xip is None:
-        xip = Element('XIP')
+        xip = Element('xip:XIP')
     assert xip is not None
-    xip.set('xmlns', 'http://preservica.com/XIP/v6.0')
-    io = SubElement(xip, 'InformationObject')
-    ref = SubElement(io, 'Ref')
+    xip.set('xmlns:xip', 'http://preservica.com/XIP/v6.0')
+    io = SubElement(xip, 'xip:InformationObject')
+    ref = SubElement(io, 'xip:Ref')
 
     if 'IO_Identifier_callback' in kwargs:
         ident_callback = kwargs.get('IO_Identifier_callback')
@@ -110,15 +110,15 @@ def __create_io__(xip=None, file_name=None, parent_folder=None, **kwargs):
     else:
         ref.text = str(uuid.uuid4())
 
-    title = SubElement(io, 'Title')
+    title = SubElement(io, 'xip:Title')
     title.text = kwargs.get('Title', file_name)
-    description = SubElement(io, 'Description')
+    description = SubElement(io, 'xip:Description')
     description.text = kwargs.get('Description', file_name)
-    security = SubElement(io, 'SecurityTag')
+    security = SubElement(io, 'xip:SecurityTag')
     security.text = kwargs.get('SecurityTag', "open")
-    custom_type = SubElement(io, 'CustomType')
+    custom_type = SubElement(io, 'xip:CustomType')
     custom_type.text = kwargs.get('CustomType', "")
-    parent = SubElement(io, 'Parent')
+    parent = SubElement(io, 'xip:Parent')
 
     if hasattr(parent_folder, "reference"):
         parent.text = parent_folder.reference
@@ -129,76 +129,76 @@ def __create_io__(xip=None, file_name=None, parent_folder=None, **kwargs):
 
 
 def __make_representation__(xip, rep_name, rep_type, io_ref):
-    representation = SubElement(xip, 'Representation')
-    io_link = SubElement(representation, 'InformationObject')
+    representation = SubElement(xip, 'xip:Representation')
+    io_link = SubElement(representation, 'xip:InformationObject')
     io_link.text = io_ref
-    access_name = SubElement(representation, 'Name')
+    access_name = SubElement(representation, 'xip:Name')
     access_name.text = rep_name
-    access_type = SubElement(representation, 'Type')
+    access_type = SubElement(representation, 'xip:Type')
     access_type.text = rep_type
-    content_objects = SubElement(representation, 'ContentObjects')
-    content_object = SubElement(content_objects, 'ContentObject')
+    content_objects = SubElement(representation, 'xip:ContentObjects')
+    content_object = SubElement(content_objects, 'xip:ContentObject')
     content_object_ref = str(uuid.uuid4())
     content_object.text = content_object_ref
     return content_object_ref
 
 
 def __make_content_objects__(xip, content_title, co_ref, io_ref, tag, content_description, content_type):
-    content_object = SubElement(xip, 'ContentObject')
-    ref_element = SubElement(content_object, "Ref")
+    content_object = SubElement(xip, 'xip:ContentObject')
+    ref_element = SubElement(content_object, "xip:Ref")
     ref_element.text = co_ref
-    title = SubElement(content_object, "Title")
+    title = SubElement(content_object, "xip:Title")
     title.text = content_title
-    description = SubElement(content_object, "Description")
+    description = SubElement(content_object, "xip:Description")
     description.text = content_description
-    security_tag = SubElement(content_object, "SecurityTag")
+    security_tag = SubElement(content_object, "xip:SecurityTag")
     security_tag.text = tag
-    custom_type = SubElement(content_object, "CustomType")
+    custom_type = SubElement(content_object, "xip:CustomType")
     custom_type.text = content_type
-    parent = SubElement(content_object, "Parent")
+    parent = SubElement(content_object, "xip:Parent")
     parent.text = io_ref
 
 
 def __make_generation__(xip, filename, co_ref, generation_label, location=None):
-    generation = SubElement(xip, 'Generation', {"original": "true", "active": "true"})
-    content_object = SubElement(generation, "ContentObject")
+    generation = SubElement(xip, 'xip:Generation', {"original": "true", "active": "true"})
+    content_object = SubElement(generation, "xip:ContentObject")
     content_object.text = co_ref
-    label = SubElement(generation, "Label")
+    label = SubElement(generation, "xip:Label")
     if generation_label:
         label.text = generation_label
     else:
         label.text = os.path.splitext(filename)[0]
-    effective_date = SubElement(generation, "EffectiveDate")
+    effective_date = SubElement(generation, "xip:EffectiveDate")
     effective_date.text = datetime.now().isoformat()
-    bitstreams = SubElement(generation, "Bitstreams")
-    bitstream = SubElement(bitstreams, "Bitstream")
+    bitstreams = SubElement(generation, "xip:Bitstreams")
+    bitstream = SubElement(bitstreams, "xip:Bitstream")
     bitstream.text = f"{location}/{filename}"
-    SubElement(generation, "Formats")
-    SubElement(generation, "Properties")
+    SubElement(generation, "xip:Formats")
+    SubElement(generation, "xip:Properties")
 
 
 def __make_bitstream__(xip, file_name, full_path, callback, location=None):
-    bitstream = SubElement(xip, 'Bitstream')
-    filename_element = SubElement(bitstream, "Filename")
+    bitstream = SubElement(xip, 'xip:Bitstream')
+    filename_element = SubElement(bitstream, "xip:Filename")
     filename_element.text = file_name
-    filesize = SubElement(bitstream, "FileSize")
+    filesize = SubElement(bitstream, "xip:FileSize")
     file_stats = os.stat(full_path)
     filesize.text = str(file_stats.st_size)
-    physical_location = SubElement(bitstream, "PhysicalLocation")
+    physical_location = SubElement(bitstream, "xip:PhysicalLocation")
     physical_location.text = location
-    fixities = SubElement(bitstream, "Fixities")
+    fixities = SubElement(bitstream, "xip:Fixities")
     fixity_result = callback(file_name, full_path)
     if type(fixity_result) == tuple:
-        fixity = SubElement(fixities, "Fixity")
-        fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
-        fixity_value = SubElement(fixity, "FixityValue")
+        fixity = SubElement(fixities, "xip:Fixity")
+        fixity_algorithm_ref = SubElement(fixity, "xip:FixityAlgorithmRef")
+        fixity_value = SubElement(fixity, "xip:FixityValue")
         fixity_algorithm_ref.text = fixity_result[0]
         fixity_value.text = fixity_result[1]
     elif type(fixity_result) == dict:
         for key, val in fixity_result.items():
-            fixity = SubElement(fixities, "Fixity")
-            fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
-            fixity_value = SubElement(fixity, "FixityValue")
+            fixity = SubElement(fixities, "xip:Fixity")
+            fixity_algorithm_ref = SubElement(fixity, "xip:FixityAlgorithmRef")
+            fixity_value = SubElement(fixity, "xip:FixityValue")
             fixity_algorithm_ref.text = key
             fixity_value.text = val
     else:
@@ -207,17 +207,17 @@ def __make_bitstream__(xip, file_name, full_path, callback, location=None):
 
 
 def __make_representation_multiple_co__(xip, rep_name, rep_type, rep_files, io_ref):
-    representation = SubElement(xip, 'Representation')
-    io_link = SubElement(representation, 'InformationObject')
+    representation = SubElement(xip, 'xip:Representation')
+    io_link = SubElement(representation, 'xip:InformationObject')
     io_link.text = io_ref
-    access_name = SubElement(representation, 'Name')
+    access_name = SubElement(representation, 'xip:Name')
     access_name.text = rep_name
-    access_type = SubElement(representation, 'Type')
+    access_type = SubElement(representation, 'xip:Type')
     access_type.text = rep_type
-    content_objects = SubElement(representation, 'ContentObjects')
+    content_objects = SubElement(representation, 'xip:ContentObjects')
     refs_dict = {}
     for f in rep_files:
-        content_object = SubElement(content_objects, 'ContentObject')
+        content_object = SubElement(content_objects, 'xip:ContentObject')
         content_object_ref = str(uuid.uuid4())
         content_object.text = content_object_ref
         refs_dict[content_object_ref] = f
@@ -864,6 +864,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         'Preservation_Representation_Name'      Name of the Preservation Representation
         'Access_Representation_Name'            Name of the Access Representation
     """
+    xml.etree.ElementTree.register_namespace("xip", "http://preservica.com/XIP/v6.0")
+
     # some basic validation
     if export_folder is None:
         export_folder = tempfile.gettempdir()
@@ -990,12 +992,12 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         for identifier_key, identifier_value in identifier_map.items():
             if identifier_key:
                 if identifier_value:
-                    identifier = SubElement(xip, 'Identifier')
-                    id_type = SubElement(identifier, "Type")
+                    identifier = SubElement(xip, 'xip:Identifier')
+                    id_type = SubElement(identifier, "xip:Type")
                     id_type.text = identifier_key
-                    id_value = SubElement(identifier, "Value")
+                    id_value = SubElement(identifier, "xip:Value")
                     id_value.text = identifier_value
-                    id_io = SubElement(identifier, "Entity")
+                    id_io = SubElement(identifier, "xip:Entity")
                     id_io.text = io_ref
 
     if 'Asset_Metadata' in kwargs:
@@ -1005,22 +1007,22 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
                 if metadata_path and isinstance(metadata_path, str):
                     if os.path.exists(metadata_path) and os.path.isfile(metadata_path):
                         descriptive_metadata = xml.etree.ElementTree.parse(source=metadata_path)
-                        metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
-                        metadata_ref = SubElement(metadata, 'Ref')
+                        metadata = SubElement(xip, 'xip:Metadata', {'schemaUri': metadata_ns})
+                        metadata_ref = SubElement(metadata, 'xip:Ref')
                         metadata_ref.text = str(uuid.uuid4())
-                        entity = SubElement(metadata, 'Entity')
+                        entity = SubElement(metadata, 'xip:Entity')
                         entity.text = io_ref
-                        content = SubElement(metadata, 'Content')
+                        content = SubElement(metadata, 'xip:Content')
                         content.append(descriptive_metadata.getroot())
                     elif isinstance(metadata_path, str):
                         try:
                             descriptive_metadata = xml.etree.ElementTree.fromstring(metadata_path)
-                            metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
-                            metadata_ref = SubElement(metadata, 'Ref')
+                            metadata = SubElement(xip, 'xip:Metadata', {'schemaUri': metadata_ns})
+                            metadata_ref = SubElement(metadata, 'xip:Ref')
                             metadata_ref.text = str(uuid.uuid4())
-                            entity = SubElement(metadata, 'Entity')
+                            entity = SubElement(metadata, 'xip:Entity')
                             entity.text = io_ref
-                            content = SubElement(metadata, 'Content')
+                            content = SubElement(metadata, 'xip:Content')
                             content.append(descriptive_metadata)
                         except RuntimeError:
                             logging.info(f"Could not parse asset metadata in namespace {metadata_ns}")
@@ -1028,12 +1030,12 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
                     for path in metadata_path:
                         if os.path.exists(path) and os.path.isfile(path):
                             descriptive_metadata = xml.etree.ElementTree.parse(source=path)
-                            metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
-                            metadata_ref = SubElement(metadata, 'Ref')
+                            metadata = SubElement(xip, 'xip:Metadata', {'schemaUri': metadata_ns})
+                            metadata_ref = SubElement(metadata, 'xip:Ref')
                             metadata_ref.text = str(uuid.uuid4())
-                            entity = SubElement(metadata, 'Entity')
+                            entity = SubElement(metadata, 'xip:Entity')
                             entity.text = io_ref
-                            content = SubElement(metadata, 'Content')
+                            content = SubElement(metadata, 'xip:Content')
                             content.append(descriptive_metadata.getroot())
 
     if xip is not None:

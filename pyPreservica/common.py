@@ -23,6 +23,7 @@ import xml.etree.ElementTree
 from enum import Enum
 from pathlib import Path
 import pyotp
+from requests import Response, Session
 from urllib3.util import Retry
 import requests
 from requests.adapters import HTTPAdapter
@@ -860,7 +861,7 @@ class AuthenticatedAPI:
 
         config = configparser.ConfigParser(interpolation=configparser.Interpolation())
         config.read('credentials.properties', encoding='utf-8')
-        self.session = requests.Session()
+        self.session: Session = requests.Session()
 
         retries = Retry(
             total=3,
@@ -869,7 +870,7 @@ class AuthenticatedAPI:
             allowed_methods=Retry.DEFAULT_ALLOWED_METHODS
         )
 
-        self.shared_secret = bool(use_shared_secret)
+        self.shared_secret: bool = bool(use_shared_secret)
         self.protocol = protocol
         self.two_fa_secret_key = two_fa_secret_key
 
