@@ -10,7 +10,7 @@ licence:    Apache License 2.0
 """
 
 import csv
-from typing import Generator
+from typing import Generator, Callable
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
@@ -19,8 +19,10 @@ logger = logging.getLogger(__name__)
 class ContentAPI(AuthenticatedAPI):
 
     def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False,
-                 two_fa_secret_key: str = None, protocol: str = "https"):
-        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key, protocol)
+                 two_fa_secret_key: str = None, protocol: str = "https", request_hook: Callable = None):
+
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
+                         protocol, request_hook)
         self.callback = None
 
     class SearchResult:
@@ -130,7 +132,8 @@ class ContentAPI(AuthenticatedAPI):
             logger.error(f"indexed_fields failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"indexed_fields failed with error code: {results.status_code}")
 
-    def simple_search_csv(self, query: str = "%", page_size: int = 50, csv_file="search.csv", list_indexes: list = None):
+    def simple_search_csv(self, query: str = "%", page_size: int = 50, csv_file="search.csv",
+                          list_indexes: list = None):
         if list_indexes is None or len(list_indexes) == 0:
             metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type",
                                "xip.parent_ref", "xip.security_descriptor"]
@@ -193,7 +196,8 @@ class ContentAPI(AuthenticatedAPI):
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"simple_search failed with error code: {results.status_code}")
 
-    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", page_size: int = 50, filter_values: dict = None,
+    def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", page_size: int = 50,
+                                filter_values: dict = None,
                                 sort_values: dict = None):
         if filter_values is None:
             filter_values = {}

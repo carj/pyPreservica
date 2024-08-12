@@ -15,7 +15,7 @@ import xml.etree.ElementTree
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from time import sleep
-from typing import Any, Generator, Tuple, Iterable, Union
+from typing import Any, Generator, Tuple, Iterable, Union, Callable
 
 from pyPreservica.common import *
 
@@ -34,8 +34,12 @@ class EntityAPI(AuthenticatedAPI):
     """
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, two_fa_secret_key: str = None, protocol: str = "https"):
-        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key, protocol)
+                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
+                 protocol: str = "https", request_hook: Callable = None):
+
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
+                         protocol, request_hook)
+
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
 

@@ -11,6 +11,7 @@ licence:    Apache License 2.0
 
 import uuid
 import datetime
+from typing import Callable
 from xml.etree import ElementTree
 
 from pyPreservica.common import *
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 class WorkflowInstance:
     """
         Defines a workflow Instance.
-        The workflow Instance is context which has been executed
+        The workflow Instance is a context which has been executed
     """
 
     def __init__(self, instance_id: int):
@@ -79,8 +80,11 @@ class WorkflowAPI(AuthenticatedAPI):
     workflow_types = ['Ingest', 'Access', 'Transformation', 'DataManagement']
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, two_fa_secret_key: str = None, protocol: str = "https"):
-        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key, protocol)
+                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
+                 protocol: str = "https", request_hook: Callable = None):
+
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
+                         protocol, request_hook)
         self.base_url = "sdb/rest/workflow"
 
     def get_workflow_contexts_by_type(self, workflow_type: str):
@@ -245,13 +249,13 @@ class WorkflowAPI(AuthenticatedAPI):
             assert instance_id == w_id
             workflow_instance = WorkflowInstance(int(instance_id))
             started_element = entity_response.find(f".//{{{NS_WORKFLOW}}}Started")
-            if started_element:
+            if started_element is not None:
                 if hasattr(started_element, "text"):
                     workflow_instance.started = datetime.datetime.strptime(started_element.text,
                                                                            '%Y-%m-%dT%H:%M:%S.%fZ')
 
             finished_element = entity_response.find(f".//{{{NS_WORKFLOW}}}Finished")
-            if finished_element:
+            if finished_element is not None:
                 if hasattr(finished_element, "text"):
                     workflow_instance.finished = datetime.datetime.strptime(finished_element.text,
                                                                             '%Y-%m-%dT%H:%M:%S.%fZ')
@@ -353,13 +357,13 @@ class WorkflowAPI(AuthenticatedAPI):
                 workflow_instance = WorkflowInstance(int(instance_id))
 
                 started_element = instance.find(f".//{{{NS_WORKFLOW}}}Started")
-                if started_element:
+                if started_element is not None:
                     if hasattr(started_element, "text"):
                         workflow_instance.started = datetime.datetime.strptime(started_element.text,
                                                                                '%Y-%m-%dT%H:%M:%S.%fZ')
 
                 finished_element = instance.find(f".//{{{NS_WORKFLOW}}}Finished")
-                if finished_element:
+                if finished_element is not None:
                     if hasattr(finished_element, "text"):
                         workflow_instance.finished = datetime.datetime.strptime(finished_element.text,
                                                                                 '%Y-%m-%dT%H:%M:%S.%fZ')

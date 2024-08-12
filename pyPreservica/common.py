@@ -477,10 +477,10 @@ class Entity:
     def __repr__(self):
         return self.__str__()
 
-    def has_metadata(self):
+    def has_metadata(self) -> bool:
         return bool(self.metadata)
 
-    def metadata_namespaces(self):
+    def metadata_namespaces(self) -> list:
         return list(self.metadata.values())
 
 
@@ -714,11 +714,33 @@ class AuthenticatedAPI:
 
         return entity_dict
 
+    def edition(self) -> str:
+        """
+        Return the edition of this tenancy
+        """
+        if self.major_version < 8 and self.minor_version < 3:
+            raise RuntimeError("Entitlement  API is only available when connected to a v7.3 System")
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
+
+        response = self.session.get(f'{self.protocol}://{self.server}/api/entitlement/edition', headers=headers)
+
+        if response.status_code == requests.codes.ok:
+            return response.json()['edition']
+        elif response.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.edition()
+        else:
+            exception = HTTPException("", response.status_code, response.url,
+                                      "edition", response.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
     def __version_namespace__(self):
         """
         Generate version specific namespaces from the server version
         """
-        if self.major_version == 7:
+        if self.major_version > 6:
             self.xip_ns = f"{NS_XIP_ROOT}v{self.major_version}.{self.minor_version}"
             self.entity_ns = f"{NS_ENTITY_ROOT}v{self.major_version}.{self.minor_version}"
             self.rm_ns = f"{NS_RM_ROOT}v{6}.{2}"
@@ -857,11 +879,15 @@ class AuthenticatedAPI:
                 raise RuntimeError(response.status_code, msg)
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, two_fa_secret_key: str = None, protocol: str = "https"):
+                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
+                 protocol: str = "https", request_hook=None):
 
         config = configparser.ConfigParser(interpolation=configparser.Interpolation())
         config.read('credentials.properties', encoding='utf-8')
         self.session: Session = requests.Session()
+
+        if request_hook is not None:
+            self.session.hooks['response'].append(request_hook)
 
         retries = Retry(
             total=3,

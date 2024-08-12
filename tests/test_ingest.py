@@ -81,7 +81,7 @@ def test_ingest_access_file():
 
     client.delete_asset(asset, "operator comment", "supervisor")
 
-
+@pytest.mark.filterwarnings("ignore:datetime.datetime.utcnow")
 def test_s3_upload():
     client = EntityAPI()
     upload = UploadAPI()

@@ -80,7 +80,8 @@ class PutObjectTask(s3transfer.tasks.Task):
 class CompleteMultipartUploadTask(s3transfer.tasks.Task):
     # Copied from s3transfer/tasks.py, changed to return a result.
     def _main(self, client, bucket, key, upload_id, parts, extra_args):
-        return client.complete_multipart_upload(Bucket=bucket, Key=key, UploadId=upload_id, MultipartUpload={"Parts": parts},
+        return client.complete_multipart_upload(Bucket=bucket, Key=key, UploadId=upload_id,
+                                                MultipartUpload={"Parts": parts},
                                                 **extra_args, )
 
 
@@ -99,8 +100,8 @@ def prettify(elem):
 def __create_io__(xip=None, file_name=None, parent_folder=None, **kwargs):
     if xip is None:
         xip = Element('xip:XIP')
+        xip.set('xmlns:xip', 'http://preservica.com/XIP/v6.0')
     assert xip is not None
-    xip.set('xmlns:xip', 'http://preservica.com/XIP/v6.0')
     io = SubElement(xip, 'xip:InformationObject')
     ref = SubElement(io, 'xip:Ref')
 
@@ -224,7 +225,8 @@ def __make_representation_multiple_co__(xip, rep_name, rep_type, rep_files, io_r
     return refs_dict
 
 
-def cvs_to_cmis_xslt(csv_file, xml_namespace, root_element, title="Metadata Title", export_folder=None, additional_namespaces=None):
+def cvs_to_cmis_xslt(csv_file, xml_namespace, root_element, title="Metadata Title", export_folder=None,
+                     additional_namespaces=None):
     """
             Create a custom CMIS transform to display metadata within UA.
 
@@ -242,7 +244,8 @@ def cvs_to_cmis_xslt(csv_file, xml_namespace, root_element, title="Metadata Titl
 
     namespaces = {"version": "2.0", "xmlns:xsl": "http://www.w3.org/1999/XSL/Transform",
                   "xmlns:fn": "http://www.w3.org/2005/xpath-functions", "xmlns:xs": "http://www.w3.org/2001/XMLSchema",
-                  "xmlns:csv": xml_namespace, "xmlns": "http://www.tessella.com/sdb/cmis/metadata", "exclude-result-prefixes": "csv"}
+                  "xmlns:csv": xml_namespace, "xmlns": "http://www.tessella.com/sdb/cmis/metadata",
+                  "exclude-result-prefixes": "csv"}
 
     if additional_namespaces is not None:
         for prefix, uri in additional_namespaces.items():
@@ -311,7 +314,8 @@ def cvs_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additi
                 headers.add(xml_tag)
             break
 
-    namespaces = {"xmlns:xs": "http://www.w3.org/2001/XMLSchema", "attributeFormDefault": "unqualified", "elementFormDefault": "qualified",
+    namespaces = {"xmlns:xs": "http://www.w3.org/2001/XMLSchema", "attributeFormDefault": "unqualified",
+                  "elementFormDefault": "qualified",
                   "targetNamespace": xml_namespace}
 
     if additional_namespaces is not None:
@@ -333,7 +337,8 @@ def cvs_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additi
             prefix, sep, tag = header.partition(":")
             try:
                 namespace = additional_namespaces[prefix]
-                xml.etree.ElementTree.SubElement(xml_sequence, "xs:element", {"ref": header, "xmlns:" + prefix: namespace})
+                xml.etree.ElementTree.SubElement(xml_sequence, "xs:element",
+                                                 {"ref": header, "xmlns:" + prefix: namespace})
             except KeyError:
                 xml.etree.ElementTree.SubElement(xml_sequence, "xs:element", {"type": "xs:string", "name": header})
         else:
@@ -350,7 +355,8 @@ def cvs_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additi
     return xsd_file
 
 
-def csv_to_search_xml(csv_file, xml_namespace, root_element, title="Metadata Title", export_folder=None, additional_namespaces=None):
+def csv_to_search_xml(csv_file, xml_namespace, root_element, title="Metadata Title", export_folder=None,
+                      additional_namespaces=None):
     """
         Create a custom Preservica search index based on the columns in a csv file
 
@@ -400,7 +406,8 @@ def csv_to_search_xml(csv_file, xml_namespace, root_element, title="Metadata Tit
     return search_xml
 
 
-def cvs_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename", export_folder=None, additional_namespaces=None):
+def cvs_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename", export_folder=None,
+               additional_namespaces=None):
     """
         Export the rows of a CSV file as XML metadata documents which can be added to Preservica assets
 
@@ -451,7 +458,8 @@ def cvs_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename
                 yield name
 
 
-def generic_asset_package(preservation_files_dict=None, access_files_dict=None, export_folder=None, parent_folder=None, compress=True,
+def generic_asset_package(preservation_files_dict=None, access_files_dict=None, export_folder=None, parent_folder=None,
+                          compress=True,
                           **kwargs):
     # some basic validation
     if export_folder is None:
@@ -501,8 +509,10 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
     if has_preservation_files:
         for representation_name in preservation_files_dict.keys():
             preservation_files_list = preservation_files_dict[representation_name]
-            preservation_refs_dict = __make_representation_multiple_co__(xip, rep_name=representation_name, rep_type="Preservation",
-                                                                         rep_files=preservation_files_list, io_ref=io_ref)
+            preservation_refs_dict = __make_representation_multiple_co__(xip, rep_name=representation_name,
+                                                                         rep_type="Preservation",
+                                                                         rep_files=preservation_files_list,
+                                                                         io_ref=io_ref)
             preservation_representation_refs_dict[representation_name] = preservation_refs_dict
 
     if has_access_files:
@@ -519,13 +529,16 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
                 default_content_objects_title = os.path.splitext(os.path.basename(filename))[0]
 
                 preservation_content_title = kwargs.get('Preservation_Content_Title', default_content_objects_title)
-                preservation_content_description = kwargs.get('Preservation_Content_Description', default_content_objects_title)
+                preservation_content_description = kwargs.get('Preservation_Content_Description',
+                                                              default_content_objects_title)
 
                 if isinstance(preservation_content_title, dict):
-                    preservation_content_title = preservation_content_title.get("filename", default_content_objects_title)
+                    preservation_content_title = preservation_content_title.get("filename",
+                                                                                default_content_objects_title)
 
                 if isinstance(preservation_content_description, dict):
-                    preservation_content_description = preservation_content_description.get("filename", default_content_objects_title)
+                    preservation_content_description = preservation_content_description.get("filename",
+                                                                                            default_content_objects_title)
 
                 __make_content_objects__(xip, preservation_content_title, content_ref, io_ref, security_tag,
                                          preservation_content_description, content_type)
@@ -545,7 +558,8 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
                 if isinstance(access_content_description, dict):
                     access_content_description = access_content_title.get("filename", default_content_objects_title)
 
-                __make_content_objects__(xip, access_content_title, content_ref, io_ref, security_tag, access_content_description,
+                __make_content_objects__(xip, access_content_title, content_ref, io_ref, security_tag,
+                                         access_content_description,
                                          content_type)
 
     if has_preservation_files:
@@ -598,12 +612,12 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
         for identifier_key, identifier_value in identifier_map.items():
             if identifier_key:
                 if identifier_value:
-                    identifier = SubElement(xip, 'Identifier')
-                    id_type = SubElement(identifier, "Type")
+                    identifier = SubElement(xip, 'xip:Identifier')
+                    id_type = SubElement(identifier, "xip:Type")
                     id_type.text = identifier_key
-                    id_value = SubElement(identifier, "Value")
+                    id_value = SubElement(identifier, "xip:Value")
                     id_value.text = identifier_value
-                    id_io = SubElement(identifier, "Entity")
+                    id_io = SubElement(identifier, "xip:Entity")
                     id_io.text = io_ref
 
     if 'Asset_Metadata' in kwargs:
@@ -613,22 +627,22 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
                 if metadata_path:
                     if os.path.exists(metadata_path) and os.path.isfile(metadata_path):
                         descriptive_metadata = xml.etree.ElementTree.parse(source=metadata_path)
-                        metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
-                        metadata_ref = SubElement(metadata, 'Ref')
+                        metadata = SubElement(xip, 'xip:Metadata', {'schemaUri': metadata_ns})
+                        metadata_ref = SubElement(metadata, 'xip:Ref')
                         metadata_ref.text = str(uuid.uuid4())
-                        entity = SubElement(metadata, 'Entity')
+                        entity = SubElement(metadata, 'xip:Entity')
                         entity.text = io_ref
-                        content = SubElement(metadata, 'Content')
+                        content = SubElement(metadata, 'xip:Content')
                         content.append(descriptive_metadata.getroot())
                     elif isinstance(metadata_path, str):
                         try:
                             descriptive_metadata = xml.etree.ElementTree.fromstring(metadata_path)
-                            metadata = SubElement(xip, 'Metadata', {'schemaUri': metadata_ns})
-                            metadata_ref = SubElement(metadata, 'Ref')
+                            metadata = SubElement(xip, 'xip:Metadata', {'schemaUri': metadata_ns})
+                            metadata_ref = SubElement(metadata, 'xip:Ref')
                             metadata_ref.text = str(uuid.uuid4())
-                            entity = SubElement(metadata, 'Entity')
+                            entity = SubElement(metadata, 'xip:Entity')
                             entity.text = io_ref
-                            content = SubElement(metadata, 'Content')
+                            content = SubElement(metadata, 'xip:Content')
                             content.append(descriptive_metadata)
                         except RuntimeError:
                             logging.info(f"Could not parse asset metadata in namespace {metadata_ns}")
@@ -712,71 +726,72 @@ def multi_asset_package(asset_file_list=None, export_folder=None, parent_folder=
     os.mkdir(os.path.join(inner_folder, CONTENT_FOLDER))
 
     asset_map = dict()
-    xip = Element('XIP')
+    xip = Element('xip:XIP')
+    xip.set('xmlns:xip', 'http://preservica.com/XIP/v6.0')
     for file in asset_file_list:
         default_asset_title = os.path.splitext(os.path.basename(file))[0]
         xip, io_ref = __create_io__(xip, file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
         asset_map[file] = io_ref
-        representation = SubElement(xip, 'Representation')
-        io_link = SubElement(representation, 'InformationObject')
+        representation = SubElement(xip, 'xip:Representation')
+        io_link = SubElement(representation, 'xip:InformationObject')
         io_link.text = io_ref
-        access_name = SubElement(representation, 'Name')
+        access_name = SubElement(representation, 'xip:Name')
         access_name.text = "Preservation"
-        access_type = SubElement(representation, 'Type')
+        access_type = SubElement(representation, 'xip:Type')
         access_type.text = "Preservation"
-        content_objects = SubElement(representation, 'ContentObjects')
-        content_object = SubElement(content_objects, 'ContentObject')
+        content_objects = SubElement(representation, 'xip:ContentObjects')
+        content_object = SubElement(content_objects, 'xip:ContentObject')
         content_object_ref = str(uuid.uuid4())
         content_object.text = content_object_ref
 
         default_content_objects_title = os.path.splitext(os.path.basename(file))[0]
-        content_object = SubElement(xip, 'ContentObject')
-        ref_element = SubElement(content_object, "Ref")
+        content_object = SubElement(xip, 'xip:ContentObject')
+        ref_element = SubElement(content_object, "xip:Ref")
         ref_element.text = content_object_ref
-        title = SubElement(content_object, "Title")
+        title = SubElement(content_object, "xip:Title")
         title.text = default_content_objects_title
-        description = SubElement(content_object, "Description")
+        description = SubElement(content_object, "xip:Description")
         description.text = default_content_objects_title
-        security_tag_element = SubElement(content_object, "SecurityTag")
+        security_tag_element = SubElement(content_object, "xip:SecurityTag")
         security_tag_element.text = security_tag
-        custom_type = SubElement(content_object, "CustomType")
+        custom_type = SubElement(content_object, "xip:CustomType")
         custom_type.text = content_type
-        parent = SubElement(content_object, "Parent")
+        parent = SubElement(content_object, "xip:Parent")
         parent.text = io_ref
 
-        generation = SubElement(xip, 'Generation', {"original": "true", "active": "true"})
-        content_object = SubElement(generation, "ContentObject")
+        generation = SubElement(xip, 'xip:Generation', {"original": "true", "active": "true"})
+        content_object = SubElement(generation, "xip:ContentObject")
         content_object.text = content_object_ref
-        label = SubElement(generation, "Label")
+        label = SubElement(generation, "xip:Label")
         label.text = os.path.splitext(os.path.basename(file))[0]
-        effective_date = SubElement(generation, "EffectiveDate")
+        effective_date = SubElement(generation, "xip:EffectiveDate")
         effective_date.text = datetime.now().isoformat()
-        bitstreams = SubElement(generation, "Bitstreams")
-        bitstream = SubElement(bitstreams, "Bitstream")
+        bitstreams = SubElement(generation, "xip:Bitstreams")
+        bitstream = SubElement(bitstreams, "xip:Bitstream")
         bitstream.text = os.path.basename(file)
-        SubElement(generation, "Formats")
-        SubElement(generation, "Properties")
+        SubElement(generation, "xip:Formats")
+        SubElement(generation, "xip:Properties")
 
-        bitstream = SubElement(xip, 'Bitstream')
-        filename_element = SubElement(bitstream, "Filename")
+        bitstream = SubElement(xip, 'xip:Bitstream')
+        filename_element = SubElement(bitstream, "xip:Filename")
         filename_element.text = os.path.basename(file)
-        filesize = SubElement(bitstream, "FileSize")
+        filesize = SubElement(bitstream, "xip:FileSize")
         file_stats = os.stat(file)
         filesize.text = str(file_stats.st_size)
-        physical_location = SubElement(bitstream, "PhysicalLocation")
-        fixities = SubElement(bitstream, "Fixities")
+        physical_location = SubElement(bitstream, "xip:PhysicalLocation")
+        fixities = SubElement(bitstream, "xip:Fixities")
         fixity_result = fixity_callback(filename_element.text, file)
         if type(fixity_result) == tuple:
-            fixity = SubElement(fixities, "Fixity")
-            fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
-            fixity_value = SubElement(fixity, "FixityValue")
+            fixity = SubElement(fixities, "xip:Fixity")
+            fixity_algorithm_ref = SubElement(fixity, "xip:FixityAlgorithmRef")
+            fixity_value = SubElement(fixity, "xip:FixityValue")
             fixity_algorithm_ref.text = fixity_result[0]
             fixity_value.text = fixity_result[1]
         elif type(fixity_result) == dict:
             for key, val in fixity_result.items():
-                fixity = SubElement(fixities, "Fixity")
-                fixity_algorithm_ref = SubElement(fixity, "FixityAlgorithmRef")
-                fixity_value = SubElement(fixity, "FixityValue")
+                fixity = SubElement(fixities, "xip:Fixity")
+                fixity_algorithm_ref = SubElement(fixity, "xip:FixityAlgorithmRef")
+                fixity_value = SubElement(fixity, "xip:FixityValue")
                 fixity_algorithm_ref.text = key
                 fixity_value.text = val
         else:
@@ -790,12 +805,12 @@ def multi_asset_package(asset_file_list=None, export_folder=None, parent_folder=
                 for identifier_key, identifier_value in identifier_map_values.items():
                     if identifier_key:
                         if identifier_value:
-                            identifier = SubElement(xip, 'Identifier')
-                            id_type = SubElement(identifier, "Type")
+                            identifier = SubElement(xip, 'xip:Identifier')
+                            id_type = SubElement(identifier, "xip:Type")
                             id_type.text = identifier_key
-                            id_value = SubElement(identifier, "Value")
+                            id_value = SubElement(identifier, "xip:Value")
                             id_value.text = identifier_value
-                            id_io = SubElement(identifier, "Entity")
+                            id_io = SubElement(identifier, "xip:Entity")
                             id_io.text = io_ref
 
         src_file = file
@@ -815,7 +830,8 @@ def multi_asset_package(asset_file_list=None, export_folder=None, parent_folder=
         return top_level_folder + ".zip"
 
 
-def complex_asset_package(preservation_files_list=None, access_files_list=None, export_folder=None, parent_folder=None, compress=True,
+def complex_asset_package(preservation_files_list=None, access_files_list=None, export_folder=None, parent_folder=None,
+                          compress=True,
                           **kwargs):
     """
 
@@ -908,13 +924,15 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
     if has_preservation_files:
         # add the content objects
         representation_name = kwargs.get('Preservation_Representation_Name', "Preservation")
-        preservation_refs_dict = __make_representation_multiple_co__(xip, rep_name=representation_name, rep_type="Preservation",
+        preservation_refs_dict = __make_representation_multiple_co__(xip, rep_name=representation_name,
+                                                                     rep_type="Preservation",
                                                                      rep_files=preservation_files_list, io_ref=io_ref)
 
     if has_access_files:
         # add the content objects
         access_name = kwargs.get('Access_Representation_Name', "Access")
-        access_refs_dict = __make_representation_multiple_co__(xip, rep_name=access_name, rep_type="Access", rep_files=access_files_list,
+        access_refs_dict = __make_representation_multiple_co__(xip, rep_name=access_name, rep_type="Access",
+                                                               rep_files=access_files_list,
                                                                io_ref=io_ref)
 
     if has_preservation_files:
@@ -922,7 +940,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         for content_ref, filename in preservation_refs_dict.items():
             default_content_objects_title = os.path.splitext(os.path.basename(filename))[0]
             preservation_content_title = kwargs.get('Preservation_Content_Title', default_content_objects_title)
-            preservation_content_description = kwargs.get('Preservation_Content_Description', default_content_objects_title)
+            preservation_content_description = kwargs.get('Preservation_Content_Description',
+                                                          default_content_objects_title)
 
             if isinstance(preservation_content_title, dict):
                 preservation_content_title = preservation_content_title[filename]
@@ -930,7 +949,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
             if isinstance(preservation_content_description, dict):
                 preservation_content_description = preservation_content_description[filename]
 
-            __make_content_objects__(xip, preservation_content_title, content_ref, io_ref, security_tag, preservation_content_description,
+            __make_content_objects__(xip, preservation_content_title, content_ref, io_ref, security_tag,
+                                     preservation_content_description,
                                      content_type)
 
     if has_access_files:
@@ -947,7 +967,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
             if isinstance(access_content_description, dict):
                 access_content_title = access_content_title[filename]
 
-            __make_content_objects__(xip, access_content_title, content_ref, io_ref, security_tag, access_content_description, content_type)
+            __make_content_objects__(xip, access_content_title, content_ref, io_ref, security_tag,
+                                     access_content_description, content_type)
 
     if has_preservation_files:
 
@@ -955,7 +976,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
 
         for content_ref, filename in preservation_refs_dict.items():
             preservation_file_name = os.path.basename(filename)
-            __make_generation__(xip, preservation_file_name, content_ref, preservation_generation_label, PRESERVATION_CONTENT_FOLDER)
+            __make_generation__(xip, preservation_file_name, content_ref, preservation_generation_label,
+                                PRESERVATION_CONTENT_FOLDER)
 
     if has_access_files:
 
@@ -1070,7 +1092,8 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         return top_level_folder + ".zip"
 
 
-def simple_asset_package(preservation_file=None, access_file=None, export_folder=None, parent_folder=None, compress=True, **kwargs):
+def simple_asset_package(preservation_file=None, access_file=None, export_folder=None, parent_folder=None,
+                         compress=True, **kwargs):
     """
             Create a Preservica package containing a single Asset from a single preservation file
             and an optional access file.
@@ -1130,7 +1153,8 @@ def _unpad(s):
 
 class UploadAPI(AuthenticatedAPI):
 
-    def ingest_tweet(self, twitter_user=None, tweet_id: int = 0, twitter_consumer_key=None, twitter_secret_key=None, folder=None,
+    def ingest_tweet(self, twitter_user=None, tweet_id: int = 0, twitter_consumer_key=None, twitter_secret_key=None,
+                     folder=None,
                      callback=None, **kwargs):
 
         """
@@ -1174,7 +1198,8 @@ class UploadAPI(AuthenticatedAPI):
                     video_name_document_.close()
                     return video_name_, True
 
-        entity_client = pyPreservica.EntityAPI(username=self.username, password=self.password, server=self.server, tenant=self.tenant)
+        entity_client = pyPreservica.EntityAPI(username=self.username, password=self.password, server=self.server,
+                                               tenant=self.tenant)
         if hasattr(folder, "reference"):
             folder = entity_client.folder(folder.reference)
         else:
@@ -1312,7 +1337,8 @@ class UploadAPI(AuthenticatedAPI):
                 os.remove(ob)
             os.remove("metadata.xml")
 
-    def ingest_twitter_feed(self, twitter_user=None, num_tweets: int = 25, twitter_consumer_key=None, twitter_secret_key=None, folder=None,
+    def ingest_twitter_feed(self, twitter_user=None, num_tweets: int = 25, twitter_consumer_key=None,
+                            twitter_secret_key=None, folder=None,
                             callback=None, **kwargs):
 
         """
@@ -1357,7 +1383,8 @@ class UploadAPI(AuthenticatedAPI):
                                 video_name_document_.flush()
                         return video_name_, True
 
-        entity_client = pyPreservica.EntityAPI(username=self.username, password=self.password, server=self.server, tenant=self.tenant)
+        entity_client = pyPreservica.EntityAPI(username=self.username, password=self.password, server=self.server,
+                                               tenant=self.tenant)
         if hasattr(folder, "reference"):
             folder = entity_client.folder(folder.reference)
         else:
@@ -1488,7 +1515,8 @@ class UploadAPI(AuthenticatedAPI):
                 asset_title = kwargs.get("Title", text)
                 asset_description = kwargs.get("Description", full_text)
 
-                p = complex_asset_package(preservation_files_list=content_objects, parent_folder=folder, Title=asset_title,
+                p = complex_asset_package(preservation_files_list=content_objects, parent_folder=folder,
+                                          Title=asset_title,
                                           Description=asset_description, CustomType="Tweet", Identifiers=identifiers,
                                           Asset_Metadata=asset_metadata, SecurityTag=security_tag)
                 self.upload_zip_package(p, folder=folder, callback=callback)
@@ -1572,7 +1600,8 @@ class UploadAPI(AuthenticatedAPI):
             duration = meta.get('duration')
 
             package = simple_asset_package(preservation_file=f"{vid_id}.mp4", parent_folder=parent_folder, Title=title,
-                                           Description=description, Identifiers=identifier_map, Asset_Metadata=descriptive_metadata,
+                                           Description=description, Identifiers=identifier_map,
+                                           Asset_Metadata=descriptive_metadata,
                                            Preservation_Content_Title=title, SecurityTag=security_tag)
 
             self.upload_zip_package(path_to_zip_package=package, folder=parent_folder, callback=callback)
@@ -1593,7 +1622,8 @@ class UploadAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.upload_credentials(location_id)
         else:
-            exception = HTTPException(location_id, request.status_code, request.url, "upload_credentials", request.content.decode('utf-8'))
+            exception = HTTPException(location_id, request.status_code, request.url, "upload_credentials",
+                                      request.content.decode('utf-8'))
             logger.error(exception)
             raise exception
 
@@ -1612,7 +1642,8 @@ class UploadAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.upload_locations()
         else:
-            exception = HTTPException("", request.status_code, request.url, "upload_locations", request.content.decode('utf-8'))
+            exception = HTTPException("", request.status_code, request.url, "upload_locations",
+                                      request.content.decode('utf-8'))
             logger.error(exception)
             raise exception
 
@@ -1624,7 +1655,8 @@ class UploadAPI(AuthenticatedAPI):
         """
         return self.upload_locations()
 
-    def crawl_filesystem(self, filesystem_path, bucket_name, preservica_parent, callback: bool = False, security_tag: str = "open",
+    def crawl_filesystem(self, filesystem_path, bucket_name, preservica_parent, callback: bool = False,
+                         security_tag: str = "open",
                          delete_after_upload: bool = True, max_MB_ingested: int = -1):
 
         def get_parent(client, identifier, parent_reference):
@@ -1651,8 +1683,10 @@ class UploadAPI(AuthenticatedAPI):
             return folder
 
         from pyPreservica import EntityAPI
-        entity_client = EntityAPI(username=self.username, password=self.password, server=self.server, tenant=self.tenant,
-                                  two_fa_secret_key=self.two_fa_secret_key, use_shared_secret=self.shared_secret, protocol=self.protocol)
+        entity_client = EntityAPI(username=self.username, password=self.password, server=self.server,
+                                  tenant=self.tenant,
+                                  two_fa_secret_key=self.two_fa_secret_key, use_shared_secret=self.shared_secret,
+                                  protocol=self.protocol)
 
         if preservica_parent:
             parent = entity_client.folder(preservica_parent)
@@ -1696,8 +1730,14 @@ class UploadAPI(AuthenticatedAPI):
                 else:
                     progress_display = None
 
-                self.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket_name, callback=progress_display,
-                                              delete_after_upload=delete_after_upload)
+                if bucket_name is None:
+                    self.upload_zip_package(path_to_zip_package=package, callback=progress_display,
+                                            delete_after_upload=delete_after_upload)
+                else:
+                    self.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket_name,
+                                                  callback=progress_display,
+                                                  delete_after_upload=delete_after_upload)
+
                 logger.info(f"Uploaded " + "{:.1f}".format(bytes_ingested / (1024 * 1024)) + " MB")
 
                 if max_MB_ingested > 0:
@@ -1705,7 +1745,8 @@ class UploadAPI(AuthenticatedAPI):
                         logger.info(f"Reached Max Upload Limit")
                         break
 
-    def upload_zip_to_Source(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False, show_progress=False):
+    def upload_zip_to_Source(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False,
+                             show_progress=False):
 
         """
              Uploads a zip file package to either an Azure container or S3 bucket
@@ -1726,13 +1767,17 @@ class UploadAPI(AuthenticatedAPI):
                     callback = None
                     if show_progress:
                         callback = UploadProgressConsoleCallback(path_to_zip_package)
-                    self.upload_zip_package_to_S3(path_to_zip_package=path_to_zip_package, bucket_name=container_name, folder=folder,
+                    self.upload_zip_package_to_S3(path_to_zip_package=path_to_zip_package, bucket_name=container_name,
+                                                  folder=folder,
                                                   callback=callback, delete_after_upload=delete_after_upload)
                 else:
-                    self.upload_zip_package_to_Azure(path_to_zip_package=path_to_zip_package, container_name=container_name, folder=folder,
-                                                     delete_after_upload=delete_after_upload, show_progress=show_progress)
+                    self.upload_zip_package_to_Azure(path_to_zip_package=path_to_zip_package,
+                                                     container_name=container_name, folder=folder,
+                                                     delete_after_upload=delete_after_upload,
+                                                     show_progress=show_progress)
 
-    def upload_zip_package_to_Azure(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False, show_progress=False):
+    def upload_zip_package_to_Azure(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False,
+                                    show_progress=False):
 
         """
          Uploads a zip file package to an Azure container connected to a Preservica Cloud System
@@ -1745,7 +1790,8 @@ class UploadAPI(AuthenticatedAPI):
         """
 
         if (self.major_version < 7) and (self.minor_version < 5):
-            raise RuntimeError("This call [upload_zip_package_to_Azure] is only available against v6.5 systems and above")
+            raise RuntimeError(
+                "This call [upload_zip_package_to_Azure] is only available against v6.5 systems and above")
 
         from azure.storage.blob import ContainerClient
 
@@ -1773,11 +1819,13 @@ class UploadAPI(AuthenticatedAPI):
 
                 if show_progress:
                     with tqdm.wrapattr(open(path_to_zip_package, 'rb'), "read", total=len_bytes) as data:
-                        blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
+                        blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata,
+                                                            length=len_bytes)
                         properties = blob_client.get_blob_properties()
                 else:
                     with open(path_to_zip_package, "rb") as data:
-                        blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata, length=len_bytes)
+                        blob_client = container.upload_blob(name=upload_key, data=data, metadata=metadata,
+                                                            length=len_bytes)
                         properties = blob_client.get_blob_properties()
 
                 if delete_after_upload:
@@ -1785,7 +1833,8 @@ class UploadAPI(AuthenticatedAPI):
 
                 return properties
 
-    def upload_zip_package_to_S3(self, path_to_zip_package, bucket_name, folder=None, callback=None, delete_after_upload=False):
+    def upload_zip_package_to_S3(self, path_to_zip_package, bucket_name, folder=None, callback=None,
+                                 delete_after_upload=False):
 
         """
            Uploads a zip file package to an S3 bucket connected to a Preservica Cloud System
@@ -1814,7 +1863,8 @@ class UploadAPI(AuthenticatedAPI):
                 session_token = credentials['sessionToken']
                 endpoint = credentials['endpoint']
 
-                session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key, aws_session_token=session_token)
+                session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
+                                        aws_session_token=session_token)
                 s3 = session.resource(service_name="s3")
 
                 logger.debug(f"S3 Session: {s3}")
@@ -1833,7 +1883,8 @@ class UploadAPI(AuthenticatedAPI):
 
                 metadata_map = {'Metadata': metadata}
 
-                s3_object.upload_file(path_to_zip_package, Callback=callback, ExtraArgs=metadata_map, Config=transfer_config)
+                s3_object.upload_file(path_to_zip_package, Callback=callback, ExtraArgs=metadata_map,
+                                      Config=transfer_config)
 
                 if delete_after_upload:
                     os.remove(path_to_zip_package)
@@ -1859,7 +1910,8 @@ class UploadAPI(AuthenticatedAPI):
         endpoint = f'{self.protocol}://{self.server}/api/s3/buckets'
         self.token = self.__token__()
 
-        s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=self.token, aws_secret_access_key="NOT_USED",
+        s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=self.token,
+                                 aws_secret_access_key="NOT_USED",
                                  config=Config(s3={'addressing_style': 'path'}))
 
         metadata = {}
@@ -1879,7 +1931,8 @@ class UploadAPI(AuthenticatedAPI):
                 transfer.CompleteMultipartUploadTask = CompleteMultipartUploadTask
                 transfer.upload_file = upload_file
 
-                response = transfer.upload_file(self=transfer, filename=path_to_zip_package, bucket=bucket, key=key_id, extra_args=metadata,
+                response = transfer.upload_file(self=transfer, filename=path_to_zip_package, bucket=bucket, key=key_id,
+                                                extra_args=metadata,
                                                 callback=callback)
 
                 if delete_after_upload:

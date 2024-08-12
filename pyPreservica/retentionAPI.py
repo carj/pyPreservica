@@ -11,7 +11,7 @@ licence:    Apache License 2.0
 
 
 import xml.etree.ElementTree
-from typing import Set
+from typing import Set, Callable
 
 from pyPreservica.common import *
 
@@ -59,8 +59,10 @@ class RetentionPolicy:
 class RetentionAPI(AuthenticatedAPI):
 
     def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False,
-                 two_fa_secret_key: str = None, protocol: str = "https"):
-        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key, protocol)
+                 two_fa_secret_key: str = None, protocol: str = "https", request_hook: Callable = None):
+
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
+                         protocol, request_hook)
         if self.major_version < 7 and self.minor_version < 2:
             raise RuntimeError("Retention API is only available when connected to a v6.2 System")
 

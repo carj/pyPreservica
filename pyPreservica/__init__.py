@@ -23,6 +23,6 @@ from .mdformsAPI import MDFormsAPI
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the pyPreservica package
-__version__ = "2.7.2"
+__version__ = "2.7.4"
 
 __license__ = "Apache License Version 2.0"

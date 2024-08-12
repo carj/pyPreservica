@@ -477,3 +477,28 @@ Here’s a sample implementation.
     root.addHandler(handler)
 
     client = EntityAPI()
+
+
+
+Low Level Logging
+^^^^^^^^^^^^^^^^^^^^^
+
+pyPreservica now provides low level hooks into the underlying API requests to the server. This allows clients to
+do things such as audit all the API endpoints which are called for example.
+
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+
+    def print_url(r, *args, **kwargs):
+        print(r.url)
+
+
+    client = EntityAPI(request_hook=print_url)
+
+    for f in client.descendants():
+        print(f.reference)
+
+

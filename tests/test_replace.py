@@ -1,13 +1,13 @@
 import pytest
 from pyPreservica import *
 
-CO_ID = "08838224-3fcb-4bac-994d-ad74effaee58"
+CO_ID = "2b769cf6-f56e-4474-9604-1f3bf7588278"
 
 
 def test_add_rescan_sync():
     client = EntityAPI()
 
-    content_object = client.content_object("08838224-3fcb-4bac-994d-ad74effaee58")
+    content_object = client.content_object(CO_ID)
 
     file = "./test_data/LC-USZ62-20901.tiff"
 
