@@ -483,14 +483,16 @@ Here’s a sample implementation.
 Low Level Logging
 ^^^^^^^^^^^^^^^^^^^^^
 
-pyPreservica now provides low level hooks into the underlying API requests to the server. This allows clients to
-do things such as audit all the API endpoints which are called for example.
+pyPreservica now provides low level event hooks into the underlying API requests to the server.
+To use this functionality, create a call back function with the following signature `call_back(r, *args, **kwargs)`
+
+The first argument is the request object which can be queried.
+
+This API allows clients to do things such as audit all the API endpoints which are called for example.
+
 
 
 .. code-block:: python
-
-    from pyPreservica import *
-
 
     def print_url(r, *args, **kwargs):
         print(r.url)
@@ -499,6 +501,13 @@ do things such as audit all the API endpoints which are called for example.
     client = EntityAPI(request_hook=print_url)
 
     for f in client.descendants():
-        print(f.reference)
+        pass
+
+
+
+https://us.preservica.com/api/accesstoken/login
+https://us.preservica.com/api/entity/versiondetails/version
+https://us.preservica.com/api/user/details
+https://us.preservica.com/api/entity/root/children?start=0&max=100
 
 

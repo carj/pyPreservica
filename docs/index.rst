@@ -59,6 +59,7 @@ There is no support for use of the library by Preservica Ltd. For support see :r
    monitor
    webhooks
    authority
+   groups
    example
    api
 

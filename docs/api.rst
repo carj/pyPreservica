@@ -215,7 +215,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :return: The updated Entity
     :rtype: Entity
 
-   .. py:method::  delete_metadata(entity, entity, schema)
+   .. py:method::  delete_metadata(entity, schema)
 
     Delete an existing descriptive XML document on an entity by its schema
     This call will delete all fragments with the same schema
@@ -748,7 +748,11 @@ https://eu.preservica.com/api/admin/documentation.html
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: WorkflowContext
+    :members:
+    :undoc-members:
 .. autoclass:: WorkflowInstance
+    :members:
+    :undoc-members:
 .. autoclass:: WorkflowAPI
      :members:
 
@@ -773,7 +777,11 @@ https://us.preservica.com/api/processmonitor/documentation.html
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: MonitorStatus
+    :members:
+    :undoc-members:
 .. autoclass:: MonitorCategory
+    :members:
+    :undoc-members:
 .. autoclass:: MonitorAPI
      :members:
 
@@ -786,6 +794,9 @@ https://us.preservica.com/api/webhook/documentation.html
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: TriggerType
+    :members:
+    :undoc-members:
+
 .. autoclass:: WebHooksAPI
      :members:
 
@@ -799,5 +810,32 @@ This API is used for managing the Authority records within Preservica.
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: Table
+    :members:
+    :undoc-members:
+
 .. autoclass:: AuthorityAPI
+     :members:
+
+
+Metadata Groups API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+https://us.preservica.com/api/metadata/documentation.html#/%2Fgroups
+
+The Metadata Groups API is designed allows the creation of custom metadata within NGI (New Generation Interface).
+
+.. py:currentmodule:: pyPreservica
+.. autoclass:: Group
+    :members:
+    :undoc-members:
+
+.. autoclass:: GroupField
+    :members:
+    :undoc-members:
+
+.. autoclass:: GroupFieldType
+    :members:
+    :undoc-members:
+
+.. autoclass:: MetadataGroupsAPI
      :members:
