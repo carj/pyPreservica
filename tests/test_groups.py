@@ -35,9 +35,9 @@ def test_can_get_group():
 def test_can_add_group_by_object():
     client = MetadataGroupsAPI()
     group1: Group = Group("my_group_name1", "my_group_description1")
-    group1.fields.append(GroupField(field_id="attribute_1", name="Attribute 1", field_type=GroupFieldType.STRING))
-    group1.fields.append(GroupField(field_id="attribute_2", name="Attribute 2", field_type=GroupFieldType.NUMBER))
-    group1.fields.append(GroupField(field_id="attribute_3", name="Attribute 3", field_type=GroupFieldType.DATE))
+    group1.fields.append(GroupField(field_id="attribute_1", name="Attribute 1x", field_type=GroupFieldType.STRING))
+    group1.fields.append(GroupField(field_id="attribute_2", name="Attribute 2x", field_type=GroupFieldType.NUMBER))
+    group1.fields.append(GroupField(field_id="attribute_3", name="Attribute 3x", field_type=GroupFieldType.DATE))
 
     g1: dict = client.add_group(group1.name, group1.description, group1.fields)
 
@@ -46,17 +46,23 @@ def test_can_add_group_by_object():
 
     assert len(g1['fields']) == 3
 
-    client.delete_group(g1['id'])
+    group1: Group = client.group(g1['id'])
+
+    client.delete_group(group1.group_id)
 
 
 def test_can_add_new_fields_to_group():
     client = MetadataGroupsAPI()
 
-    group2: Group = Group("my_group_name11", "my_group_description11")
+    group2: Group = Group("test_group_1", "test_group_1_description")
+
+    assert len(group2.fields) == 0
 
     group2.fields.append(GroupField(field_id="attribute_11", name="Attribute 11", field_type=GroupFieldType.STRING))
     group2.fields.append(GroupField(field_id="attribute_22", name="Attribute 22", field_type=GroupFieldType.NUMBER))
     group2.fields.append(GroupField(field_id="attribute_33", name="Attribute 33", field_type=GroupFieldType.DATE))
+
+    assert len(group2.fields) == 3
 
     g2: dict = client.add_group(group2.name, group2.description, group2.fields)
 

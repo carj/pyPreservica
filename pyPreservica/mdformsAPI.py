@@ -15,7 +15,7 @@ from typing import Callable, List, Union, Generator
 from pyPreservica.common import *
 
 
-class GroupFieldType(StrEnum):
+class GroupFieldType(Enum):
     STRING = "STRING"
     LONG_STRING = "LONGSTRING"
     DATE = "DATE"
@@ -60,11 +60,12 @@ class Group:
     name: str
     description: str
     schemaUri: str
-    fields: List[GroupField] = []
+    fields: List[GroupField]
 
     def __init__(self, name: str, description: str):
         self.name = name
         self.description = description
+        self.fields = []
 
     def __str__(self):
         return (f"Group ID: {self.group_id}\n" + f"Group Name: {self.name}\n" +
@@ -114,7 +115,7 @@ def _json_from_object_(group: Group) -> dict:
 
     fields = []
     for field in group.fields:
-        f = {"id": field.field_id, "name": field.name, "type": str(field.field_type)}
+        f = {"id": field.field_id, "name": field.name, "type": str(field.field_type.value)}
         f["minOccurs"] = str(field.minOccurs)
         f["maxOccurs"] = str(field.maxOccurs)
         f["visible"] = str(field.visible)
