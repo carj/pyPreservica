@@ -18,7 +18,7 @@ from .adminAPI import AdminAPI
 from .monitorAPI import MonitorAPI, MonitorCategory, MonitorStatus, MessageStatus
 from .webHooksAPI import WebHooksAPI, TriggerType, WebHookHandler
 from .authorityAPI import AuthorityAPI, Table
-from .mdformsAPI import MetadataGroupsAPI, GroupFieldType, GroupField, Group
+from .mdformsAPI import MetadataGroupsAPI, Group, GroupField, GroupFieldType
 
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
