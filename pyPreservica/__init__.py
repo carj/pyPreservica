@@ -23,6 +23,6 @@ from .mdformsAPI import MetadataGroupsAPI, Group, GroupField, GroupFieldType
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the pyPreservica package
-__version__ = "2.8.1"
+__version__ = "2.8.2"
 
 __license__ = "Apache License Version 2.0"

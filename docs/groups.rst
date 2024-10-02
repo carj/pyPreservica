@@ -163,6 +163,6 @@ You can add new metadata fields to an existing Group using
     new_fields.append(GroupField(field_id="issuing_country", name="Issuing Country", field_type=GroupFieldType.STRING))
     new_fields.append(GroupField(field_id="issue_date", name="Issue Date", field_type=GroupFieldType.DATE))
 
-    client.add_group(group_id="my group",  new_fields=new_fields)
+    client.add_fields(group_id="my group",  new_fields=new_fields)
 
 The new fields are appended to the end of the group metadata.
