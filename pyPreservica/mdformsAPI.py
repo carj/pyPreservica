@@ -9,7 +9,6 @@ licence:    Apache License 2.0
 
 """
 import xml.etree.ElementTree
-from enum import StrEnum
 from typing import Callable, List, Union, Generator
 
 from pyPreservica.common import *
