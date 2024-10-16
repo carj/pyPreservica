@@ -15,7 +15,7 @@ import xml.etree.ElementTree
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from time import sleep
-from typing import Any, Generator, Tuple, Iterable, Union, Callable
+from typing import Any, Generator, Tuple, Iterable, Union
 
 from pyPreservica.common import *
 
@@ -34,12 +34,8 @@ class EntityAPI(AuthenticatedAPI):
     """
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
-                 protocol: str = "https", request_hook: Callable = None):
-
-        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
-                         protocol, request_hook)
-
+                 use_shared_secret: bool = False, two_fa_secret_key: str = None, protocol: str = "https"):
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key, protocol)
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
 
@@ -57,13 +53,6 @@ class EntityAPI(AuthenticatedAPI):
         return self.security_tags_base(with_permissions=with_permissions)
 
     def bitstream_chunks(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> Generator:
-        """
-        Generator function to return bitstream chunks
-
-        :param bitstream:   The bitstream
-        :param chunk_size:  The chunk size to return
-        :return:            A chunk of the requested bitstream content
-        """
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")
             raise RuntimeError("bitstream_bytes argument is not a Bitstream object")
@@ -530,6 +519,76 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
+    def update_identifiers(self, entity: Entity, identifier_type: str = None, identifier_value: str = None):
+        """
+             Update external identifiers based on Entity and Type
+
+             Returns the internal identifier DB Key
+
+             :param entity: The entity to delete identifiers from
+             :param identifier_type: The type of the identifier to delete.
+             :param identifier_value: The value of the identifier to delete.
+          """
+
+        if (self.major_version < 7) and (self.minor_version < 1):
+            raise RuntimeError("delete_identifiers API call is not available when connected to a v6.0 System")
+
+        get_headers = {HEADER_TOKEN: self.token}
+        get_request = self.session.get(
+            f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers',
+            headers=get_headers)
+        
+        put_headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        xml_object = xml.etree.ElementTree.Element('Identifier', {"xmlns": self.xip_ns})
+        xml.etree.ElementTree.SubElement(xml_object, "Type").text = identifier_type
+        xml.etree.ElementTree.SubElement(xml_object, "Value").text = identifier_value
+        xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
+        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
+        
+        if get_request.status_code == requests.codes.ok:
+            xml_response = str(get_request.content.decode('utf-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            identifier_list = entity_response.findall(f'.//{{{self.xip_ns}}}Identifier')
+            for identifier_element in identifier_list:
+                _ref = _type = _value = _aipid = None
+                for identifier in identifier_element:
+                    if identifier.tag.endswith("Entity"):
+                        _ref = identifier.text
+                    if identifier.tag.endswith("Type") and identifier_type is not None:
+                        _type = identifier.text
+                    if identifier.tag.endswith("Value") and identifier_value is not None:
+                        _value = identifier.text
+                    if identifier.tag.endswith("ApiId"):
+                        _aipid = identifier.text
+                if _ref == entity.reference and _type == identifier_type:
+                    put_req = self.session.put(
+                        f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers/{_aipid}',
+                        headers=put_headers,data=xml_request)
+                    if put_req.status_code == requests.codes.ok:
+                        xml_string = str(put_req.content.decode("utf-8"))
+                        identifier_response = xml.etree.ElementTree.fromstring(xml_string)
+                        aip_id = identifier_response.find(f'.//{{{self.xip_ns}}}ApiId')
+                        if hasattr(aip_id, 'text'):
+                            return aip_id.text
+                        else:
+                            return None
+                    if put_req.status_code == requests.codes.unauthorized:
+                        self.token = self.__token__()
+                        return self.update_identifiers(entity, identifier_type, identifier_value)
+                    if put_req.status_code == requests.codes.no_content:
+                        pass
+                    else:
+                        return None
+            return entity
+        elif get_request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.update_identifiers(entity, identifier_type, identifier_value)
+        else:
+            logger.error(request)
+            raise RuntimeError(request.status_code, "delete_identifier failed")
+
+
     def add_identifier(self, entity: Entity, identifier_type: str, identifier_value: str):
         """
              Add a new identifier to an entity
@@ -793,18 +852,17 @@ class EntityAPI(AuthenticatedAPI):
         :param schema: The schema URI to match against
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-
         if schema not in entity.metadata.values():
             raise RuntimeError("Only existing schema's can be updated.")
 
         for url in entity.metadata:
             if schema == entity.metadata[url]:
                 mref = url[url.rfind(f"{entity.reference}/metadata/") + len(f"{entity.reference}/metadata/"):]
-                xml_object = xml.etree.ElementTree.Element('xip:MetadataContainer',
-                                                           {"schemaUri": schema, "xmlns:xip": self.xip_ns})
-                xml.etree.ElementTree.SubElement(xml_object, "xip:Ref").text = mref
-                xml.etree.ElementTree.SubElement(xml_object, "xip:Entity").text = entity.reference
-                content = xml.etree.ElementTree.SubElement(xml_object, "xip:Content")
+                xml_object = xml.etree.ElementTree.Element('MetadataContainer',
+                                                           {"schemaUri": schema, "xmlns": self.xip_ns})
+                xml.etree.ElementTree.SubElement(xml_object, "Ref").text = mref
+                xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
+                content = xml.etree.ElementTree.SubElement(xml_object, "Content")
                 if isinstance(data, str):
                     ob = xml.etree.ElementTree.fromstring(data)
                     content.append(ob)
@@ -840,10 +898,9 @@ class EntityAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
-        xml_object = xml.etree.ElementTree.Element('xip:MetadataContainer', {"schemaUri": schema,
-                                                                             "xmlns:xip": self.xip_ns})
-        xml.etree.ElementTree.SubElement(xml_object, "xip:Entity").text = entity.reference
-        content = xml.etree.ElementTree.SubElement(xml_object, "xip:Content")
+        xml_object = xml.etree.ElementTree.Element('MetadataContainer', {"schemaUri": schema, "xmlns": self.xip_ns})
+        xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
+        content = xml.etree.ElementTree.SubElement(xml_object, "Content")
         if isinstance(data, str):
             ob = xml.etree.ElementTree.fromstring(data)
             content.append(ob)
@@ -1434,8 +1491,6 @@ class EntityAPI(AuthenticatedAPI):
                 format_dict['FormatVersion'] = version.text if hasattr(version, 'text') else None
                 formats_list.append(format_dict)
 
-            index = int(url.rsplit("/", 1)[-1])
-
             properties = entity_response.findall(f'.//{{{self.xip_ns}}}Properties/{{{self.xip_ns}}}Property')
             property_set = []
             for tech_props in properties:
@@ -1458,7 +1513,6 @@ class EntityAPI(AuthenticatedAPI):
                                     bitstream_list)
             generation.formats = formats_list
             generation.properties = property_set
-            generation.gen_index = index
             return generation
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -1552,17 +1606,12 @@ class EntityAPI(AuthenticatedAPI):
             filesize = entity_response.find(f'.//{{{self.xip_ns}}}FileSize')
             fixity_values = entity_response.findall(f'.//{{{self.xip_ns}}}Fixity')
             content = entity_response.find(f'.//{{{self.entity_ns}}}Content')
-
-            index = int(url.rsplit("/", 1)[-1])
-
             fixity = {}
             for f in fixity_values:
                 fixity[f[0].text] = f[1].text
             bitstream = Bitstream(filename.text if hasattr(filename, 'text') else None,
                                   int(filesize.text) if hasattr(filesize, 'text') else None, fixity,
                                   content.text if hasattr(content, 'text') else None)
-
-            bitstream.bs_index = index
             return bitstream
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -1885,11 +1934,7 @@ class EntityAPI(AuthenticatedAPI):
     def children(self, folder: Union[str, Folder] = None, maximum: int = 100, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
         data = {'start': str(0), 'max': str(maximum)}
-
-        if isinstance(folder, Folder):
-            folder_reference = folder.reference
-        else:
-            folder_reference = folder
+        folder_reference = folder
         if next_page is None:
             if folder_reference is None:
                 request = self.session.get(f'{self.protocol}://{self.server}/api/entity/root/children', params=data,
