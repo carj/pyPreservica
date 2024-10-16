@@ -423,8 +423,6 @@ class RetentionAPI(AuthenticatedAPI):
             next_url = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}Next')
             total_results = int(entity_response.find(
                 f'.//{{{self.entity_ns}}}TotalResults').text)
-            #if total_results > 250:
-            #    logger.error("Not all retention policies have been returned.")
             for assignment in entity_response.findall(f'.//{{{self.entity_ns}}}RetentionPolicy'):
                 ref = assignment.attrib['ref']
                 name = assignment.attrib['name']
