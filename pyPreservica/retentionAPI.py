@@ -60,7 +60,6 @@ class RetentionAPI(AuthenticatedAPI):
 
     def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False,
                  two_fa_secret_key: str = None, protocol: str = "https", request_hook: Callable = None):
-
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
                          protocol, request_hook)
         if self.major_version < 7 and self.minor_version < 2:
@@ -91,15 +90,22 @@ class RetentionAPI(AuthenticatedAPI):
             rp.description = description
             security_tag = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}SecurityTag').text
             rp.security_tag = security_tag
-            start_date_field = entity_response.find(
-                f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}StartDateField').text
-            rp.start_date_field = start_date_field
-            period = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Period').text
-            rp.period = period
-            period_unit = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}PeriodUnit').text
-            rp.period_unit = period_unit
-            expiry_action = entity_response.find(
-                f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}ExpiryAction')
+            start_date_field = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}StartDateField')
+            if start_date_field is not None:
+                rp.start_date_field = start_date_field.text
+            else: 
+                start_date_field = None
+            period = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Period')
+            if period is not None:
+                rp.period = period.text
+            else:
+                rp.period = None
+            period_unit = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}PeriodUnit')
+            if period_unit is not None:
+                rp.period_unit = period_unit.text
+            else:
+                rp.period_unit = None
+            expiry_action = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}ExpiryAction')
             if expiry_action is not None:
                 rp.expiry_action = expiry_action.text
             else:
@@ -390,10 +396,10 @@ class RetentionAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "policies failed")
 
-    def policies(self) -> Set[RetentionPolicy]:
+    def policies(self, maximum: int = 250, next_page: str = None) -> PagedSet:
         """
         Return a list of all retention policies
-        Only returns the first 250 policies in the system
+        Returns a maxmium of 250 policies by default
 
 
         :return: Set of retention policies
@@ -401,22 +407,33 @@ class RetentionAPI(AuthenticatedAPI):
 
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        data = {'start': str(0), 'max': "250"}
-        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', data=data, headers=headers)
+        params = {'start': str(0), 'max': str(maximum)}
+        
+        if next_page is None:
+            params = {'start': '0', 'max': str(maximum)}
+            request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', params=params, headers=headers)
+        else:
+            request = self.session.get(next_page,params=params)
+        
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             logger.debug(xml_response)
             result = set()
+            next_url = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}Next')
             total_results = int(entity_response.find(
                 f'.//{{{self.entity_ns}}}TotalResults').text)
-            if total_results > 250:
-                logger.error("Not all retention policies have been returned.")
             for assignment in entity_response.findall(f'.//{{{self.entity_ns}}}RetentionPolicy'):
                 ref = assignment.attrib['ref']
                 name = assignment.attrib['name']
                 result.add(self.policy(reference=ref))
-            return result
+            has_more = True
+            url = None
+            if next_url is None:
+                has_more = False
+            else:
+                url = next_url.text
+            return PagedSet(result,has_more,total_results,url)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.policies()
@@ -455,7 +472,11 @@ class RetentionAPI(AuthenticatedAPI):
             api_id = entity_response.find(f'.//{{{self.rm_ns}}}ApiId').text
             policy_ref = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy').text
             entity_ref = entity_response.find(f'.//{{{self.rm_ns}}}Entity').text
-            start_date = entity_response.find(f'.//{{{self.rm_ns}}}StartDate').text
+            start_date = entity_response.find(f'.//{{{self.rm_ns}}}StartDate')
+            if start_date is not None:
+                start_date = start_date.text
+            else:
+                start_date = None
             assert entity_ref == entity.reference
             assert policy_ref == policy.reference
             return RetentionAssignment(entity_ref, policy_ref, api_id, start_date)
@@ -516,7 +537,11 @@ class RetentionAPI(AuthenticatedAPI):
                 entity_ref = assignment.find(f'.//{{{self.rm_ns}}}Entity').text
                 assert entity_ref == entity.reference
                 policy = assignment.find(f'.//{{{self.rm_ns}}}RetentionPolicy').text
-                start_date = assignment.find(f'.//{{{self.rm_ns}}}StartDate').text
+                start_date = assignment.find(f'.//{{{self.rm_ns}}}StartDate')
+                if start_date is not None:
+                    start_date = start_date.text
+                else:
+                    start_date = None
                 expired = bool(assignment.find(f'.//{{{self.rm_ns}}}Expired').text == 'true')
                 api_id = assignment.find(f'.//{{{self.rm_ns}}}ApiId').text
                 ra = RetentionAssignment(entity_ref, policy, api_id, start_date, expired)
