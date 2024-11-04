@@ -880,10 +880,10 @@ class AuthenticatedAPI:
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False, two_fa_secret_key: str = None,
-                 protocol: str = "https", request_hook=None):
+                 protocol: str = "https", request_hook=None, credentials_path: str = 'credentials.properties'):
 
         config = configparser.ConfigParser(interpolation=configparser.Interpolation())
-        config.read('credentials.properties', encoding='utf-8')
+        config.read(os.path.relpath(credentials_path), encoding='utf-8')
         self.session: Session = requests.Session()
 
         if request_hook is not None:
