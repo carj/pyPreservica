@@ -1421,7 +1421,7 @@ class UploadAPI(AuthenticatedAPI):
         try:
             auth = tweepy.AppAuthHandler(twitter_consumer_key, twitter_secret_key)
             api = tweepy.API(auth, wait_on_rate_limit=True)
-        except TweepError:
+        except RuntimeError:
             logger.error("No valid Twitter API keys. Could not authenticate")
             raise RuntimeError("No valid Twitter API keys. Could not authenticate")
         if api is not None:
@@ -1734,8 +1734,8 @@ class UploadAPI(AuthenticatedAPI):
                     self.upload_zip_package(path_to_zip_package=package, callback=progress_display,
                                             delete_after_upload=delete_after_upload)
                 else:
-                    self.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket_name,
-                                                  callback=progress_display,
+                    self.upload_zip_to_Source(path_to_zip_package=package, container_name=bucket_name,
+                                                  show_progress= bool(progress_display is not None),
                                                   delete_after_upload=delete_after_upload)
 
                 logger.info(f"Uploaded " + "{:.1f}".format(bytes_ingested / (1024 * 1024)) + " MB")

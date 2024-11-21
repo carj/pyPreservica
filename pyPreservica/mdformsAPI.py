@@ -96,6 +96,8 @@ def _object_from_json_(json_doc: dict) -> Group:
                 gf.editable = bool(field['editable'])
             if 'values' in field:
                 for v in field['values']:
+                    if gf.values is None:
+                        gf.values = []
                     gf.values.append(str(v))
             if 'defaultValue' in field:
                 gf.default = str(field['defaultValue'])

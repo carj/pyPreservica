@@ -1,4 +1,3 @@
-
 """
 pyPreservica EntityAPI module definition
 
@@ -572,7 +571,7 @@ class EntityAPI(AuthenticatedAPI):
                                       request.content.decode('utf-8'))
             logger.error(exception)
             raise exception
-        
+
     def update_identifiers(self, entity: Entity, identifier_type: str = None, identifier_value: str = None):
         """
              Update external identifiers based on Entity and Type
@@ -585,23 +584,15 @@ class EntityAPI(AuthenticatedAPI):
           """
 
         if (self.major_version < 7) and (self.minor_version < 1):
-            raise RuntimeError("delete_identifiers API call is not available when connected to a v6.0 System")
+            raise RuntimeError("update_identifiers API call is not available when connected to a v6.0 System")
 
-        get_headers = {HEADER_TOKEN: self.token}
-        get_request = self.session.get(
+        headers = {HEADER_TOKEN: self.token}
+        response = self.session.get(
             f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers',
-            headers=get_headers)
-        
-        put_headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+            headers=headers)
 
-        xml_object = xml.etree.ElementTree.Element('Identifier', {"xmlns": self.xip_ns})
-        xml.etree.ElementTree.SubElement(xml_object, "Type").text = identifier_type
-        xml.etree.ElementTree.SubElement(xml_object, "Value").text = identifier_value
-        xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
-        xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
-        
-        if get_request.status_code == requests.codes.ok:
-            xml_response = str(get_request.content.decode('utf-8'))
+        if response.status_code == requests.codes.ok:
+            xml_response = str(response.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             identifier_list = entity_response.findall(f'.//{{{self.xip_ns}}}Identifier')
             for identifier_element in identifier_list:
@@ -616,32 +607,40 @@ class EntityAPI(AuthenticatedAPI):
                     if identifier.tag.endswith("ApiId"):
                         _aipid = identifier.text
                 if _ref == entity.reference and _type == identifier_type:
-                    put_req = self.session.put(
+
+                    headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+                    xml_object = xml.etree.ElementTree.Element('Identifier', {"xmlns": self.xip_ns})
+                    xml.etree.ElementTree.SubElement(xml_object, "Type").text = identifier_type
+                    xml.etree.ElementTree.SubElement(xml_object, "Value").text = identifier_value
+                    xml.etree.ElementTree.SubElement(xml_object, "Entity").text = entity.reference
+                    xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
+
+                    put_response = self.session.put(
                         f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers/{_aipid}',
-                        headers=put_headers,data=xml_request)
-                    if put_req.status_code == requests.codes.ok:
-                        xml_string = str(put_req.content.decode("utf-8"))
+                        headers=headers, data=xml_request)
+                    if put_response.status_code == requests.codes.ok:
+                        xml_string = str(put_response.content.decode("utf-8"))
                         identifier_response = xml.etree.ElementTree.fromstring(xml_string)
                         aip_id = identifier_response.find(f'.//{{{self.xip_ns}}}ApiId')
                         if hasattr(aip_id, 'text'):
                             return aip_id.text
                         else:
                             return None
-                    if put_req.status_code == requests.codes.unauthorized:
+                    if put_response.status_code == requests.codes.unauthorized:
                         self.token = self.__token__()
                         return self.update_identifiers(entity, identifier_type, identifier_value)
-                    if put_req.status_code == requests.codes.no_content:
+                    if put_response.status_code == requests.codes.no_content:
                         pass
                     else:
                         return None
             return entity
-        elif get_request.status_code == requests.codes.unauthorized:
+        elif response.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.update_identifiers(entity, identifier_type, identifier_value)
         else:
-            logger.error(request)
-            raise RuntimeError(request.status_code, "delete_identifier failed")
-
+            logger.error(response)
+            raise RuntimeError(response.status_code, "update_identifiers failed")
 
     def delete_relationships(self, entity: Entity, relationship_type: str = None):
         """
@@ -2346,6 +2345,8 @@ class EntityAPI(AuthenticatedAPI):
                     entity_response = xml.etree.ElementTree.fromstring(req.content.decode("utf-8"))
                     status = entity_response.find(".//{http://status.preservica.com}Status")
                     if hasattr(status, 'text'):
+                        if status.text == "COMPLETED":
+                            return entity.reference
                         if status.text == "PENDING":
                             headers = {HEADER_TOKEN: self.manager_token(manager_username, manager_password),
                                        'Content-Type': 'application/xml;charset=UTF-8'}

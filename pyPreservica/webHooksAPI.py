@@ -74,6 +74,7 @@ class TriggerType(Enum):
     MOVED = "MOVED"
     INDEXED = "FULL_TEXT_INDEXED"
     SECURITY_CHANGED = "CHANGED_SECURITY_DESCRIPTOR"
+    INGEST_FAILED = "INGEST_FAILED"
 
 
 class WebHooksAPI(AuthenticatedAPI):
