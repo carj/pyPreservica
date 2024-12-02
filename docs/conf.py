@@ -21,6 +21,8 @@ extensions = [
 
 html_theme = "sphinx_rtd_theme"
 
+html_extra_path = ["googled4940437d6a0a50d.html"]
+
 default_dark_mode = False
 
 version = __version__
