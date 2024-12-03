@@ -208,6 +208,37 @@ To use the default callback in your scripts include the following line
 
     client.search_callback(client.ReportProgressCallBack())
 
+Excluding results from Search
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The search API now allows results to be excluded from results by applying a operator to exclude terms.
+
+.. note::
+    This functionality is only available in Preservica 7.5 and later.
+
+To use this new functionality pyPreservica has provided a new search API which takes
+a list of  ```Field```  objects. The ```Field```  object has a name of the index, the value
+to search from and a sort order. There is also an optional operator which determines if the field
+value should be excluded or included in the search.
+
+To include filters in the search use:
+
+.. code-block:: python
+
+    fields = [Field(name='xip.title', value='Blockchain']
+
+    for hit in content.search_fields(query="%", fields=fields):
+        print(hit)
+
+To exclude filters in the search use:
+
+.. code-block:: python
+
+    fields = [Field(name='xip.title', value='Blockchain', operator="NOT",  sort_order=SortOrder.desc)]
+
+    for hit in content.search_fields(query="%", fields=fields):
+        print(hit)
+
 
 Reporting Examples
 ^^^^^^^^^^^^^^^^^^^^

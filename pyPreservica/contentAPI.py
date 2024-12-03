@@ -10,10 +10,27 @@ licence:    Apache License 2.0
 """
 
 import csv
-from typing import Generator, Callable
+from typing import Generator, Callable, Optional
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
+
+class SortOrder(Enum):
+    asc = 1
+    desc = 2
+
+class Field:
+    name: str
+    value: Optional[str]
+    operator: Optional[str]
+    sort_order: Optional[SortOrder]
+
+    def __init__(self, name: str, value: str, operator: Optional[str]=None, sort_order: Optional[SortOrder]=None):
+        self.name = name
+        self.value = value
+        self.operator = operator
+        self.sort_order = sort_order
+
 
 
 class ContentAPI(AuthenticatedAPI):
@@ -211,6 +228,93 @@ class ContentAPI(AuthenticatedAPI):
             writer = csv.DictWriter(csv_file, fieldnames=header_fields)
             writer.writeheader()
             writer.writerows(self.search_index_filter_list(query, page_size, filter_values, sort_values))
+
+    def search_fields(self, query: str = "%",  fields: list[Field]=None,  page_size: int = 25) -> Generator:
+        """
+        Run a search query with multiple fields
+
+        :param query: The main search query.
+        :param fields:  List of search fields
+        :param page_size:  The default search page size
+        :return: search result
+        """
+        search_result = self._search_fields(query=query, fields=fields, start_index=0, page_size=page_size)
+        for e in search_result.results_list:
+            yield e
+        found = len(search_result.results_list)
+        while search_result.hits > found:
+            search_result = self._search_fields(query=query, fields=fields, start_index=found, page_size=page_size)
+            for e in search_result.results_list:
+                yield e
+            found = found + len(search_result.results_list)
+
+    def _search_fields(self, query: str = "%", fields: list[Field]=None, start_index: int = 0, page_size: int = 25):
+
+        start_from = str(start_index)
+        headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
+
+        if fields is None:
+            fields = []
+
+        field_list = []
+        sort_list = []
+        metadata_elements = []
+        for field in fields:
+            metadata_elements.append(field.name)
+            if field.value is None or field.value == "":
+                field_list.append('{' f' "name": "{field.name}", "values": [] ' + '}')
+            elif field.operator == "NOT":
+                field_list.append('{' f' "name": "{field.name}", "values": ["{field.value}"], "operator": "NOT" ' + '}')
+            else:
+                field_list.append('{' f' "name": "{field.name}", "values": ["{field.value}"] ' + '}')
+
+            if field.sort_order is not None:
+                sort_list.append(f'{{"sortFields": ["{field.name}"], "sortOrder": "{field.sort_order.name}"}}')
+
+
+        filter_terms = ','.join(field_list)
+
+        if len(sort_list) == 0:
+            query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
+        else:
+            sort_terms = ','.join(sort_list)
+            query_term = ('{ "q":  "%s",  "fields":  [ %s ],  "sort": [ %s ]}' % (query, filter_terms, sort_terms))
+
+        if len(metadata_elements) == 0:
+            metadata_elements.append("xip.title")
+
+
+        payload = {'start': start_from, 'max': str(page_size), 'metadata': list(metadata_elements), 'q': query_term}
+        logger.debug(payload)
+        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload,
+                                    headers=headers)
+        results_list = []
+        if results.status_code == requests.codes.ok:
+            json_doc = results.json()
+            metadata = json_doc['value']['metadata']
+            refs = list(json_doc['value']['objectIds'])
+            refs = list(map(lambda x: content_api_identifier_to_type(x), refs))
+            hits = int(json_doc['value']['totalHits'])
+
+            for m_row, r_row in zip(metadata, refs):
+                results_map = {'xip.reference': r_row[1]}
+                for li in m_row:
+                    results_map[li['name']] = li['value']
+                results_list.append(results_map)
+            next_start = start_index + page_size
+
+            if self.callback is not None:
+                value = str(f'{len(results_list) + start_index}:{hits}')
+                self.callback(value)
+
+            search_results = self.SearchResult(metadata, refs, hits, results_list, next_start)
+            return search_results
+        elif results.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self._search_predicates(query, predicates, start_index, page_size)
+        else:
+            logger.error(f"search failed with error code: {results.status_code}")
+            raise RuntimeError(results.status_code, f"search_index_filter failed")
 
     def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict = None,
                                  sort_values: dict = None) -> Generator:
