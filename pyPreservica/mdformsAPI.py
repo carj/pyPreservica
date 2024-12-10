@@ -421,7 +421,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def forms(self, schema_uri: str|None = None) -> dict:
+    def forms(self, schema_uri: Union[str, None] = None) -> dict:
         """
             Return all the metadata Forms in the tenancy as a list of JSON dict objects
 
@@ -441,7 +441,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         with self.session.get(url, headers=headers, params=params) as request:
             if request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
-                return self.forms_json()
+                return self.forms()
             elif request.status_code == requests.codes.ok:
                 return json.loads(str(request.content.decode('utf-8')))['metadataForms']
             else:
@@ -467,7 +467,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         with self.session.get(url, headers=headers) as request:
             if request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
-                return self.form_json(form_id)
+                return self.form(form_id)
             elif request.status_code == requests.codes.ok:
                 return json.loads(str(request.content.decode('utf-8')))
             else:
