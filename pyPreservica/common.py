@@ -79,9 +79,9 @@ class FileHash:
 
 def identifiersToDict(identifiers: set) -> dict:
     """
-    Convert a set of tuples to a dict
-    :param identifiers:
-    :return:
+        Convert a set of tuples to a dict
+        :param identifiers:
+        :return:
     """
     result = {}
     for identifier_tuple in identifiers:

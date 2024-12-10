@@ -238,6 +238,10 @@ class ContentAPI(AuthenticatedAPI):
         :param page_size:  The default search page size
         :return: search result
         """
+
+        if self.major_version < 7 and self.minor_version < 5:
+            raise RuntimeError("search_fields API call is not available when connected to a v7.5 System")
+
         search_result = self._search_fields(query=query, fields=fields, start_index=0, page_size=page_size)
         for e in search_result.results_list:
             yield e

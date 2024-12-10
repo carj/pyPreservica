@@ -454,6 +454,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request)
             raise RuntimeError(request.status_code, "delete_identifier failed")
 
+
     def identifiers_for_entity(self, entity: Entity) -> set[Tuple]:
         """
              Get all external identifiers on an entity
@@ -490,6 +491,8 @@ class EntityAPI(AuthenticatedAPI):
                                       request.content.decode('utf-8'))
             logger.error(exception)
             raise exception
+
+
 
     def identifier(self, identifier_type: str, identifier_value: str) -> set[Entity]:
         """
