@@ -60,6 +60,7 @@ There is no support for use of the library by Preservica Ltd. For support see :r
    webhooks
    authority
    groups
+   tutorial
    example
    api
 
