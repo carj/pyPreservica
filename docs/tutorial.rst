@@ -50,3 +50,6 @@ The following tutorial provides a detailed description of setting up your first 
 https://www.jetbrains.com/help/pycharm/creating-and-running-your-first-python-project.html
 
 
+Installing pyPreservica
+^^^^^^^^^^^^^^^^^^^^^^^^
+

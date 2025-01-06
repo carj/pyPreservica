@@ -13,20 +13,22 @@ import shutil
 import tempfile
 import uuid
 import xml
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import sleep
 from xml.dom import minidom
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 
 import boto3
+import botocore
 import s3transfer.tasks
 import s3transfer.upload
-
+from botocore.session import get_session
 from boto3.s3.transfer import TransferConfig, S3Transfer
 from botocore.config import Config
 from botocore.credentials import RefreshableCredentials
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
+from dateutil.tz import tzlocal
 from s3transfer import S3UploadFailedError
 from tqdm import tqdm
 
@@ -37,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 MB = 1024 * 1024
 GB = 1024 ** 3
-transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 16))
+transfer_config = TransferConfig(multipart_threshold=int(32 * MB))
 
 CONTENT_FOLDER = "content"
 PRESERVATION_CONTENT_FOLDER = "p1"
@@ -1910,9 +1912,38 @@ class UploadAPI(AuthenticatedAPI):
         endpoint = f'{self.protocol}://{self.server}/api/s3/buckets'
         self.token = self.__token__()
 
-        s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=self.token,
-                                 aws_secret_access_key="NOT_USED",
-                                 config=Config(s3={'addressing_style': 'path'}))
+
+        retries= {
+            'max_attempts': 10,
+            'mode': 'adaptive'
+        }
+
+        def new_credentials():
+            metadata: dict = {}
+            metadata['access_key'] =  self.__token__()
+            metadata['secret_key'] = "NOT_USED"
+            metadata['token'] = ""
+            metadata["expiry_time"] = (datetime.now(tzlocal()) + timedelta(minutes=12)).isoformat()
+            logger.info("Refreshing credentials at: " + str(datetime.now(tzlocal())))
+            return metadata
+
+        session = get_session()
+
+        session_credentials = RefreshableCredentials.create_from_metadata(
+            metadata=new_credentials(),
+            refresh_using=new_credentials,
+            advisory_timeout = 4 * 60,
+            mandatory_timeout = 12 * 60,
+            method = 'Preservica'
+        )
+
+        autorefresh_session = boto3.Session(botocore_session=session)
+
+        session._credentials = session_credentials
+
+        s3_client = autorefresh_session.client('s3', endpoint_url=endpoint,
+                                 config=Config(s3={'addressing_style': 'path'}, read_timeout=120, connect_timeout=120,
+                                 retries=retries, tcp_keepalive=True))
 
         metadata = {}
         if folder is not None:
@@ -1925,21 +1956,48 @@ class UploadAPI(AuthenticatedAPI):
             try:
                 key_id = str(uuid.uuid4()) + ".zip"
 
+
+                # how big is the package
+                package_size = os.path.getsize(path_to_zip_package)
+                if package_size > 1 * GB:
+                    transfer_config.multipart_chunksize = 16 * MB   ## Min 64 Chunks
+                if package_size > 8 * GB:
+                    transfer_config.multipart_chunksize = 32 * MB   ## Min 256 Chunks
+                if package_size > 24 * GB:
+                    transfer_config.multipart_chunksize = 48 * MB   ## Min 512 Chunks
+                if package_size > 48 * GB:
+                    transfer_config.multipart_chunksize = 64 * MB
+
+                logger.info("Using Multipart Chunk Size: " + str(transfer_config.multipart_chunksize))
+
                 transfer = S3Transfer(client=s3_client, config=transfer_config)
 
                 transfer.PutObjectTask = PutObjectTask
                 transfer.CompleteMultipartUploadTask = CompleteMultipartUploadTask
                 transfer.upload_file = upload_file
 
-                response = transfer.upload_file(self=transfer, filename=path_to_zip_package, bucket=bucket, key=key_id,
+
+                response = transfer.upload_file(self=transfer, filename=path_to_zip_package, bucket=bucket,
+                                                key=key_id,
                                                 extra_args=metadata,
                                                 callback=callback)
+
 
                 if delete_after_upload:
                     os.remove(path_to_zip_package)
 
                 return response['ResponseMetadata']['HTTPHeaders']['preservica-progress-token']
 
-            except ClientError as e:
-                logger.error(e)
-                raise e
+            except (NoCredentialsError, PartialCredentialsError) as ex:
+                logger.error(ex)
+                raise ex
+
+            except ClientError as ex:
+                logger.error(ex)
+                raise ex
+
+
+
+
+
+
