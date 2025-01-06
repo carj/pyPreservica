@@ -35,11 +35,12 @@ class Field:
 
 class ContentAPI(AuthenticatedAPI):
 
-    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False,
-                 two_fa_secret_key: str = None, protocol: str = "https", request_hook: Callable = None):
+    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
+                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
+                 protocol: str = "https", request_hook: Callable = None, credentials_path: str = 'credentials.properties'):
 
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
-                         protocol, request_hook)
+                         protocol, request_hook, credentials_path)
         self.callback = None
 
     class SearchResult:

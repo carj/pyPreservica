@@ -134,12 +134,13 @@ def _json_from_object_(group: Group) -> dict:
 
 
 class MetadataGroupsAPI(AuthenticatedAPI):
+
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False, two_fa_secret_key: str = None,
-                 protocol: str = "https", request_hook: Callable = None):
+                 protocol: str = "https", request_hook: Callable = None, credentials_path: str = 'credentials.properties'):
 
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
-                         protocol, request_hook)
+                         protocol, request_hook, credentials_path)
 
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")

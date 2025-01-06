@@ -35,10 +35,10 @@ class EntityAPI(AuthenticatedAPI):
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False, two_fa_secret_key: str = None,
-                 protocol: str = "https", request_hook: Callable = None):
+                 protocol: str = "https", request_hook: Callable = None, credentials_path: str = 'credentials.properties'):
 
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
-                         protocol, request_hook)
+                         protocol, request_hook, credentials_path)
 
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
@@ -2281,7 +2281,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def delete_asset(self, asset: Asset, operator_comment: str, supervisor_comment: str):
+    def delete_asset(self, asset: Asset, operator_comment: str, supervisor_comment: str, credentials_path: str = "credentials.properties"):
         """
         Delete an asset from the repository
 
@@ -2290,11 +2290,11 @@ class EntityAPI(AuthenticatedAPI):
         :param supervisor_comment:  The supervisor comment on the deletion
         """
         if isinstance(asset, Asset):
-            return self._delete_entity(asset, operator_comment, supervisor_comment)
+            return self._delete_entity(asset, operator_comment, supervisor_comment, credentials_path)
         else:
             raise RuntimeError("delete_asset only deletes assets")
 
-    def delete_folder(self, folder: Folder, operator_comment: str, supervisor_comment: str):
+    def delete_folder(self, folder: Folder, operator_comment: str, supervisor_comment: str, credentials_path: str = "credentials.properties"):
         """
          Delete an asset from the repository
 
@@ -2304,11 +2304,11 @@ class EntityAPI(AuthenticatedAPI):
          :param supervisor_comment:  The supervisor comment on the deletion
          """
         if isinstance(folder, Folder):
-            return self._delete_entity(folder, operator_comment, supervisor_comment)
+            return self._delete_entity(folder, operator_comment, supervisor_comment, credentials_path)
         else:
             raise RuntimeError("delete_folder only deletes folders")
 
-    def _delete_entity(self, entity: Entity, operator_comment: str, supervisor_comment: str):
+    def _delete_entity(self, entity: Entity, operator_comment: str, supervisor_comment: str, credentials_path: str = "credentials.properties"):
         """
         Delete an asset from the repository
 
@@ -2319,7 +2319,7 @@ class EntityAPI(AuthenticatedAPI):
 
         # check manager password is available:
         config = configparser.ConfigParser()
-        config.read('credentials.properties', encoding='utf-8')
+        config.read(credentials_path, encoding='utf-8')
         try:
             manager_username = config['credentials']['manager.username']
             manager_password = config['credentials']['manager.password']
@@ -2373,7 +2373,7 @@ class EntityAPI(AuthenticatedAPI):
                                        headers=headers)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self._delete_entity(entity, operator_comment, supervisor_comment)
+            return self._delete_entity(entity, operator_comment, supervisor_comment, credentials_path)
         if request.status_code == requests.codes.unprocessable:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "no active workflow context for full deletion exists in the system")
