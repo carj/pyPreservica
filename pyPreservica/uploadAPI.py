@@ -1659,7 +1659,22 @@ class UploadAPI(AuthenticatedAPI):
 
     def crawl_filesystem(self, filesystem_path, bucket_name, preservica_parent, callback: bool = False,
                          security_tag: str = "open",
-                         delete_after_upload: bool = True, max_MB_ingested: int = -1):
+                         delete_after_upload: bool = True, max_MB_ingested: int = -1, max_workflows = 8):
+        """
+        Crawl a filesystem and upload the contents to Preservica, the filesystem structure is mirrored in Preservica
+
+
+        :param str filesystem_path: The path to the filesystem to crawl
+        :param str bucket_name: The name of the bucket to upload to, use None to send directly to Preservica
+        :param str preservica_parent: The parent folder in Preservica to upload to
+        :param bool callback: Show upload progress bar
+        :param str security_tag: The security tag to apply to the uploaded assets
+        :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
+        :param int max_MB_ingested: The maximum number of MB to ingest
+        :param int max_workflows: The maximum number of workflows to run concurrently
+
+
+        """
 
         def get_parent(client, identifier, parent_reference):
             id = str(os.path.dirname(identifier))
@@ -1684,8 +1699,13 @@ class UploadAPI(AuthenticatedAPI):
                 folder = entities.pop()
             return folder
 
-        from pyPreservica import EntityAPI
+        from pyPreservica import EntityAPI, WorkflowAPI
         entity_client = EntityAPI(username=self.username, password=self.password, server=self.server,
+                                  tenant=self.tenant,
+                                  two_fa_secret_key=self.two_fa_secret_key, use_shared_secret=self.shared_secret,
+                                  protocol=self.protocol)
+
+        workflow_client = WorkflowAPI(username=self.username, password=self.password, server=self.server,
                                   tenant=self.tenant,
                                   two_fa_secret_key=self.two_fa_secret_key, use_shared_secret=self.shared_secret,
                                   protocol=self.protocol)
@@ -1731,6 +1751,11 @@ class UploadAPI(AuthenticatedAPI):
                     progress_display = UploadProgressConsoleCallback(package)
                 else:
                     progress_display = None
+
+                workflow_queue_length = len(list(workflow_client.workflow_instances(workflow_state="Active", workflow_type="Ingest")))
+                while workflow_queue_length > max_workflows:
+                    sleep(30)
+                    workflow_queue_length = len(list(workflow_client.workflow_instances(workflow_state="Active", workflow_type="Ingest")))
 
                 if bucket_name is None:
                     self.upload_zip_package(path_to_zip_package=package, callback=progress_display,

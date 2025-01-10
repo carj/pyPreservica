@@ -405,6 +405,9 @@ class Bitstream:
         self.length = int(length)
         self.fixity = fixity
         self.content_url = content_url
+        self.bs_index = None
+        self.gen_index = None
+        self.co_ref = None
 
     def __str__(self):
         return f"""

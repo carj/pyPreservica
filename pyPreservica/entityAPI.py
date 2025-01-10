@@ -8,7 +8,7 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-import hashlib
+
 import os.path
 import uuid
 import xml.etree.ElementTree
@@ -117,6 +117,38 @@ class EntityAPI(AuthenticatedAPI):
                                           request.content.decode('utf-8'))
                 logger.error(exception)
                 raise exception
+
+    def bitstream_location(self, bitstream: Bitstream):
+        """"
+        Retrieves information about a bitstreams storage locations
+        """
+        if not isinstance(bitstream, Bitstream):
+            logger.error("bitstream argument is not a Bitstream object")
+            raise RuntimeError("bitstream argument is not a Bitstream object")
+
+        storage_locations = []
+
+        url: str = f'{self.protocol}://{self.server}/api/entity/content-objects/{bitstream.co_ref}/generations/{bitstream.gen_index}/bitstreams/{bitstream.bs_index}/storage-locations'
+
+        with self.session.get(url, headers={HEADER_TOKEN: self.token}, stream=True) as request:
+            if request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.bitstream_location(bitstream)
+            elif request.status_code == requests.codes.ok:
+                xml_response = str(request.content.decode('utf-8'))
+                entity_response = xml.etree.ElementTree.fromstring(xml_response)
+                logger.debug(xml_response)
+                locations = entity_response.find(f'.//{{{self.entity_ns}}}StorageLocation')
+                for adapter in locations:
+                    storage_locations.append(adapter.attrib['name'])
+            else:
+                exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_location",
+                                          request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
+
+        return storage_locations
+
 
     def bitstream_content(self, bitstream: Bitstream, filename: str, chunk_size: int = CHUNK_SIZE) -> Union[int, None]:
         """
@@ -1474,7 +1506,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def generation(self, url: str) -> Generation:
+    def generation(self, url: str, content_ref: str = None) -> Generation:
         """
          Retrieve a list of generation objects
 
@@ -1524,7 +1556,11 @@ class EntityAPI(AuthenticatedAPI):
             bitstreams = entity_response.findall(f'./{{{self.entity_ns}}}Bitstreams/{{{self.entity_ns}}}Bitstream')
             bitstream_list = []
             for bit in bitstreams:
-                bitstream_list.append(self.bitstream(bit.text))
+                bs: Bitstream = self.bitstream(bit.text)
+                bs.gen_index = index
+                if content_ref is not None:
+                    bs.co_ref = content_ref
+                bitstream_list.append(bs)
             generation = Generation(strtobool(ge.attrib['original']), strtobool(ge.attrib['active']),
                                     format_group.text if hasattr(format_group, 'text') else None,
                                     effective_date.text if hasattr(effective_date, 'text') else None,
@@ -1741,7 +1777,7 @@ class EntityAPI(AuthenticatedAPI):
             result = []
             for g in generations:
                 if hasattr(g, 'text'):
-                    generation = self.generation(g.text)
+                    generation = self.generation(g.text, content_object.reference)
                     generation.asset = content_object.asset
                     generation.content_object = content_object
                     generation.representation_type = content_object.representation_type

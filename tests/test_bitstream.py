@@ -97,3 +97,11 @@ def test_get_bitstream_content(setup_data):
     assert os.path.isfile(bitstream.filename) is True
     assert Path(bitstream.filename).stat().st_size == 1942466
     os.remove(bitstream.filename)
+
+
+def test_get_bitstream_locations(setup_data):
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    for bs  in client.bitstreams_for_asset(asset):
+        locations = client.bitstream_location(bs)
+        assert "Primary Adapter" in locations

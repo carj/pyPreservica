@@ -637,6 +637,9 @@ Each Content Object will contain a least one Generation, migrated content may ha
         print(generation.effective_date)
         print(generation.bitstreams)
 
+
+
+
 Each Generation has a list of BitStreams which can be used to fetch the actual content from the server or
 fetch technical metadata about the bitstream itself.
 
@@ -663,6 +666,9 @@ objects. Each property is a single dictionary object with the following keys: PU
             print(key, value)
 
 
+
+BitStreams
+^^^^^^^^^^^^
 
 Generations also contain a list of bitstreams, these contain information about the bitstreams such as file size
 and fixity etc.
@@ -743,7 +749,35 @@ The method also allows a second argument which defines the size of chunk returne
         for chunk in client.bitstream_chunks(bitstream, chunk_size8k):
             doSomeThing(chunk)
 
+The storage adapters which hold a copy of the bitstream can be found using:
 
+.. code-block:: python
+
+    chunk_size8k = 8*1024
+    for bitstream in client.bitstreams_for_asset(asset):
+        locations = client.bitstream_location(bitstream)
+
+
+
+BitStream Integrity Check History
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can request the history of all integrity checks which have been carried out on a bitstream
+
+.. code-block:: python
+
+    for bitstream in generation.bitstreams:
+        for check in client.integrity_checks(bitstream):
+            print(check)
+
+The list of returned checks includes both full and quick integrity checks.
+
+.. note::
+    This call does not start a new check, it only returns information about previous checks.
+
+
+Adding Representations
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Since version Preservica 6.12 the API allows new Access representations to be added to an existing Asset.
 This allows organisations to migrate content outside of Preservica or add new access versions after the preservation
@@ -761,23 +795,6 @@ The Preservica tenancy requires the ``post.new.representation.feature`` flag to 
     pid = client.add_access_representation(asset, access_file="access.jpg")
 
 
-
-
-Integrity Check History
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You can request the history of all integrity checks which have been carried out on a bitstream
-
-.. code-block:: python
-
-    for bitstream in generation.bitstreams:
-        for check in client.integrity_checks(bitstream):
-            print(check)
-
-The list of returned checks includes both full and quick integrity checks.
-
-.. note::
-    This call does not start a new check, it only returns information about previous checks.
 
 Moving Entities
 ^^^^^^^^^^^^^^^^
