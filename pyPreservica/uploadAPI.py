@@ -20,7 +20,6 @@ from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 
 import boto3
-import botocore
 import s3transfer.tasks
 import s3transfer.upload
 from botocore.session import get_session
@@ -483,7 +482,7 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
     content_type = kwargs.get('CustomType', "")
 
     if not compress:
-        shutil.register_archive_format("szip", _make_stored_zipfile, None, "UnCompressed ZIP file")
+        shutil.register_archive_format(name="szip", function=_make_stored_zipfile, extra_args=None, description="UnCompressed ZIP file")
 
     has_preservation_files = bool((preservation_files_dict is not None) and (len(preservation_files_dict) > 0))
     has_access_files = bool((access_files_dict is not None) and (len(access_files_dict) > 0))
@@ -1531,7 +1530,7 @@ class UploadAPI(AuthenticatedAPI):
         """
             Ingest a web video such as YouTube etc based on the URL
 
-            :param str url: URL to the youtube video
+            :param str url: URL to the YouTube video
             :param Folder parent_folder: The folder to ingest the video into
             :param str Title: Optional asset title
             :param str Description: Optional asset description
@@ -1659,53 +1658,55 @@ class UploadAPI(AuthenticatedAPI):
 
     def crawl_filesystem(self, filesystem_path, bucket_name, preservica_parent, callback: bool = False,
                          security_tag: str = "open",
-                         delete_after_upload: bool = True, max_MB_ingested: int = -1, max_workflows = 8):
-        """
-        Crawl a filesystem and upload the contents to Preservica, the filesystem structure is mirrored in Preservica
+                         delete_after_upload: bool = True, max_MB_ingested: int = -1):
 
+        from pyPreservica import EntityAPI
 
-        :param str filesystem_path: The path to the filesystem to crawl
-        :param str bucket_name: The name of the bucket to upload to, use None to send directly to Preservica
-        :param str preservica_parent: The parent folder in Preservica to upload to
-        :param bool callback: Show upload progress bar
-        :param str security_tag: The security tag to apply to the uploaded assets
-        :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
-        :param int max_MB_ingested: The maximum number of MB to ingest
-        :param int max_workflows: The maximum number of workflows to run concurrently
+        def entity_value(client: EntityAPI, identifier: str) -> Entity:
+            back_off: int = 5
+            while True:
+                try:
+                    entities = client.identifier("code", identifier)
+                    if bool(len(entities) > 0):
+                        return entities.pop()
+                    else:
+                        return None
+                except HTTPException as e:
+                    sleep(back_off)
+                    back_off = back_off * 2
 
-
-        """
+        def entity_exists(client: EntityAPI, identifier: str) -> bool:
+            back_off: int = 5
+            while True:
+                try:
+                    entities = client.identifier("code", identifier)
+                    return bool(len(entities) > 0)
+                except HTTPException as e:
+                    sleep(back_off)
+                    back_off = back_off * 2
 
         def get_parent(client, identifier, parent_reference):
-            id = str(os.path.dirname(identifier))
-            if not id:
-                id = identifier
-            entities = client.identifier("code", id)
-            if len(entities) > 0:
-                folder = entities.pop()
+            dirname_id: str = str(os.path.dirname(identifier))
+            if not dirname_id:
+                dirname_id = identifier
+            folder = entity_value(client, dirname_id)
+            if folder is not None:
                 folder = client.folder(folder.reference)
                 return folder.reference
             else:
                 return parent_reference
 
         def get_folder(client, name, tag, parent_reference, identifier):
-            entities = client.identifier("code", identifier)
-            if len(entities) == 0:
+            folder = entity_value(client, identifier)
+            if folder is None:
                 logger.info(f"Creating new folder with name {name}")
                 folder = client.create_folder(name, name, tag, parent_reference)
                 client.add_identifier(folder, "code", identifier)
             else:
                 logger.info(f"Found existing folder with name {name}")
-                folder = entities.pop()
             return folder
 
-        from pyPreservica import EntityAPI, WorkflowAPI
         entity_client = EntityAPI(username=self.username, password=self.password, server=self.server,
-                                  tenant=self.tenant,
-                                  two_fa_secret_key=self.two_fa_secret_key, use_shared_secret=self.shared_secret,
-                                  protocol=self.protocol)
-
-        workflow_client = WorkflowAPI(username=self.username, password=self.password, server=self.server,
                                   tenant=self.tenant,
                                   two_fa_secret_key=self.two_fa_secret_key, use_shared_secret=self.shared_secret,
                                   protocol=self.protocol)
@@ -1734,7 +1735,7 @@ class UploadAPI(AuthenticatedAPI):
                     files.remove(file)
                     continue
                 asset_code = os.path.join(code, file)
-                if len(entity_client.identifier("code", asset_code)) == 0:
+                if not entity_exists(entity_client, asset_code):
                     bytes_ingested = bytes_ingested + os.stat(full_path).st_size
                     logger.info(f"Adding new file: {file} to package ready for upload")
                     file_identifiers = {"code": asset_code}
@@ -1752,18 +1753,13 @@ class UploadAPI(AuthenticatedAPI):
                 else:
                     progress_display = None
 
-                workflow_queue_length = len(list(workflow_client.workflow_instances(workflow_state="Active", workflow_type="Ingest")))
-                while workflow_queue_length > max_workflows:
-                    sleep(30)
-                    workflow_queue_length = len(list(workflow_client.workflow_instances(workflow_state="Active", workflow_type="Ingest")))
-
                 if bucket_name is None:
                     self.upload_zip_package(path_to_zip_package=package, callback=progress_display,
                                             delete_after_upload=delete_after_upload)
                 else:
                     self.upload_zip_to_Source(path_to_zip_package=package, container_name=bucket_name,
-                                                  show_progress= bool(progress_display is not None),
-                                                  delete_after_upload=delete_after_upload)
+                                              show_progress=bool(progress_display is not None),
+                                              delete_after_upload=delete_after_upload)
 
                 logger.info(f"Uploaded " + "{:.1f}".format(bytes_ingested / (1024 * 1024)) + " MB")
 
@@ -1939,18 +1935,18 @@ class UploadAPI(AuthenticatedAPI):
 
 
         retries= {
-            'max_attempts': 10,
+            'max_attempts': 5,
             'mode': 'adaptive'
         }
 
         def new_credentials():
-            metadata: dict = {}
-            metadata['access_key'] =  self.__token__()
-            metadata['secret_key'] = "NOT_USED"
-            metadata['token'] = ""
-            metadata["expiry_time"] = (datetime.now(tzlocal()) + timedelta(minutes=12)).isoformat()
+            cred_metadata: dict = {}
+            cred_metadata['access_key'] =  self.__token__()
+            cred_metadata['secret_key'] = "NOT_USED"
+            cred_metadata['token'] = ""
+            cred_metadata["expiry_time"] = (datetime.now(tzlocal()) + timedelta(minutes=12)).isoformat()
             logger.info("Refreshing credentials at: " + str(datetime.now(tzlocal())))
-            return metadata
+            return cred_metadata
 
         session = get_session()
 
@@ -1966,9 +1962,13 @@ class UploadAPI(AuthenticatedAPI):
 
         session._credentials = session_credentials
 
-        s3_client = autorefresh_session.client('s3', endpoint_url=endpoint,
-                                 config=Config(s3={'addressing_style': 'path'}, read_timeout=120, connect_timeout=120,
-                                 retries=retries, tcp_keepalive=True))
+        config = Config(s3={'addressing_style': 'path'}, read_timeout=120, connect_timeout=120,
+               request_checksum_calculation="WHEN_REQUIRED",
+               response_checksum_validation="WHEN_REQUIRED",
+               retries=retries, tcp_keepalive=True)
+
+
+        s3_client = autorefresh_session.client('s3', endpoint_url=endpoint, config=config)
 
         metadata = {}
         if folder is not None:

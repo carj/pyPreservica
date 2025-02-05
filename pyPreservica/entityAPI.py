@@ -70,7 +70,7 @@ class EntityAPI(AuthenticatedAPI):
         with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as request:
             if request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
-                return self.bitstream_chunks(bitstream)
+                yield from self.bitstream_chunks(bitstream)
             elif request.status_code == requests.codes.ok:
                 for chunk in request.iter_content(chunk_size=chunk_size):
                     yield chunk
@@ -1068,6 +1068,10 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
+    def get_progress(self, pid: str) -> AsyncProgress:
+        return AsyncProgress[self.get_async_progress(pid)]
+
+
     def get_async_progress(self, pid: str) -> str:
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/entity/progress/{pid}", headers=headers)
@@ -1181,7 +1185,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def all_metadata(self, entity: Entity) -> Tuple:
+    def all_metadata(self, entity: Entity) -> Generator[Tuple[str, str], None, None]:
         """
         Retrieve all metadata fragments on an entity
 
@@ -1511,6 +1515,7 @@ class EntityAPI(AuthenticatedAPI):
          Retrieve a list of generation objects
 
          :param url:
+         :param content_ref:
          :returns Generation
          """
         headers = {HEADER_TOKEN: self.token}
@@ -1873,9 +1878,46 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
+    # def add_preservation_representation(self, entity: Entity, preservation_file: str, name: str = "Preservation"):
+    #     """
+    #     Add a new Preservation representation to an existing asset.
+    #
+    #     :param entity:          The existing asset which will receive the new representation
+    #     :param preservation_file:     The new digital file
+    #     :param name:            The name of the new access representation defaults to "Access"
+    #     :return:
+    #     """
+    #
+    #     if self.major_version < 7 and self.minor_version < 12:
+    #         raise RuntimeError("Add Representation API is only available when connected to a v6.12 System")
+    #
+    #     if isinstance(entity, Folder) or isinstance(entity, ContentObject):
+    #         raise RuntimeError("Add Representation cannot be added to Folders and Content Objects")
+    #
+    #     headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+    #
+    #     filename = os.path.basename(preservation_file)
+    #
+    #     params = {'type': 'Preservation', 'name': name, 'filename': filename}
+    #
+    #     with open(preservation_file, 'rb') as fd:
+    #         request = self.session.post(
+    #             f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/representations',
+    #             data=fd, headers=headers, params=params)
+    #         if request.status_code == requests.codes.accepted:
+    #             return str(request.content.decode('utf-8'))
+    #         elif request.status_code == requests.codes.unauthorized:
+    #             self.token = self.__token__()
+    #             return self.add_access_representation(entity, preservation_file, name)
+    #         else:
+    #             exception = HTTPException(entity.reference, request.status_code, request.url,
+    #                                       "add_preservation_representation", request.content.decode('utf-8'))
+    #             logger.error(exception)
+    #             raise exception
+
     def add_access_representation(self, entity: Entity, access_file: str, name: str = "Access"):
         """
-        Add a new representation to an existing asset.
+        Add a new Access representation to an existing asset.
 
         :param entity:          The existing asset which will receive the new representation
         :param access_file:     The new digital file
@@ -2324,6 +2366,7 @@ class EntityAPI(AuthenticatedAPI):
         :param asset:               The Asset
         :param operator_comment:    The operator comment on the deletion
         :param supervisor_comment:  The supervisor comment on the deletion
+        :param credentials_path:    The path to the credentials file
         """
         if isinstance(asset, Asset):
             return self._delete_entity(asset, operator_comment, supervisor_comment, credentials_path)
@@ -2338,6 +2381,7 @@ class EntityAPI(AuthenticatedAPI):
          :param folder:             The Folder
          :param operator_comment:   The operator comment on the deletion
          :param supervisor_comment:  The supervisor comment on the deletion
+         :param credentials_path:    The path to the credentials file
          """
         if isinstance(folder, Folder):
             return self._delete_entity(folder, operator_comment, supervisor_comment, credentials_path)

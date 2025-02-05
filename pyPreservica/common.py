@@ -23,7 +23,7 @@ import xml.etree.ElementTree
 from enum import Enum
 from pathlib import Path
 import pyotp
-from requests import Response, Session
+from requests import Session
 from urllib3.util import Retry
 import requests
 from requests.adapters import HTTPAdapter
@@ -566,6 +566,22 @@ class Thumbnail(Enum):
     SMALL = "small"
     MEDIUM = "medium"
     LARGE = "large"
+
+
+class AsyncProgress(Enum):
+    """
+    Enumeration of the possible status of an asynchronous process
+    """
+    ABORTED = "ABORTED"
+    ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
+    PENDING = "PENDING"
+    SUSPENDING = "SUSPENDING"
+    SUSPENDED = "SUSPENDED"
+    UNKNOWN = "UNKNOWN"
+    FAILED = "FAILED"
+    FINISHED_MIXED_OUTCOME = "FINISHED_MIXED_OUTCOME"
+    CANCELLED = "CANCELLED"
 
 
 def sanitize(filename) -> str:

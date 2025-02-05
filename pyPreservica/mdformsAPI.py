@@ -8,7 +8,6 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-import json
 import xml.etree.ElementTree
 from typing import Callable, List, Union, Generator
 
@@ -251,7 +250,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
 
     def add_form(self, json_form: Union[dict, str]):
         """
-        Create a new Metadata fORM using a JSON dictionary object or document
+        Create a new Metadata form using a JSON dictionary object or document
 
         :param json_form: JSON dictionary or string
         :type json_form: dict
@@ -267,7 +266,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
             with self.session.post(url, headers=headers, json=json_form) as request:
                 if request.status_code == requests.codes.unauthorized:
                     self.token = self.__token__()
-                    return self.add_form_json(json_form)
+                    return self.add_form(json_form)
                 elif request.status_code == requests.codes.created:
                     return json.loads(str(request.content.decode('utf-8')))
                 else:
@@ -280,7 +279,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
             with self.session.post(url, headers=headers, data=json_form) as request:
                 if request.status_code == requests.codes.unauthorized:
                     self.token = self.__token__()
-                    return self.add_form_json(json_form)
+                    return self.add_form(json_form)
                 elif request.status_code == requests.codes.created:
                     return json.loads(str(request.content.decode('utf-8')))
                 else:

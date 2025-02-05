@@ -96,7 +96,7 @@ class RetentionAPI(AuthenticatedAPI):
             if start_date_field is not None:
                 rp.start_date_field = start_date_field.text
             else:
-                start_date_field = None
+                rp.start_date_field = None
             period = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Period')
             if period is not None:
                 rp.period = period.text
@@ -404,7 +404,7 @@ class RetentionAPI(AuthenticatedAPI):
     def policies(self, maximum: int = 250, next_page: str = None) -> PagedSet:
         """
         Return a list of all retention policies
-        Returns a maxmium of 250 policies by default
+        Returns a maximum of 250 policies by default
 
 
         :return: Set of retention policies

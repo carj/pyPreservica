@@ -8,9 +8,8 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-import json
+
 import csv
-import requests
 from typing import List, Set
 
 from pyPreservica.common import *
@@ -92,7 +91,7 @@ class AuthorityAPI(AuthenticatedAPI):
          :param table:    The Table to add the record to
          :type: table:    Table
 
-         :param record:    The record
+         :param record:    The record as a dictionary
          :type: record:    dict
 
          :return: A single record
@@ -123,7 +122,7 @@ class AuthorityAPI(AuthenticatedAPI):
         """
          Return a record by its reference
 
-         :param reference:    The record reference
+         :param reference:    The reference of the record
          :type: reference:    str
 
          :return: A single record
@@ -149,7 +148,7 @@ class AuthorityAPI(AuthenticatedAPI):
         """
          Return all records from a table
 
-         :param table:    The authority table
+         :param table:    The authority table to return the records from
          :type: table:    Table
 
          :return: List of records
@@ -178,7 +177,7 @@ class AuthorityAPI(AuthenticatedAPI):
         :param reference:    The reference for the authority table
         :type: reference:    str
 
-        :return: An authority table
+        :return: An authority table of interest
         :rtype: Table
 
         """

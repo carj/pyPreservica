@@ -89,7 +89,7 @@ class MonitorAPI(AuthenticatedAPI):
 
         :param monitor_id:  The Process ID
         :type monitor_id:   str
-        :param status:      The message status, info, warning, error etc
+        :param status:      The message status, info, warning, error etc.
         :type status:   MessageStatus
         :return:            Generator for each message, each message is a dict object
         """
@@ -147,7 +147,7 @@ class MonitorAPI(AuthenticatedAPI):
                 yield monitor
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.monitors(status, category)
+            yield from self.monitors(status, category)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "monitors failed")

@@ -316,7 +316,7 @@ class ContentAPI(AuthenticatedAPI):
             return search_results
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self._search_predicates(query, predicates, start_index, page_size)
+            return self._search_fields(query, fields, start_index, page_size)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"search_index_filter failed")

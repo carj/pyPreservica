@@ -444,7 +444,7 @@ class AdminAPI(AuthenticatedAPI):
         :param xml_data: The xml schema as a UTF-8 string or a file like object
         :type xml_data: Any
 
-        :return: None
+        :return:
         :rtype: None
         """
 
@@ -493,7 +493,7 @@ class AdminAPI(AuthenticatedAPI):
         :param document_type: The type of the XML document, defaults to descriptive metadata templates
         :type document_type: str
 
-        :return: None
+        :return:
         :rtype: None
 
         """
@@ -523,12 +523,12 @@ class AdminAPI(AuthenticatedAPI):
 
     def delete_xml_document(self, uri: str):
         """
-        Delete a XML document from Preservica
+        Delete an XML document from Preservica's XML document store
 
         :param uri: The URI of the xml document to delete
         :type uri: str
 
-        :return: None
+        :return:
         :rtype: None
 
         """
@@ -558,7 +558,7 @@ class AdminAPI(AuthenticatedAPI):
         :param uri: The URI of the xml schema to delete
         :type uri: str
 
-        :return: None
+        :return:
         :rtype: None
 
         """
@@ -582,7 +582,7 @@ class AdminAPI(AuthenticatedAPI):
 
     def xml_schema(self, uri: str) -> str:
         """
-         fetch the metadata schema XSD document as a string by its URI
+         Fetch the metadata schema XSD document as a string by its URI
 
         :param uri: The URI of the xml schema
         :type uri: str
@@ -793,7 +793,7 @@ class AdminAPI(AuthenticatedAPI):
         :param output_uri: The URI of the output XML document
         :type output_uri: str
 
-        :return: None
+        :return:
         :rtype: None
 
         """
@@ -839,7 +839,7 @@ class AdminAPI(AuthenticatedAPI):
         :param xml_data: The transform xml as a string or file like object
         :type xml_data: Any
 
-        :return: None
+        :return:
         :rtype: None
 
         """

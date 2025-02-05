@@ -53,3 +53,15 @@ https://www.jetbrains.com/help/pycharm/creating-and-running-your-first-python-pr
 Installing pyPreservica
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+
+To install pyPreservica, simply run this simple command in your terminal of choice:
+
+.. code-block:: console
+
+    $ pip install pyPreservica
+
+or you can install in a virtual python environment using:
+
+.. code-block:: console
+
+    $ pipenv install pyPreservica

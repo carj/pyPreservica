@@ -6,11 +6,22 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
+
 from .common import *
 from .contentAPI import ContentAPI, Field, SortOrder
 from .entityAPI import EntityAPI
-from .uploadAPI import UploadAPI, simple_asset_package, complex_asset_package, cvs_to_xsd, cvs_to_xml, \
-                    cvs_to_cmis_xslt, csv_to_search_xml, generic_asset_package, upload_config, multi_asset_package
+from .uploadAPI import (
+    UploadAPI,
+    simple_asset_package,
+    complex_asset_package,
+    cvs_to_xsd,
+    cvs_to_xml,
+    cvs_to_cmis_xslt,
+    csv_to_search_xml,
+    generic_asset_package,
+    upload_config,
+    multi_asset_package,
+)
 from .workflowAPI import WorkflowAPI, WorkflowContext, WorkflowInstance
 from .retentionAPI import RetentionAPI, RetentionAssignment, RetentionPolicy
 from .parAPI import PreservationActionRegistry
@@ -23,6 +34,6 @@ from .mdformsAPI import MetadataGroupsAPI, Group, GroupField, GroupFieldType
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the pyPreservica package
-__version__ = "3.0.2"
+__version__ = "3.0.6"
 
 __license__ = "Apache License Version 2.0"
