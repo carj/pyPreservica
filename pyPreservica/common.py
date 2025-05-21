@@ -27,6 +27,7 @@ from requests import Session
 from urllib3.util import Retry
 import requests
 from requests.adapters import HTTPAdapter
+from typing import TypeVar
 
 import pyPreservica
 
@@ -526,6 +527,9 @@ class ContentObject(Entity):
         self.asset = None
         self.path = CO_PATH
         self.tag = "ContentObject"
+
+
+EntityT = TypeVar("EntityT", Folder, Asset, ContentObject)
 
 
 class Representation:
