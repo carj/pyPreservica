@@ -911,16 +911,21 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
     if has_preservation_files:
         if default_asset_title is None:
             default_asset_title = os.path.splitext(os.path.basename(preservation_files_list[0]))[0]
-
         # create the asset
-        xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
+        if io_ref is None:
+            xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
 
     if has_access_files:
         if default_asset_title is None:
             default_asset_title = os.path.splitext(os.path.basename(access_files_list[0]))[0]
-
         if io_ref is None:
             xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
+
+    if io_ref is None:
+        default_asset_title = kwargs.get('Title', None)
+        if default_asset_title is None:
+            default_asset_title = "New Asset"
+        xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
 
     if has_preservation_files:
         # add the content objects

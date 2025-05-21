@@ -30,10 +30,11 @@ from .monitorAPI import MonitorAPI, MonitorCategory, MonitorStatus, MessageStatu
 from .webHooksAPI import WebHooksAPI, TriggerType, WebHookHandler
 from .authorityAPI import AuthorityAPI, Table
 from .mdformsAPI import MetadataGroupsAPI, Group, GroupField, GroupFieldType
+from .settingsAPI import SettingsAPI
 
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the pyPreservica package
-__version__ = "3.0.6"
+__version__ = "3.2.0"
 
 __license__ = "Apache License Version 2.0"

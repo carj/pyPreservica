@@ -34,6 +34,11 @@ class Field:
 
 
 class ContentAPI(AuthenticatedAPI):
+    """
+        The ContentAPI class provides the search interface to the Preservica repository.
+
+    """
+
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False, two_fa_secret_key: str = None,

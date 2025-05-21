@@ -918,7 +918,7 @@ class EntityAPI(AuthenticatedAPI):
                     content.append(tree.getroot())
                 else:
                     raise RuntimeError("Unknown data type")
-                xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
+                xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8').decode("utf-8")
                 logger.debug(xml_request)
                 request = self.session.put(url, data=xml_request, headers=headers)
                 if request.status_code == requests.codes.ok:
@@ -932,6 +932,43 @@ class EntityAPI(AuthenticatedAPI):
                     logger.error(exception)
                     raise exception
         return self.entity(entity.entity_type, entity.reference)
+
+    def add_metadata_as_fragment(self, entity: Entity, schema: str, xml_fragment: str) -> Entity:
+        """
+        Add a metadata fragment with a given namespace URI to an Entity
+
+        Don't parse the xml fragment which may add extra namespaces etc
+
+        Returns The updated Entity
+
+        :param xml_fragment:  The new XML as a string
+        :param entity: The Entity to update
+        :param schema: The schema URI of the XML document
+        """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        xml_doc = f"""<xip:MetadataContainer xmlns="{schema}" schemaUri="{schema}" xmlns:xip="{self.xip_ns}">
+            <xip:Entity>{entity.reference}</xip:Entity>
+                <xip:Content>
+                   {xml_fragment}
+                </xip:Content>
+            </xip:MetadataContainer>"""
+
+        end_point = f"/{entity.path}/{entity.reference}/metadata"
+        logger.debug(xml_doc)
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity{end_point}', data=xml_doc,
+                                    headers=headers)
+        if request.status_code == requests.codes.ok:
+            return self.entity(entity_type=entity.entity_type, reference=entity.reference)
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.add_metadata(entity, schema, xml_fragment)
+        else:
+            exception = HTTPException(entity.reference, request.status_code, request.url, "add_metadata",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
 
     def add_metadata(self, entity: Entity, schema: str, data) -> Entity:
         """
@@ -960,6 +997,7 @@ class EntityAPI(AuthenticatedAPI):
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         end_point = f"/{entity.path}/{entity.reference}/metadata"
         logger.debug(xml_request)
+        print(xml_request)
         request = self.session.post(f'{self.protocol}://{self.server}/api/entity{end_point}', data=xml_request,
                                     headers=headers)
         if request.status_code == requests.codes.ok:
@@ -2126,9 +2164,15 @@ class EntityAPI(AuthenticatedAPI):
             actions = entity_response.findall(f'.//{{{self.xip_ns}}}EventAction')
             result_list = []
             for action in actions:
-                entity_ref = action.findall(f'.//{{{self.xip_ns}}}Entity')
-                for refs in entity_ref:
-                    result_list.append(refs.text)
+                item: dict = {}
+                event = action.find(f'.//{{{self.xip_ns}}}Event')
+                event_type = event.attrib["type"]
+                item['EventType'] = event_type
+                entity_date = action.find(f'.//{{{self.xip_ns}}}Date')
+                item['Date'] = entity_date.text
+                entity_ref = action.find(f'.//{{{self.xip_ns}}}Entity')
+                item['Entity'] = entity_ref.text
+                result_list.append(item)
             next_url = entity_response.find(f'.//{{{self.entity_ns}}}Next')
             total_hits = entity_response.find(f'.//{{{self.entity_ns}}}TotalResults')
             has_more = True
@@ -2162,6 +2206,9 @@ class EntityAPI(AuthenticatedAPI):
             params["from"] = kwargs.get("from_date")
         if "to_date" in kwargs:
             params["to"] = kwargs.get("to_date")
+        if "username" in kwargs:
+            params["username"] = kwargs.get("username")
+
 
         if next_page is None:
             request = self.session.get(f'{self.protocol}://{self.server}/api/entity/events', params=params,

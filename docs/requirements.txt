@@ -4,6 +4,7 @@ boto3
 botocore
 s3transfer
 cryptography
+python-dateutil
 pyPreservica
 azure-storage-blob
 tqdm

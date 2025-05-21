@@ -1074,3 +1074,9 @@ e.g.
     folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
     opex_zip = client.export_opex(folder, IncludeContent="Content", IncludeMetadata="MetadataWithEvents")
 
+
+.. note::
+    You need a valid export workflow enabled in Preservica with the same settings as the API call. The API call is
+    only looking for a matching export workflow and will not create a new one. If there is no matching workflow then
+    the API call will fail.
+

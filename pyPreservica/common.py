@@ -853,6 +853,7 @@ class AuthenticatedAPI:
                         if self.tenant is None:
                             self.tenant = response.json()['tenant']
                         if self.two_fa_secret_key:
+                            logger.debug("Found Two Factor Token")
                             totp = pyotp.TOTP(self.two_fa_secret_key)
                             data = {'username': self.username,
                                     'continuationToken': response.json()['continuationToken'],
@@ -865,8 +866,8 @@ class AuthenticatedAPI:
                             else:
                                 msg = "Failed to create a 2FA authentication token. Check your credentials are correct"
                                 logger.error(msg)
-                                logger.error(str(response.content))
-                                raise RuntimeError(response.status_code, msg)
+                                logger.error(str(response_2fa.content))
+                                raise RuntimeError(response_2fa.status_code, msg)
                         else:
                             msg = "2FA twoFactorToken required to authenticate against this account using 2FA"
                             logger.error(msg)
