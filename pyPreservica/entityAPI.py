@@ -861,7 +861,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def delete_metadata(self, entity: Entity, schema: str) -> Entity:
+    def delete_metadata(self, entity: EntityT, schema: str) -> EntityT:
         """
         Deletes all the metadata fragments on an entity which match the schema URI
 
@@ -887,7 +887,7 @@ class EntityAPI(AuthenticatedAPI):
 
         return self.entity(entity.entity_type, entity.reference)
 
-    def update_metadata(self, entity: Entity, schema: str, data: Any) -> Entity:
+    def update_metadata(self, entity: EntityT, schema: str, data: Any) -> EntityT:
         """
         Update all existing metadata fragments which match the schema
 
@@ -933,7 +933,9 @@ class EntityAPI(AuthenticatedAPI):
                     raise exception
         return self.entity(entity.entity_type, entity.reference)
 
-    def add_metadata_as_fragment(self, entity: Entity, schema: str, xml_fragment: str) -> Entity:
+    def add_metadata_as_fragment(
+        self, entity: EntityT, schema: str, xml_fragment: str
+    ) -> EntityT:
         """
         Add a metadata fragment with a given namespace URI to an Entity
 
@@ -969,8 +971,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-
-    def add_metadata(self, entity: Entity, schema: str, data) -> Entity:
+    def add_metadata(self, entity: EntityT, schema: str, data) -> EntityT:
         """
         Add a metadata fragment with a given namespace URI
 
@@ -1011,7 +1012,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def save(self, entity: Entity) -> Entity:
+    def save(self, entity: EntityT) -> EntityT:
         """
         Save the title and description of an entity
 
@@ -1129,7 +1130,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def move_sync(self, entity: Entity, dest_folder: Folder) -> Entity:
+    def move_sync(self, entity: EntityT, dest_folder: Folder) -> EntityT:
         """
         Move an Entity (Asset or Folder) to a new Folder
         If dest_folder is None then the entity must be a Folder and will be moved to the root of the repository
@@ -1169,7 +1170,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def move(self, entity: Entity, dest_folder: Folder) -> Entity:
+    def move(self, entity: EntityT, dest_folder: Folder) -> EntityT:
         """
         Move an Entity (Asset or Folder) to a new Folder
         If dest_folder is None then the entity must be a Folder and will be moved to the root of the repository
@@ -1274,7 +1275,7 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 return xml_object.find(tag).text
 
-    def security_tag_sync(self, entity: Entity, new_tag: str):
+    def security_tag_sync(self, entity: EntityT, new_tag: str) -> EntityT:
         """
          Change the security tag for a folder or asset
 
