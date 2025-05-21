@@ -1275,7 +1275,7 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 return xml_object.find(tag).text
 
-    def security_tag_sync(self, entity: Entity, new_tag: str):
+    def security_tag_sync(self, entity: EntityT, new_tag: str) -> EntityT:
         """
          Change the security tag for a folder or asset
 
