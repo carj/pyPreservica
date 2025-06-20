@@ -65,21 +65,25 @@ def test_add_folder_metadata_no_prefix():
     client = EntityAPI()
     entity = client.entity(EntityType.FOLDER, FOLDER_ID)
     folder = client.add_metadata(entity, "https://www.person.com/person", XML_DOCUMENT_NO_PREFIX)
+    client.delete_metadata(folder, "https://www.person.com/person")
 
 def test_add_folder_metadata_with_ns():
     client = EntityAPI()
     entity = client.entity(EntityType.FOLDER, FOLDER_ID)
     folder = client.add_metadata(entity, "https://www.person.com/person", XML_DOCUMENT)
+    client.delete_metadata(folder, "https://www.person.com/person")
 
 def test_add_asset_metadata_no_prefix():
     client = EntityAPI()
     entity = client.entity(EntityType.ASSET, ASSET_ID)
-    folder = client.add_metadata(entity, "https://www.person.com/person", XML_DOCUMENT_NO_PREFIX)
+    asset = client.add_metadata(entity, "https://www.person.com/person", XML_DOCUMENT_NO_PREFIX)
+    client.delete_metadata(asset, "https://www.person.com/person")
 
 def test_add_asset_metadata_with_ns():
     client = EntityAPI()
     entity = client.entity(EntityType.ASSET, ASSET_ID)
-    folder = client.add_metadata(entity, "https://www.person.com/person", XML_DOCUMENT)
+    asset = client.add_metadata(entity, "https://www.person.com/person", XML_DOCUMENT)
+    client.delete_metadata(asset, "https://www.person.com/person")
 
 
 

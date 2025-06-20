@@ -421,6 +421,26 @@ class Bitstream:
         return self.__str__()
 
 
+class ExternIdentifier:
+    """
+        Class to represent the External Identifier Object in the Preservica data model
+    """
+
+    def __init__(self, identifier_type: str, identifier_value: str):
+        self.type = identifier_type
+        self.value = identifier_value
+        self.id = None
+
+    def __str__(self):
+        return f"""
+           Identifier:          {self.id}
+           Identifier Type:     {self.type}
+           Identifier Value:    {self.value}
+        """
+
+    def __repr__(self):
+        return self.__str__()
+
 class Generation:
     """
          Class to represent the Generation Object in the Preservica data model
@@ -529,7 +549,7 @@ class ContentObject(Entity):
         self.tag = "ContentObject"
 
 
-EntityT = TypeVar("EntityT", Folder, Asset, ContentObject)
+EntityT = TypeVar("EntityT", Folder, Asset, ContentObject, None)
 
 
 class Representation:
@@ -742,7 +762,7 @@ class AuthenticatedAPI:
         Return the edition of this tenancy
         """
         if self.major_version < 8 and self.minor_version < 3:
-            raise RuntimeError("Entitlement  API is only available when connected to a v7.3 System")
+            raise RuntimeError("Entitlement API is only available when connected to a v7.3 System")
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
 
@@ -781,6 +801,7 @@ class AuthenticatedAPI:
                 self.sec_ns = f"{NS_SEC_ROOT}/v{self.major_version}.{self.minor_version}"
                 self.admin_ns = f"{NS_ADMIN}/v{self.major_version}.{self.minor_version}"
 
+
     def __version_number__(self):
         """
         Determine the version number of the server
@@ -795,6 +816,10 @@ class AuthenticatedAPI:
             self.major_version = int(version_numbers[0])
             self.minor_version = int(version_numbers[1])
             self.patch_version = int(version_numbers[2])
+
+            if self.server == "preview.preservica.com":
+                self.minor_version = 1
+
             return version
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -805,7 +830,7 @@ class AuthenticatedAPI:
             RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 7.0 Compatible) " \
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 8.0 Compatible) " \
                f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
                f"in tenancy {self.tenant}"
 

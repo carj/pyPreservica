@@ -149,7 +149,6 @@ class EntityAPI(AuthenticatedAPI):
 
         return storage_locations
 
-
     def bitstream_content(self, bitstream: Bitstream, filename: str, chunk_size: int = CHUNK_SIZE) -> Union[int, None]:
         """
         Download a file represented as a Bitstream to a local filename
@@ -486,6 +485,53 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(request)
             raise RuntimeError(request.status_code, "delete_identifier failed")
 
+    def entity_identifiers(self, entity: Entity,  external_identifier_type = None) -> set[ExternIdentifier]:
+        """
+         Get all external identifiers on an entity
+
+         Returns the set of external identifiers on the entity
+
+         :param entity: The Entity (Asset or Folder)
+         :param external_identifier_type: Optional identifier type to filter the results
+         :type  entity: Entity
+        """
+        headers = {HEADER_TOKEN: self.token}
+        request = self.session.get(
+            f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers',
+            headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            logger.debug(xml_response)
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            identifier_list = entity_response.findall(f'.//{{{self.xip_ns}}}Identifier')
+            result = set()
+            for identifier in identifier_list:
+                identifier_value = identifier_type = identifier_id = ""
+                for child in identifier:
+                    if child.tag.endswith("Type"):
+                        identifier_type = child.text
+                    if child.tag.endswith("Value"):
+                        identifier_value = child.text
+                    if child.tag.endswith("ApiId"):
+                        identifier_id = child.text
+                if external_identifier_type is None:
+                    external_id: ExternIdentifier = ExternIdentifier(identifier_type, identifier_value)
+                    external_id.identifier_id = identifier_id
+                    result.add(external_id)
+                else:
+                    if identifier_type == external_identifier_type:
+                        external_id: ExternIdentifier = ExternIdentifier(identifier_type, identifier_value)
+                        external_id.identifier_id = identifier_id
+                        result.add(external_id)
+            return result
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.entity_identifiers(entity)
+        else:
+            exception = HTTPException(entity.reference, request.status_code, request.url, "identifiers_for_entity",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
 
     def identifiers_for_entity(self, entity: Entity) -> set[Tuple]:
         """
@@ -524,16 +570,14 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-
-
-    def identifier(self, identifier_type: str, identifier_value: str) -> set[Entity]:
+    def identifier(self, identifier_type: str, identifier_value: str) -> set[EntityT]:
         """
-             Get all entities which have the external identifier
+         Get all entities which have the external identifier
 
-             Returns the set of entities which have the external identifier
+         Returns the set of entities which have the external identifier
 
-             :param identifier_type: The identifier type
-             :param identifier_value: The identifier value
+         :param identifier_type: The identifier type
+         :param identifier_value: The identifier value
           """
         headers = {HEADER_TOKEN: self.token}
         payload = {'type': identifier_type, 'value': identifier_value}
@@ -1110,7 +1154,6 @@ class EntityAPI(AuthenticatedAPI):
     def get_progress(self, pid: str) -> AsyncProgress:
         return AsyncProgress[self.get_async_progress(pid)]
 
-
     def get_async_progress(self, pid: str) -> str:
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/entity/progress/{pid}", headers=headers)
@@ -1355,7 +1398,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def entity(self, entity_type: EntityType, reference: str) -> Entity:
+    def entity(self, entity_type: EntityType, reference: str) -> EntityT:
         """
         Retrieve an entity by its type and reference
 
@@ -1416,6 +1459,42 @@ class EntityAPI(AuthenticatedAPI):
                                       request.content.decode('utf-8'))
             logger.error(exception)
             raise exception
+
+    def merge_folder(self, folder: Folder)-> str:
+        """
+            Create a new Asset with the content from each Asset in the Folder
+
+            This call will create a new multi-part Asset which contains all the content from the Folder.
+
+            The new Asset which is created will have the same title, description and parent as the Folder.
+
+            The return value is the progress status of the merge operation.
+        """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8', 'accept': 'text/plain;charset=UTF-8'}
+        payload = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <MergeAction xmlns="{self.entity_ns}" xmlns:xip="{self.xip_ns}">
+                <Title>{folder.title}</Title>
+                <Description>{folder.description}</Description>
+                <Entity excludeIdentifiers="true" excludeLinks="true" excludeMetadata="true" ref="{folder.reference}" type="SO"/>
+            </MergeAction>"""
+        request = self.session.post(
+            f"{self.protocol}://{self.server}/api/entity/actions/merges", data=payload, headers=headers)
+        if request.status_code == requests.codes.accepted:
+            return request.content.decode('utf-8')
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.merge_folder(folder)
+        else:
+            exception = HTTPException(
+                folder.reference,
+                request.status_code,
+                request.url,
+                "merge_folder",
+                request.content.decode("utf-8"),
+            )
+            logger.error(exception)
+            raise exception
+
 
     def asset(self, reference: str) -> Asset:
         """
@@ -2209,7 +2288,6 @@ class EntityAPI(AuthenticatedAPI):
             params["to"] = kwargs.get("to_date")
         if "username" in kwargs:
             params["username"] = kwargs.get("username")
-
 
         if next_page is None:
             request = self.session.get(f'{self.protocol}://{self.server}/api/entity/events', params=params,

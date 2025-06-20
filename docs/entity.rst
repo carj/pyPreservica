@@ -775,6 +775,18 @@ The list of returned checks includes both full and quick integrity checks.
 .. note::
     This call does not start a new check, it only returns information about previous checks.
 
+Merging Assets
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can create a single multi-part Asset from all the Assets in a folder using the ``merge_folder`` call.
+
+This will create a new Asset which contains all the Content Objects from all the Assets in the folder.
+
+.. code-block:: python
+
+    folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
+    client.merge_folder(folder)
+
 
 Adding Representations
 ^^^^^^^^^^^^^^^^^^^^^^^^

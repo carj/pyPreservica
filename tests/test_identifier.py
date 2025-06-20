@@ -113,6 +113,18 @@ def test_get_identifier_asset(setup_data):
             assert identifier[1] == "1234567890"
     assert test_pass
 
+def test_get_identifier_asset2(setup_data):
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+
+    client.add_identifier(asset, "ARK", "1234567890")
+
+    identifiers = client.entity_identifiers(asset)
+    assert len(identifiers) == 1
+    identifier = identifiers.pop()
+    assert identifier.type == "ARK"
+    assert identifier.value == "1234567890"
+
 
 def test_delete_identifier_folder(setup_data):
     client = EntityAPI()

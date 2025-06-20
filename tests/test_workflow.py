@@ -24,7 +24,7 @@ def test_get_workflow_contexts_type():
     workflow = WorkflowAPI()
 
     workflows = workflow.get_workflow_contexts_by_type("Ingest")
-    assert len(workflows) == 8
+    assert len(workflows) == 9
 
     workflows = workflow.get_workflow_contexts_by_type("Access")
     assert len(workflows) == 5
