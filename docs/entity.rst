@@ -778,14 +778,28 @@ The list of returned checks includes both full and quick integrity checks.
 Merging Assets
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can create a single multi-part Asset from all the Assets in a folder using the ``merge_folder`` call.
+You can create a new multi-part Asset from all the Assets in a folder using the ``merge_folder`` call.
+The new Asset will be added to the folder containing the Assets to be merged.
+This call does not remove the original Assets from the folder, it simply creates a new Asset.
+
+The order of the content objects in the new Asset is based on the Title of the original Content Objects.
+
+The Title and Description of the new Asset will be set to the title and description of the Folder.
 
 This will create a new Asset which contains all the Content Objects from all the Assets in the folder.
 
 .. code-block:: python
 
     folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
-    client.merge_folder(folder)
+    pid = client.merge_folder(folder)
+
+
+The call returns a process id which can be used to track the status of the merge operation via a call to ``get_progress``
+
+.. note::
+    The Preservica tenancy requires the ``merge.feature`` feature flag to be set.
+
+    There is currently no way to easily find the reference UUID of the newly created Asset.
 
 
 Adding Representations
