@@ -38,11 +38,11 @@ def test_get_xml_documents():
     xml_documents = client.xml_documents()
     assert type(xml_documents) is list
     assert len(xml_documents) > 10
-    for xml in xml_documents:
-        assert type(xml) is dict
-        assert "Name" in xml
-        assert "SchemaUri" in xml
-        assert "ApiId" in xml
+    for x in xml_documents:
+        assert type(x) is dict
+        assert "Name" in x
+        assert "SchemaUri" in x
+        assert "ApiId" in x
 
 
 def test_get_xml_document_by_uri():
@@ -73,12 +73,12 @@ def test_get_xml_transforms():
     xml_transforms = client.xml_transforms()
     assert type(xml_transforms) is list
     assert len(xml_transforms) > 10
-    for xml in xml_transforms:
-        assert type(xml) is dict
-        assert "Name" in xml
-        assert "FromSchemaUri" in xml
-        assert "ToSchemaUri" in xml
-        assert "ApiId" in xml
+    for x in xml_transforms:
+        assert type(x) is dict
+        assert "Name" in x
+        assert "FromSchemaUri" in x
+        assert "ToSchemaUri" in x
+        assert "ApiId" in x
 
 
 def test_get_xml_transform_by_uri():

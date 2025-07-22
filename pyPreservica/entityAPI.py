@@ -82,28 +82,28 @@ class EntityAPI(AuthenticatedAPI):
 
     def bitstream_bytes(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> Union[BytesIO, None]:
         """
-                Download a file represented as a Bitstream to a byteIO array
+        Download a file represented as a Bitstream to a byteIO array
 
-                Returns the byteIO
-                Returns None if the file does not contain the correct number of bytes (default 2k)
+        Returns the byteIO
+        Returns None if the file does not contain the correct number of bytes (default 2k)
 
-                :param chunk_size: The buffer copy chunk size in bytes default
-                :param bitstream: A Bitstream object
-                :type bitstream: Bitstream
+        :param chunk_size: The buffer copy chunk size in bytes default
+        :param bitstream: A Bitstream object
+        :type bitstream: Bitstream
 
-                :return: The file in bytes
-                :rtype: byteIO
+        :return: The file in bytes
+        :rtype: byteIO
         """
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")
             raise RuntimeError("bitstream_bytes argument is not a Bitstream object")
-        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as request:
-            if request.status_code == requests.codes.unauthorized:
+        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as response:
+            if response.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.bitstream_bytes(bitstream)
-            elif request.status_code == requests.codes.ok:
+            elif response.status_code == requests.codes.ok:
                 file_bytes = BytesIO()
-                for chunk in request.iter_content(chunk_size=chunk_size):
+                for chunk in response.iter_content(chunk_size=chunk_size):
                     file_bytes.write(chunk)
                 file_bytes.seek(0)
                 if file_bytes.getbuffer().nbytes == bitstream.length:
@@ -113,8 +113,8 @@ class EntityAPI(AuthenticatedAPI):
                     logger.error("Downloaded file size did not match the Preservica held value")
                     return None
             else:
-                exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_content",
-                                          request.content.decode('utf-8'))
+                exception = HTTPException(bitstream.filename, response.status_code, response.url, "bitstream_content",
+                                          response.content.decode('utf-8'))
                 logger.error(exception)
                 raise exception
 
@@ -131,23 +131,25 @@ class EntityAPI(AuthenticatedAPI):
         url: str = f'{self.protocol}://{self.server}/api/entity/content-objects/{bitstream.co_ref}/generations/{bitstream.gen_index}/bitstreams/{bitstream.bs_index}/storage-locations'
 
         with self.session.get(url, headers={HEADER_TOKEN: self.token}, stream=True) as request:
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.bitstream_location(bitstream)
-            elif request.status_code == requests.codes.ok:
+            if request.status_code == requests.codes.ok:
                 xml_response = str(request.content.decode('utf-8'))
                 entity_response = xml.etree.ElementTree.fromstring(xml_response)
                 logger.debug(xml_response)
                 locations = entity_response.find(f'.//{{{self.entity_ns}}}StorageLocation')
                 for adapter in locations:
                     storage_locations.append(adapter.attrib['name'])
+                return storage_locations
+
+            if request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.bitstream_location(bitstream)
             else:
                 exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_location",
                                           request.content.decode('utf-8'))
                 logger.error(exception)
                 raise exception
 
-        return storage_locations
+
 
     def bitstream_content(self, bitstream: Bitstream, filename: str, chunk_size: int = CHUNK_SIZE) -> Union[int, None]:
         """
@@ -760,7 +762,7 @@ class EntityAPI(AuthenticatedAPI):
         end_point = f"{entity.path}/{entity.reference}/links/{relationship.api_id}"
         request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/{end_point}', headers=headers)
         if request.status_code == requests.codes.no_content:
-            print(relationship)
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.__delete_relationship(relationship)
@@ -779,7 +781,7 @@ class EntityAPI(AuthenticatedAPI):
             :type: page_size: int
 
             :param entity: The Source Entity
-            :type: entity: Entity
+            :type: entity: An Entity type such as Asset, Folder etc
 
             :return: Generator
             :rtype:  Relationship
@@ -847,7 +849,7 @@ class EntityAPI(AuthenticatedAPI):
 
             return PagedSet(results, has_more, int(total_hits.text), url)
         elif request.status_code == requests.codes.unauthorized:
-            self.__relationships__(entity=entity, maximum=maximum, next_page=next_page)
+            return self.__relationships__(entity=entity, maximum=maximum, next_page=next_page)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "relationships",
                                       request.content.decode('utf-8'))
@@ -1108,6 +1110,7 @@ class EntityAPI(AuthenticatedAPI):
                 if 'CustomType' in response:
                     content_object.custom_type = response['CustomType']
                 return content_object
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.save(entity)
@@ -1296,9 +1299,9 @@ class EntityAPI(AuthenticatedAPI):
         for uri, schema_name in entity.metadata.items():
             if schema == schema_name:
                 return self.metadata(uri)
-        return
+        return None
 
-    def metadata_tag_for_entity(self, entity: Entity, schema: str, tag: str, isXpath: bool = False) -> str:
+    def metadata_tag_for_entity(self, entity: Entity, schema: str, tag: str, isXpath: bool = False) -> str | None:
         """
         Retrieve the first value of the tag from a metadata template given by schema
 
@@ -1313,10 +1316,11 @@ class EntityAPI(AuthenticatedAPI):
         xml_doc = self.metadata_for_entity(entity, schema)
         if xml_doc:
             xml_object = xml.etree.ElementTree.fromstring(xml_doc)
-            if isXpath is False:
+            if not isXpath:
                 return xml_object.find(f'.//{{*}}{tag}').text
             else:
                 return xml_object.find(tag).text
+        return None
 
     def security_tag_sync(self, entity: EntityT, new_tag: str) -> EntityT:
         """
@@ -1413,6 +1417,7 @@ class EntityAPI(AuthenticatedAPI):
             return self.folder(reference)
         if entity_type is EntityType.ASSET:
             return self.asset(reference)
+        return None
 
     def add_physical_asset(self, title: str, description: str, parent: Folder, security_tag: str = "open") -> Asset:
         """
@@ -1460,11 +1465,62 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def merge_folder(self, folder: Folder)-> str:
+    def merge_assets(self, assets: list[Asset], title: str, description: str) -> str:
+        """
+            Create a new Asset with the content from each Asset in supplied list
+            This call will create a new multipart Asset which contains all the content from list of Assets.
+
+            The return value is the progress status of the merge operation.
+        """
+
+        headers = {
+            HEADER_TOKEN: self.token,
+            "Content-Type": "application/xml;charset=UTF-8",
+            "accept": "text/plain;charset=UTF-8",
+        }
+
+        merge_object = xml.etree.ElementTree.Element("MergeAction", {"xmlns": self.entity_ns, "xmlns:xip": self.xip_ns})
+        xml.etree.ElementTree.SubElement(merge_object, "Title").text = str(title)
+        xml.etree.ElementTree.SubElement(merge_object, "Description").text = str(description)
+        for a in assets:
+            xml.etree.ElementTree.SubElement(merge_object, "Entity", {
+                "excludeIdentifiers": "true",
+                "excludeLinks": "true",
+                "excludeMetadata": "true",
+                "ref": a.reference,
+                "type": EntityType.ASSET.value}
+            )
+  #      order_object = xml.etree.ElementTree.SubElement(merge_object, "Order")
+  #      for a in assets:
+  #          xml.etree.ElementTree.SubElement(order_object, "Entity", {
+  #              "ref": a.reference,
+  #              "type": EntityType.CONTENT_OBJECT.value}
+  #          )
+        xml_request = xml.etree.ElementTree.tostring(merge_object, encoding="utf-8")
+        print(xml_request)
+        request = self.session.post(
+            f"{self.protocol}://{self.server}/api/entity/actions/merges", data=xml_request, headers=headers)
+        if request.status_code == requests.codes.accepted:
+            return request.content.decode('utf-8')
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.merge_assets(assets, title, description)
+        else:
+            exception = HTTPException(
+                "",
+                request.status_code,
+                request.url,
+                "merge_assets",
+                request.content.decode("utf-8"),
+            )
+            logger.error(exception)
+            raise exception
+
+    def merge_folder(self, folder: Folder) -> str:
         """
             Create a new Asset with the content from each Asset in the Folder
 
-            This call will create a new multi-part Asset which contains all the content from the Folder.
+            This call will create a new multipart Asset which contains all the content from the Folder.
 
             The new Asset which is created will have the same title, description and parent as the Folder.
 
@@ -1494,7 +1550,6 @@ class EntityAPI(AuthenticatedAPI):
             )
             logger.error(exception)
             raise exception
-
 
     def asset(self, reference: str) -> Asset:
         """
@@ -2118,7 +2173,7 @@ class EntityAPI(AuthenticatedAPI):
             params=params, headers=headers)
 
         if request.status_code == requests.codes.ok:
-            pass
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self._event_actions(entity, maximum=maximum)
@@ -2262,6 +2317,7 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 url = next_url.text
             return PagedSet(result_list, has_more, int(total_hits.text), url)
+        return None
 
     def entity_from_event(self, event_id: str) -> Generator:
         self.token = self.__token__()

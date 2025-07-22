@@ -673,7 +673,7 @@ class AuthenticatedAPI:
             logger.error(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
             raise RuntimeError(f"The API requires the user to have at least the ROLE_SDB_MANAGER_USER")
 
-    def _find_user_roles_(self) -> list:
+    def _find_user_roles_(self) -> list[str]:
         """
             Get a list of roles for the user
             :return list of roles:
@@ -681,11 +681,13 @@ class AuthenticatedAPI:
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/user/details", headers=headers)
         if request.status_code == requests.codes.ok:
-            roles = json.loads(str(request.content.decode('utf-8')))['roles']
+            roles: list[str] = json.loads(str(request.content.decode('utf-8')))['roles']
             return roles
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self._find_user_roles_()
+        return []
+
 
     def security_tags_base(self, with_permissions: bool = False) -> dict:
         """
@@ -847,7 +849,7 @@ class AuthenticatedAPI:
         with open('credentials.properties', 'wt', encoding="utf-8") as configfile:
             config.write(configfile)
 
-    def manager_token(self, username: str, password: str):
+    def manager_token(self, username: str, password: str) -> str:
         data = {'username': username, 'password': password, 'tenant': self.tenant}
         response = self.session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
         if response.status_code == requests.codes.ok:
@@ -859,7 +861,7 @@ class AuthenticatedAPI:
             logger.error(str(response.content))
             RuntimeError(response.status_code, "Could not generate valid manager approval token")
 
-    def __token__(self):
+    def __token__(self) -> str:
         """
             Generate am API token to use to authenticate calls
             :return: API Token

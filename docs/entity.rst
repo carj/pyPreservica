@@ -786,11 +786,11 @@ The order of the content objects in the new Asset is based on the Title of the o
 
 The Title and Description of the new Asset will be set to the title and description of the Folder.
 
-This will create a new Asset which contains all the Content Objects from all the Assets in the folder.
+The following code will create a new Asset which contains all the Content Objects from all the Assets in the folder.
 
 .. code-block:: python
 
-    folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
+    folder: Folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
     pid = client.merge_folder(folder)
 
 

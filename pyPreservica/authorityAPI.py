@@ -54,7 +54,7 @@ class AuthorityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.delete_record(reference)
         if response.status_code == requests.codes.no_content:
-            return
+            return None
         else:
             exception = HTTPException("", response.status_code, response.url, "delete_record",
                                       response.content.decode('utf-8'))
