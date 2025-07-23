@@ -1301,7 +1301,7 @@ class EntityAPI(AuthenticatedAPI):
                 return self.metadata(uri)
         return None
 
-    def metadata_tag_for_entity(self, entity: Entity, schema: str, tag: str, isXpath: bool = False) -> str | None:
+    def metadata_tag_for_entity(self, entity: Entity, schema: str, tag: str, isXpath: bool = False) -> Union[str, None]:
         """
         Retrieve the first value of the tag from a metadata template given by schema
 
