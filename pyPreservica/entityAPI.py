@@ -1044,7 +1044,6 @@ class EntityAPI(AuthenticatedAPI):
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         end_point = f"/{entity.path}/{entity.reference}/metadata"
         logger.debug(xml_request)
-        print(xml_request)
         request = self.session.post(f'{self.protocol}://{self.server}/api/entity{end_point}', data=xml_request,
                                     headers=headers)
         if request.status_code == requests.codes.ok:
@@ -2648,3 +2647,4 @@ class EntityAPI(AuthenticatedAPI):
                                   "_delete_entity", request.content.decode('utf-8'))
         logger.error(exception)
         raise exception
+
