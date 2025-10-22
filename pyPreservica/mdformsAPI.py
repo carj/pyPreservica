@@ -451,6 +451,26 @@ class MetadataGroupsAPI(AuthenticatedAPI):
                 raise exception
 
 
+    def delete_form(self, form_id: str):
+        """
+        Delete a form by its ID
+        """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
+        url = f'{self.protocol}://{self.server}/api/metadata/forms/{form_id}'
+        with self.session.delete(url, headers=headers) as request:
+            if request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.delete_form(form_id)
+            elif request.status_code == requests.codes.no_content:
+                return None
+            else:
+                exception = HTTPException(None, request.status_code, request.url, "delete_form",
+                                          request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
+
+
+
     def form(self, form_id: str) -> dict:
         """
              Return a Form as a JSON dict object

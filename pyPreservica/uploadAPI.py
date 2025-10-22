@@ -1633,6 +1633,52 @@ class UploadAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
+    def clean_upload_bucket(self, bucket_name: str,  older_than_days: int = 90):
+        """
+        Clean up objects in an upload bucket which are older than older_than_days.
+
+        """
+        from azure.storage.blob import ContainerClient
+
+        for location in self.upload_locations():
+            if location['containerName'] == bucket_name:
+
+                if location['type'] != 'AWS':
+                    credentials = self.upload_credentials(location['apiId'])
+                    account_key = credentials['key']
+                    session_token = credentials['sessionToken']
+                    sas_url = f"https://{account_key}.blob.core.windows.net/{bucket_name}"
+                    container = ContainerClient.from_container_url(container_url=sas_url, credential=session_token)
+                    now = datetime.now(timezone.utc)
+                    for blob in container.list_blobs():
+                        if abs((blob.last_modified - now).days) > older_than_days:
+                            logger.debug(f"Deleting expired object {blob.name}")
+                            container.delete_blob(blob.name)
+
+                if location['type'] == 'AWS':
+                    credentials = self.upload_credentials(location['apiId'])
+                    access_key = credentials['key']
+                    secret_key = credentials['secret']
+                    session_token = credentials['sessionToken']
+                    session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
+                                            aws_session_token=session_token)
+                    s3_client = session.client("s3")
+                    paginator = s3_client.get_paginator('list_objects_v2')
+                    now = datetime.now(timezone.utc)
+                    for page in paginator.paginate(Bucket=bucket_name):
+                        if 'Contents' in page:
+                            for key in page['Contents']:
+                                last_modified = key["LastModified"]
+                                if abs((last_modified - now).days) > older_than_days:
+                                    logger.debug(f"Deleting expired object {key["Key"]}")
+                                    s3_client.delete_object(Bucket=bucket_name, Key=key["Key"])
+
+
+
+
+
+
+
     def upload_locations(self):
         """
         Upload locations are configured on the Sources page as 'SIP Upload'.

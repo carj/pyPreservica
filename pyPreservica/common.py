@@ -678,10 +678,13 @@ class AuthenticatedAPI:
             Get a list of roles for the user
             :return list of roles:
         """
-        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/user/details", headers=headers)
+        logger.debug(request.headers)
         if request.status_code == requests.codes.ok:
-            roles: list[str] = json.loads(str(request.content.decode('utf-8')))['roles']
+            json_document = str(request.content.decode('utf-8'))
+            logger.debug(json_document)
+            roles: list[str] = json.loads(json_document)['roles']
             return roles
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -819,8 +822,6 @@ class AuthenticatedAPI:
             self.minor_version = int(version_numbers[1])
             self.patch_version = int(version_numbers[2])
 
-            if self.server == "preview.preservica.com":
-                self.minor_version = 1
 
             return version
         elif request.status_code == requests.codes.unauthorized:
