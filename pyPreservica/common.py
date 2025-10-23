@@ -822,7 +822,6 @@ class AuthenticatedAPI:
             self.minor_version = int(version_numbers[1])
             self.patch_version = int(version_numbers[2])
 
-
             return version
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -831,6 +830,9 @@ class AuthenticatedAPI:
             logger.error(f"version number failed with http response {request.status_code}")
             logger.error(str(request.content))
             RuntimeError(request.status_code, "version number failed")
+            return None
+
+
 
     def __str__(self):
         return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 8.0 Compatible) " \
@@ -890,9 +892,11 @@ class AuthenticatedAPI:
                             data = {'username': self.username,
                                     'continuationToken': response.json()['continuationToken'],
                                     'tenant': self.tenant, 'twoFactorToken': totp.now()}
+
+                            header = {'Content-Type': 'application/x-www-form-urlencoded'}
                             response_2fa = self.session.post(
                                 f'{self.protocol}://{self.server}/api/accesstoken/complete-2fa',
-                                data=data)
+                                data=data, headers=header)
                             if response_2fa.status_code == requests.codes.ok:
                                 return response_2fa.json()['token']
                             else:

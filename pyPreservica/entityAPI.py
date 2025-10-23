@@ -61,7 +61,7 @@ class EntityAPI(AuthenticatedAPI):
         Generator function to return bitstream chunks
 
         :param bitstream:   The bitstream
-        :param chunk_size:  The chunk size to return
+        :param chunk_size:  The chunk size to return (defaults to 4K)
         :return:            A chunk of the requested bitstream content
         """
         if not isinstance(bitstream, Bitstream):
@@ -75,7 +75,7 @@ class EntityAPI(AuthenticatedAPI):
                 for chunk in request.iter_content(chunk_size=chunk_size):
                     yield chunk
             else:
-                exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_content",
+                exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_chunks",
                                           request.content.decode('utf-8'))
                 logger.error(exception)
                 raise exception
@@ -113,7 +113,7 @@ class EntityAPI(AuthenticatedAPI):
                     logger.error("Downloaded file size did not match the Preservica held value")
                     return None
             else:
-                exception = HTTPException(bitstream.filename, response.status_code, response.url, "bitstream_content",
+                exception = HTTPException(bitstream.filename, response.status_code, response.url, "bitstream_bytes",
                                           response.content.decode('utf-8'))
                 logger.error(exception)
                 raise exception

@@ -1668,10 +1668,10 @@ class UploadAPI(AuthenticatedAPI):
                     for page in paginator.paginate(Bucket=bucket_name):
                         if 'Contents' in page:
                             for key in page['Contents']:
-                                last_modified = key["LastModified"]
+                                last_modified = key['LastModified']
                                 if abs((last_modified - now).days) > older_than_days:
-                                    logger.debug(f"Deleting expired object {key["Key"]}")
-                                    s3_client.delete_object(Bucket=bucket_name, Key=key["Key"])
+                                    logger.debug(f"Deleting expired object {key['Key']}")
+                                    s3_client.delete_object(Bucket=bucket_name, Key=key['Key'])
 
 
 
