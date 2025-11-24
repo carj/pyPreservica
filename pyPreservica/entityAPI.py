@@ -933,6 +933,33 @@ class EntityAPI(AuthenticatedAPI):
 
         return self.entity(entity.entity_type, entity.reference)
 
+
+    def add_metadata_csv(self, csv_file: str) -> str:
+        """
+           Perform bulk additions of metadata with a CSV file.
+
+           Returns The updated Entity
+
+           :param csv_file:   The path of the CSV metadata file
+           """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/csv;charset=UTF-8'}
+
+        url = f'{self.protocol}://{self.server}/api/entity/actions/metadata-csv-edits'
+
+        with open(csv_file, 'rb') as csvfile:
+            with self.session.post(url, headers=headers, data=csvfile.read()) as request:
+                if request.status_code == requests.codes.unauthorized:
+                    self.token = self.__token__()
+                    return self.add_metadata_csv(csv_file)
+                elif request.status_code == requests.codes.accepted:
+                    return str(request.content.decode('utf-8'))
+                else:
+                    exception = HTTPException(None, request.status_code, request.url, "add_metadata_csv",
+                                              request.content.decode('utf-8'))
+                    logger.error(exception)
+                    raise exception
+
+
     def update_metadata(self, entity: EntityT, schema: str, data: Any) -> EntityT:
         """
         Update all existing metadata fragments which match the schema
@@ -979,9 +1006,7 @@ class EntityAPI(AuthenticatedAPI):
                     raise exception
         return self.entity(entity.entity_type, entity.reference)
 
-    def add_metadata_as_fragment(
-        self, entity: EntityT, schema: str, xml_fragment: str
-    ) -> EntityT:
+    def add_metadata_as_fragment(self, entity: EntityT, schema: str, xml_fragment: str) -> EntityT:
         """
         Add a metadata fragment with a given namespace URI to an Entity
 
@@ -2252,7 +2277,7 @@ class EntityAPI(AuthenticatedAPI):
             self.token = self.__token__()
             return self.children(folder_reference, maximum=maximum, next_page=next_page)
         else:
-            exception = HTTPException(folder.reference, request.status_code, request.url,
+            exception = HTTPException(folder_reference, request.status_code, request.url,
                                       "children", request.content.decode('utf-8'))
             logger.error(exception)
             raise exception

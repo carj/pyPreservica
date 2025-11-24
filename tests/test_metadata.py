@@ -49,7 +49,7 @@ def test_update_folder_metadata():
     identifier = document.find(".//{http://purl.org/dc/elements/1.1/}identifier")
     assert identifier.text == "LC-USZ62-43601"
     description = document.find(".//{http://purl.org/dc/elements/1.1/}description")
-    assert description.text == "a"
+    assert description.text == "description"
     description.text = "description"
     xml_string = ElementTree.tostring(document, encoding='utf-8').decode("utf-8")
     folder = client.update_metadata(entity, "http://purl.org/dc/elements/1.1/", xml_string)

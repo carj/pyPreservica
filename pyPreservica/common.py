@@ -613,7 +613,7 @@ def sanitize(filename) -> str:
     Return a fairly safe version of the filename.
 
     We don't limit ourselves to ascii, because we want to keep municipality
-    names, etc, but we do want to get rid of anything potentially harmful,
+    names, etc., but we do want to get rid of anything potentially harmful,
     and make sure we do not exceed Windows filename length limits.
     Hence, a less safe blacklist, rather than a whitelist.
     """
