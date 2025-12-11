@@ -1575,6 +1575,35 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
+
+    def xml_asset(self, reference: str) -> str:
+        """
+         Retrieve an Asset by its reference
+
+         Returns an XML document of the full Asset
+
+         :param reference:            The unique identifier of the entity
+         """
+        headers = {HEADER_TOKEN: self.token}
+        params = {"expand": "structure"}
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{IO_PATH}/{reference}', params=params, headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            return xml_response
+        elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.xml_asset(reference)
+        elif request.status_code == requests.codes.not_found:
+            exception = ReferenceNotFoundException(reference, request.status_code, request.url, "xml_asset")
+            logger.error(exception)
+            raise exception
+        else:
+            exception = HTTPException(reference, request.status_code, request.url, "xml_asset",
+                                      request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
+
     def asset(self, reference: str) -> Asset:
         """
          Retrieve an Asset by its reference

@@ -248,6 +248,39 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         json_response: dict = self.add_group_json(json_document)
         return json_response
 
+    def update_form(self, form_id: str, json_form: Union[dict, str]):
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
+        url = f'{self.protocol}://{self.server}/api/metadata/forms/{form_id}'
+
+        if isinstance(json_form, dict):
+            with self.session.put(url, headers=headers, json=json_form) as request:
+                if request.status_code == requests.codes.unauthorized:
+                    self.token = self.__token__()
+                    return self.add_form(json_form)
+                elif request.status_code == requests.codes.ok:
+                    return json.loads(str(request.content.decode('utf-8')))
+                else:
+                    exception = HTTPException(None, request.status_code, request.url, "add_form_json",
+                                              request.content.decode('utf-8'))
+                    logger.error(exception)
+                    raise exception
+
+        elif isinstance(json_form, str):
+            with self.session.put(url, headers=headers, data=json_form) as request:
+                if request.status_code == requests.codes.unauthorized:
+                    self.token = self.__token__()
+                    return self.add_form(json_form)
+                elif request.status_code == requests.codes.ok:
+                    return json.loads(str(request.content.decode('utf-8')))
+                else:
+                    exception = HTTPException(None, request.status_code, request.url, "add_form_json",
+                                              request.content.decode('utf-8'))
+                    logger.error(exception)
+                    raise exception
+        else:
+            raise RuntimeError("Argument must be a JSON dictionary or a JSON str")
+
     def add_form(self, json_form: Union[dict, str]):
         """
         Create a new Metadata form using a JSON dictionary object or document

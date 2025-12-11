@@ -806,6 +806,7 @@ class AuthenticatedAPI:
                 self.sec_ns = f"{NS_SEC_ROOT}/v{self.major_version}.{self.minor_version}"
                 self.admin_ns = f"{NS_ADMIN}/v{self.major_version}.{self.minor_version}"
 
+        xml.etree.ElementTree.register_namespace("xip", f"{self.xip_ns}")
 
     def __version_number__(self):
         """
