@@ -691,7 +691,7 @@ https://developer.twitter.com/
 
 You will need the consumer key and secret. Your twitter API keys and tokens should be guarded very carefully.
 
-.. note::
+.. warning::
     Twitter no longer provides free API read access.
     See: https://developer.twitter.com/
 
@@ -704,6 +704,8 @@ You also need to tell the call which folder you want the tweet assets to be inge
 The twitter API Consumer Keys can either be passed as arguments to the call or be specified in the credential.properties
 file or an environment variable using the keys:  ``TWITTER_CONSUMER_KEY`` and ``TWITTER_SECRET_KEY``
 
+
+
 .. code-block:: python
 
     upload = UploadAPI()
@@ -714,6 +716,17 @@ file or an environment variable using the keys:  ``TWITTER_CONSUMER_KEY`` and ``
     folder = entity.folder(folder_id)
 
     upload.ingest_twitter_feed(twitter_user=twitter_name, num_tweets=number_tweets, folder=folder, twitter_consumer_key="xxxx", twitter_secret_key="zzzz")
+
+
+
+
+.. note::
+    If you need a free alternative to the paid for Twitter API and you only need to ingest
+    your own tweets, then you could try the preserva-tweet command line application https://pypi.org/project/preserva-tweet/
+
+    This library provides a Python module which will ingest a Twitter export zip file into Preservica
+    as individual tweets with any attached media files such as images or video.
+    The tweets can then be rendered directly from within Preservica.
 
 
 

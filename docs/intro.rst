@@ -95,6 +95,15 @@ Authority Records API Features
 -  Delete records from an Authority table
 
 
+New Generation Groups and Forms Features
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  Create new Groups
+-  Delete Groups
+-  Add new metadata fields to an existing Group
+-  Fetch existing Groups
+
+
 Background
 ------------
 

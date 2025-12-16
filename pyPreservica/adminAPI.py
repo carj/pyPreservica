@@ -10,7 +10,7 @@ licence:    Apache License 2.0
 """
 import csv
 import xml.etree.ElementTree
-from typing import List, Any
+from typing import List, Any, Union
 
 from pyPreservica.common import *
 
@@ -36,7 +36,7 @@ class AdminAPI(AuthenticatedAPI):
         request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/security/roles/{role_name}',
                                       headers=headers)
         if request.status_code == requests.codes.no_content:
-            return
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.delete_system_role(role_name)
@@ -61,7 +61,7 @@ class AdminAPI(AuthenticatedAPI):
         request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/security/tags/{tag_name}',
                                       headers=headers)
         if request.status_code == requests.codes.no_content:
-            return
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.delete_security_tag(tag_name)
@@ -211,7 +211,7 @@ class AdminAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/users/{username}', headers=headers)
         if request.status_code == requests.codes.no_content:
-            return
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.delete_user(username)
@@ -444,7 +444,7 @@ class AdminAPI(AuthenticatedAPI):
         :param xml_data: The xml schema as a UTF-8 string or a file like object
         :type xml_data: Any
 
-        :return: None
+        :return:
         :rtype: None
         """
 
@@ -463,7 +463,7 @@ class AdminAPI(AuthenticatedAPI):
                                     params=params,
                                     data=xml_data)
         if request.status_code == requests.codes.created:
-            return
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.add_xml_schema(name, description, originalName, xml_data)
@@ -493,7 +493,7 @@ class AdminAPI(AuthenticatedAPI):
         :param document_type: The type of the XML document, defaults to descriptive metadata templates
         :type document_type: str
 
-        :return: None
+        :return:
         :rtype: None
 
         """
@@ -513,7 +513,7 @@ class AdminAPI(AuthenticatedAPI):
                                     params=params,
                                     data=xml_data)
         if request.status_code == requests.codes.created:
-            return
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.add_xml_document(name, xml_data, document_type)
@@ -523,12 +523,12 @@ class AdminAPI(AuthenticatedAPI):
 
     def delete_xml_document(self, uri: str):
         """
-        Delete a XML document from Preservica
+        Delete an XML document from Preservica's XML document store
 
         :param uri: The URI of the xml document to delete
         :type uri: str
 
-        :return: None
+        :return:
         :rtype: None
 
         """
@@ -543,13 +543,14 @@ class AdminAPI(AuthenticatedAPI):
                     f"{self.protocol}://{self.server}/api/admin/documents/{document['ApiId']}",
                     headers=headers)
                 if request.status_code == requests.codes.no_content:
-                    return
+                    return None
                 elif request.status_code == requests.codes.unauthorized:
                     self.token = self.__token__()
                     return self.delete_xml_document(uri)
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "delete_xml_document failed")
+        return None
 
     def delete_xml_schema(self, uri: str):
         """
@@ -558,7 +559,7 @@ class AdminAPI(AuthenticatedAPI):
         :param uri: The URI of the xml schema to delete
         :type uri: str
 
-        :return: None
+        :return:
         :rtype: None
 
         """
@@ -572,17 +573,18 @@ class AdminAPI(AuthenticatedAPI):
                 request = self.session.delete(f"{self.protocol}://{self.server}/api/admin/schemas/{schema['ApiId']}",
                                               headers=headers)
                 if request.status_code == requests.codes.no_content:
-                    return
+                    return None
                 elif request.status_code == requests.codes.unauthorized:
                     self.token = self.__token__()
                     return self.delete_xml_schema(uri)
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "delete_xml_schema failed")
+        return None
 
-    def xml_schema(self, uri: str) -> str:
+    def xml_schema(self, uri: str) -> Union[str, None]:
         """
-         fetch the metadata schema XSD document as a string by its URI
+         Fetch the metadata schema XSD document as a string by its URI
 
         :param uri: The URI of the xml schema
         :type uri: str
@@ -607,8 +609,9 @@ class AdminAPI(AuthenticatedAPI):
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "xml_schema failed")
+        return None
 
-    def xml_document(self, uri: str) -> str:
+    def xml_document(self, uri: str) -> Union[str, None]:
         """
         fetch the metadata XML document as a string by its URI
 
@@ -634,6 +637,7 @@ class AdminAPI(AuthenticatedAPI):
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "xml_document failed")
+        return None
 
     def xml_documents(self) -> List:
         """
@@ -754,7 +758,7 @@ class AdminAPI(AuthenticatedAPI):
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "xml_transforms failed")
 
-    def xml_transform(self, input_uri: str, output_uri: str) -> str:
+    def xml_transform(self, input_uri: str, output_uri: str) -> Union[str, None]:
         """
         fetch the XML transform as a string by its URIs
 
@@ -782,6 +786,7 @@ class AdminAPI(AuthenticatedAPI):
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "xml_transform failed")
+        return None
 
     def delete_xml_transform(self, input_uri: str, output_uri: str):
         """
@@ -793,7 +798,7 @@ class AdminAPI(AuthenticatedAPI):
         :param output_uri: The URI of the output XML document
         :type output_uri: str
 
-        :return: None
+        :return:
         :rtype: None
 
         """
@@ -808,13 +813,14 @@ class AdminAPI(AuthenticatedAPI):
                     f"{self.protocol}://{self.server}/api/admin/transforms/{transform['ApiId']}",
                     headers=headers)
                 if request.status_code == requests.codes.no_content:
-                    return
+                    return None
                 elif request.status_code == requests.codes.unauthorized:
                     self.token = self.__token__()
                     return self.delete_xml_transform(input_uri, output_uri)
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "delete_xml_transform failed")
+        return None
 
     def add_xml_transform(self, name: str, input_uri: str, output_uri: str, purpose: str, originalName: str,
                           xml_data: Any):
@@ -839,7 +845,7 @@ class AdminAPI(AuthenticatedAPI):
         :param xml_data: The transform xml as a string or file like object
         :type xml_data: Any
 
-        :return: None
+        :return:
         :rtype: None
 
         """
@@ -860,7 +866,7 @@ class AdminAPI(AuthenticatedAPI):
                                     params=params,
                                     data=xml_data)
         if request.status_code == requests.codes.created:
-            return
+            return None
 
         if request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()

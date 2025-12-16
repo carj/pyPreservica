@@ -3,10 +3,32 @@ from pathlib import Path
 import pytest
 from pyPreservica import *
 
+
+def setup():
+    pass
+
+
+def tear_down():
+    pass
+
+
+@pytest.fixture
+def setup_data():
+    print("\nSetting up resources...")
+
+    setup()
+
+    yield
+
+    print("\nTearing down resources...")
+
+    tear_down()
+
+
 ASSET_ID = "b14848b5-4c4d-4d8a-b394-3b764069ee93"
 
 
-def test_get_representations():
+def test_get_representations(setup_data):
     client = EntityAPI()
     asset = client.asset(ASSET_ID)
     assert asset is not None
@@ -20,7 +42,7 @@ def test_get_representations():
     assert representation.name == "Preservation-1"
 
 
-def test_get_generations():
+def test_get_generations(setup_data):
     client = EntityAPI()
     asset = client.asset(ASSET_ID)
     assert asset is not None
@@ -60,7 +82,7 @@ def test_get_generations():
     assert generation.format_group == "jpeg"
 
 
-def test_get_bitstream_content():
+def test_get_bitstream_content(setup_data):
     client = EntityAPI()
     asset = client.asset(ASSET_ID)
     preservation_representations = list(filter(lambda x: x.rep_type == "Preservation", client.representations(asset)))
@@ -75,3 +97,11 @@ def test_get_bitstream_content():
     assert os.path.isfile(bitstream.filename) is True
     assert Path(bitstream.filename).stat().st_size == 1942466
     os.remove(bitstream.filename)
+
+
+def test_get_bitstream_locations(setup_data):
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    for bs  in client.bitstreams_for_asset(asset):
+        locations = client.bitstream_location(bs)
+        assert "Primary Adapter" in locations

@@ -1,7 +1,35 @@
+import pytest
 from pyPreservica import *
 
 
-def test_get_all_users():
+def setup():
+    client = AdminAPI()
+    users = client.all_users()
+    for u in users:
+        if u  ==  "pypreservica@gmail.com":
+            client.delete_user(u)
+
+
+
+def tear_down():
+    pass
+
+
+@pytest.fixture
+def setup_data():
+    print("\nSetting up resources...")
+
+    setup()
+
+    yield
+
+    print("\nTearing down resources...")
+
+    tear_down()
+
+
+
+def test_get_all_users(setup_data):
     client = AdminAPI()
     users = client.all_users()
     assert type(users) is list
@@ -10,7 +38,7 @@ def test_get_all_users():
     assert client.username in users
 
 
-def test_get_user():
+def test_get_user(setup_data):
     client = AdminAPI()
     user = client.user_details(client.username)
     assert type(user) is dict
@@ -19,7 +47,7 @@ def test_get_user():
     assert 'SDB_MANAGER_USER' in user['Roles']
 
 
-def test_add_user():
+def test_add_user(setup_data):
     client = AdminAPI()
     user = client.add_user("pypreservica@gmail.com", "pypreservica", ['SDB_MANAGER_USER', 'SDB_INGEST_USER'])
     assert user['UserName'] == "pypreservica@gmail.com"
@@ -30,7 +58,7 @@ def test_add_user():
     assert "pypreservica@gmail.com" not in client.all_users()
 
 
-def test_change_display_name():
+def test_change_display_name(setup_data):
     client = AdminAPI()
     user = client.add_user("pypreservica@gmail.com", "pypreservica", ['SDB_MANAGER_USER', 'SDB_INGEST_USER'])
     assert user['UserName'] == "pypreservica@gmail.com"

@@ -96,6 +96,8 @@ def _object_from_json_(json_doc: dict) -> Group:
                 gf.editable = bool(field['editable'])
             if 'values' in field:
                 for v in field['values']:
+                    if gf.values is None:
+                        gf.values = []
                     gf.values.append(str(v))
             if 'defaultValue' in field:
                 gf.default = str(field['defaultValue'])
@@ -246,6 +248,75 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         json_response: dict = self.add_group_json(json_document)
         return json_response
 
+    def add_form(self, json_form: Union[dict, str]):
+        """
+        Create a new Metadata form using a JSON dictionary object or document
+
+        :param json_form: JSON dictionary or string
+        :type json_form: dict
+
+        :return:  JSON document
+        :rtype: dict
+
+        """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
+        url = f'{self.protocol}://{self.server}/api/metadata/forms/'
+
+        if isinstance(json_form, dict):
+            with self.session.post(url, headers=headers, json=json_form) as request:
+                if request.status_code == requests.codes.unauthorized:
+                    self.token = self.__token__()
+                    return self.add_form(json_form)
+                elif request.status_code == requests.codes.created:
+                    return json.loads(str(request.content.decode('utf-8')))
+                else:
+                    exception = HTTPException(None, request.status_code, request.url, "add_form_json",
+                                              request.content.decode('utf-8'))
+                    logger.error(exception)
+                    raise exception
+
+        elif isinstance(json_form, str):
+            with self.session.post(url, headers=headers, data=json_form) as request:
+                if request.status_code == requests.codes.unauthorized:
+                    self.token = self.__token__()
+                    return self.add_form(json_form)
+                elif request.status_code == requests.codes.created:
+                    return json.loads(str(request.content.decode('utf-8')))
+                else:
+                    exception = HTTPException(None, request.status_code, request.url, "add_form_json",
+                                              request.content.decode('utf-8'))
+                    logger.error(exception)
+                    raise exception
+        else:
+            raise RuntimeError("Argument must be a JSON dictionary or a JSON str")
+
+
+    # def set_default_form(self, form_id: str):
+    #     """
+    #     Set the default form
+    #
+    #     """
+    #
+    #     headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
+    #     url = f'{self.protocol}://{self.server}/api/metadata/forms/{form_id}/default'
+    #
+    #     payload: dict = {"default": True, "useAsDefault": True}
+    #
+    #     with self.session.get(url, headers=headers, json=json.dumps(payload)) as request:
+    #         if request.status_code == requests.codes.unauthorized:
+    #             self.token = self.__token__()
+    #             return self.set_default_form(form_id)
+    #         elif request.status_code == requests.codes.ok:
+    #             return json.loads(str(request.content.decode('utf-8')))
+    #         else:
+    #             exception = HTTPException(None, request.status_code, request.url, "set_default_form",
+    #                                       request.content.decode('utf-8'))
+    #             logger.error(exception)
+    #             raise exception
+
+
+
+
     def add_group_json(self, json_object: Union[dict, str]) -> dict:
         """
           Create a new Metadata Group using a JSON dictionary object or document
@@ -349,6 +420,63 @@ class MetadataGroupsAPI(AuthenticatedAPI):
                                           request.content.decode('utf-8'))
                 logger.error(exception)
                 raise exception
+
+    def forms(self, schema_uri: Union[str, None] = None) -> dict:
+        """
+            Return all the metadata Forms in the tenancy as a list of JSON dict objects
+
+            :param schema_uri: The Form schema Uri
+            :type schema_uri: str
+
+            :return: List of JSON dictionary object
+            :rtype: dict
+
+        """
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
+        url = f'{self.protocol}://{self.server}/api/metadata/forms'
+        params = {}
+        if schema_uri is not None:
+            params = {'schemaUri': schema_uri}
+        with self.session.get(url, headers=headers, params=params) as request:
+            if request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.forms()
+            elif request.status_code == requests.codes.ok:
+                return json.loads(str(request.content.decode('utf-8')))['metadataForms']
+            else:
+                exception = HTTPException(None, request.status_code, request.url, "forms_json",
+                                          request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
+
+
+    def form(self, form_id: str) -> dict:
+        """
+             Return a Form as a JSON dict object
+
+             :param form_id: The Form id
+             :type form_id: str
+
+             :return:  JSON document
+             :rtype: dict
+
+         """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
+        url = f'{self.protocol}://{self.server}/api/metadata/forms/{form_id}'
+        with self.session.get(url, headers=headers) as request:
+            if request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.form(form_id)
+            elif request.status_code == requests.codes.ok:
+                return json.loads(str(request.content.decode('utf-8')))
+            else:
+                exception = HTTPException(None, request.status_code, request.url, "form_json",
+                                          request.content.decode('utf-8'))
+                logger.error(exception)
+                raise exception
+
+
 
     def groups(self) -> Generator[Group, None, None]:
         """

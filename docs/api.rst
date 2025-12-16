@@ -128,6 +128,42 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     :return: list of generations
     :rtype: list(Generation)
 
+  .. py:method::  bitstream(url)
+
+    Fetch a bitstream object from the server using its URL
+
+    :param  url: The URL to the bitstream
+    :type  url: str
+    :return: a bitstream object
+    :rtype: Bitstream
+
+
+
+  .. py:method::  bitstream_bytes(bitstream, chunk_size)
+
+    Download a file represented as a Bitstream to a byteIO array
+
+    :param  bitstream: A bitstream object
+    :type  url: Bitstream
+    :param  chunk_size: Optional size of the chunks to be downloaded
+    :type  chunk_size: int
+    :return: A Byte Array
+    :rtype: BytesIO
+
+
+  .. py:method::  bitstream_chunks(bitstream, chunk_size)
+
+    Generator function to return bitstream chunks, allows the clients to
+    process chunks as they are downloaded.
+
+    :param  bitstream: A bitstream object
+    :type  url: Bitstream
+    :param  chunk_size: Optional size of the chunks to be downloaded
+    :type  chunk_size: int
+    :return: Iterator
+    :rtype: Generator
+
+
    .. py:method::  bitstream_content(bitstream, filename)
 
     Downloads the bitstream object to a local file
@@ -664,49 +700,13 @@ Content API
 ^^^^^^^^^^^^^^
 
 
-This part of the documentation covers all the interfaces of pyPreservica :class:`UploadAPI <ContentAPI>` object.
+This part of the documentation covers all the interfaces of pyPreservica :class:`ContentAPI <ContentAPI>` object.
 
-.. py:class:: ContentAPI
-
-
-
-
-   .. py:method:: object_details(entity_type, reference)
-
-    Return a list of all the indexed fields in the Preservica search index.
-
-    :param str entity_type: Entity type, either "IO" or "SO"
-    :param str reference:   Entity reference
-    :return: object attributes
-    :rtype: dict
-
-
-   .. py:method:: indexed_fields()
-
-    Return a list of all the indexed fields in the Preservica search index.
-
-    :return: list of index field names
-    :rtype: list
-
-
-   .. py:method:: simple_search_list(query: str = "%", page_size: int = 10, *args)
-
-    Search Preservica using a simple search term across all indexed fields, the results are returned as generator
-
-    :param str query: Query term
-    :param int page_size: Number of results fetched between server calls
-    :param tuple args: index names to include in the result
-    :return: list of search result hits
-    :rtype: list
-
-
-   .. py:method:: simple_search_csv(query: str = "%", csv_file="search.csv", *args)
-
-    Search Preservica using a simple search term across all indexed fields, output the results to a csv file.
-
-    :param str query: Query term
-    :param int page_size: Number of results fetched between server calls
-    :param tuple args: index names to include in the result
+.. py:currentmodule:: pyPreservica
+.. autoclass:: ContentAPI
+    :members:
+.. autoclass:: SearchResult
+    :members:
 
 
 
@@ -838,4 +838,19 @@ The Metadata Groups API is designed allows the creation of custom metadata withi
     :undoc-members:
 
 .. autoclass:: MetadataGroupsAPI
+     :members:
+
+
+
+Settings API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+https://eu.preservica.com/api/settings/documentation.html
+
+API for retrieving information about configuration settings.
+
+.. py:currentmodule:: pyPreservica
+
+
+.. autoclass:: SettingsAPI
      :members:

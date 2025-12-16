@@ -9,7 +9,6 @@ licence:    Apache License 2.0
 
 """
 
-
 import xml.etree.ElementTree
 from typing import Set, Callable
 
@@ -78,7 +77,8 @@ class RetentionAPI(AuthenticatedAPI):
 
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}', headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}',
+                                   headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -91,11 +91,12 @@ class RetentionAPI(AuthenticatedAPI):
             rp.description = description
             security_tag = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}SecurityTag').text
             rp.security_tag = security_tag
-            start_date_field = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}StartDateField')
+            start_date_field = entity_response.find(
+                f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}StartDateField')
             if start_date_field is not None:
                 rp.start_date_field = start_date_field.text
-            else: 
-                start_date_field = None
+            else:
+                rp.start_date_field = None
             period = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Period')
             if period is not None:
                 rp.period = period.text
@@ -141,8 +142,9 @@ class RetentionAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain;charset=UTF-8'}
         data = str(status)
-        request = self.session.put(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}/assignable',
-                                   headers=headers, data=data)
+        request = self.session.put(
+            f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}/assignable',
+            headers=headers, data=data)
         if request.status_code == requests.codes.ok:
             pass
         elif request.status_code == requests.codes.unauthorized:
@@ -237,7 +239,8 @@ class RetentionAPI(AuthenticatedAPI):
 
         xml_request = xml.etree.ElementTree.tostring(retention_policy, encoding='utf-8')
 
-        request = self.session.put(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}', data=xml_request,
+        request = self.session.put(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}',
+                                   data=xml_request,
                                    headers=headers)
         if request.status_code == requests.codes.ok:
             return self.policy(reference)
@@ -381,7 +384,8 @@ class RetentionAPI(AuthenticatedAPI):
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         data = {'start': str(0), 'max': "250"}
-        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', data=data, headers=headers)
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', data=data,
+                                   headers=headers)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
@@ -400,7 +404,7 @@ class RetentionAPI(AuthenticatedAPI):
     def policies(self, maximum: int = 250, next_page: str = None) -> PagedSet:
         """
         Return a list of all retention policies
-        Returns a maxmium of 250 policies by default
+        Returns a maximum of 250 policies by default
 
 
         :return: Set of retention policies
@@ -408,14 +412,14 @@ class RetentionAPI(AuthenticatedAPI):
 
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        params = {'start': str(0), 'max': str(maximum)}
-        
+
         if next_page is None:
             params = {'start': '0', 'max': str(maximum)}
-            request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', params=params, headers=headers)
+            request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', params=params,
+                                       headers=headers)
         else:
-            request = self.session.get(next_page,params=params)
-        
+            request = self.session.get(next_page, headers=headers)
+
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
@@ -434,7 +438,7 @@ class RetentionAPI(AuthenticatedAPI):
                 has_more = False
             else:
                 url = next_url.text
-            return PagedSet(result,has_more,total_results,url)
+            return PagedSet(result, has_more, total_results, url)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.policies()

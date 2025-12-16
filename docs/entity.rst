@@ -637,6 +637,9 @@ Each Content Object will contain a least one Generation, migrated content may ha
         print(generation.effective_date)
         print(generation.bitstreams)
 
+
+
+
 Each Generation has a list of BitStreams which can be used to fetch the actual content from the server or
 fetch technical metadata about the bitstream itself.
 
@@ -663,6 +666,9 @@ objects. Each property is a single dictionary object with the following keys: PU
             print(key, value)
 
 
+
+BitStreams
+^^^^^^^^^^^^
 
 Generations also contain a list of bitstreams, these contain information about the bitstreams such as file size
 and fixity etc.
@@ -743,7 +749,61 @@ The method also allows a second argument which defines the size of chunk returne
         for chunk in client.bitstream_chunks(bitstream, chunk_size8k):
             doSomeThing(chunk)
 
+The storage adapters which hold a copy of the bitstream can be found using:
 
+.. code-block:: python
+
+    chunk_size8k = 8*1024
+    for bitstream in client.bitstreams_for_asset(asset):
+        locations = client.bitstream_location(bitstream)
+
+
+
+BitStream Integrity Check History
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can request the history of all integrity checks which have been carried out on a bitstream
+
+.. code-block:: python
+
+    for bitstream in generation.bitstreams:
+        for check in client.integrity_checks(bitstream):
+            print(check)
+
+The list of returned checks includes both full and quick integrity checks.
+
+.. note::
+    This call does not start a new check, it only returns information about previous checks.
+
+Merging Assets
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can create a new multi-part Asset from all the Assets in a folder using the ``merge_folder`` call.
+The new Asset will be added to the folder containing the Assets to be merged.
+This call does not remove the original Assets from the folder, it simply creates a new Asset.
+
+The order of the content objects in the new Asset is based on the Title of the original Content Objects.
+
+The Title and Description of the new Asset will be set to the title and description of the Folder.
+
+The following code will create a new Asset which contains all the Content Objects from all the Assets in the folder.
+
+.. code-block:: python
+
+    folder: Folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
+    pid = client.merge_folder(folder)
+
+
+The call returns a process id which can be used to track the status of the merge operation via a call to ``get_progress``
+
+.. note::
+    The Preservica tenancy requires the ``merge.feature`` feature flag to be set.
+
+    There is currently no way to easily find the reference UUID of the newly created Asset.
+
+
+Adding Representations
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Since version Preservica 6.12 the API allows new Access representations to be added to an existing Asset.
 This allows organisations to migrate content outside of Preservica or add new access versions after the preservation
@@ -761,23 +821,6 @@ The Preservica tenancy requires the ``post.new.representation.feature`` flag to 
     pid = client.add_access_representation(asset, access_file="access.jpg")
 
 
-
-
-Integrity Check History
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You can request the history of all integrity checks which have been carried out on a bitstream
-
-.. code-block:: python
-
-    for bitstream in generation.bitstreams:
-        for check in client.integrity_checks(bitstream):
-            print(check)
-
-The list of returned checks includes both full and quick integrity checks.
-
-.. note::
-    This call does not start a new check, it only returns information about previous checks.
 
 Moving Entities
 ^^^^^^^^^^^^^^^^
@@ -1056,4 +1099,10 @@ e.g.
 
     folder = client.folder('0f2997f7-728c-4e55-9f92-381ed1260d70')
     opex_zip = client.export_opex(folder, IncludeContent="Content", IncludeMetadata="MetadataWithEvents")
+
+
+.. note::
+    You need a valid export workflow enabled in Preservica with the same settings as the API call. The API call is
+    only looking for a matching export workflow and will not create a new one. If there is no matching workflow then
+    the API call will fail.
 

@@ -11,7 +11,7 @@ def test_get_workflow_contexts():
 def test_get_workflow_contexts2():
     workflow = WorkflowAPI()
     workflows = workflow.get_workflow_contexts("com.preservica.core.workflow.ingest")
-    assert len(workflows) == 1
+    assert len(workflows) == 3
 
 
 def test_get_workflow_contexts3():
@@ -24,7 +24,7 @@ def test_get_workflow_contexts_type():
     workflow = WorkflowAPI()
 
     workflows = workflow.get_workflow_contexts_by_type("Ingest")
-    assert len(workflows) == 6
+    assert len(workflows) == 9
 
     workflows = workflow.get_workflow_contexts_by_type("Access")
     assert len(workflows) == 5

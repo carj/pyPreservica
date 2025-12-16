@@ -8,7 +8,30 @@ ASSET_ID = "683f9db7-ff81-4859-9c03-f68cfa5d9c3d"
 CO_ID = "0f2997f7-728c-4e55-9f92-381ed1260d70"
 
 
-def test_get_root_folders():
+
+def setup():
+    pass
+
+
+def tear_down():
+    pass
+
+
+@pytest.fixture
+def setup_data():
+    print("\nSetting up resources...")
+
+    setup()
+
+    yield
+
+    print("\nTearing down resources...")
+
+    tear_down()
+
+
+
+def test_get_root_folders(setup_data):
     client = EntityAPI()
     paged_set = client.children(None)
     assert paged_set.total > 0
@@ -20,14 +43,14 @@ def test_get_root_folders():
     assert len(objs) == paged_set.total
 
 
-def test_get_root_folders_descendants():
+def test_get_root_folders_descendants(setup_data):
     client = EntityAPI()
     for f in client.descendants(None):
         assert f.entity_type == EntityType.FOLDER
         assert f.parent is None
 
 
-def test_get_root_folder1():
+def test_get_root_folder1(setup_data):
     client = EntityAPI()
     paged_set = client.children()
     assert paged_set.total > 0
@@ -39,7 +62,7 @@ def test_get_root_folder1():
     assert len(objs) == paged_set.total
 
 
-def test_get_root_folders_paged():
+def test_get_root_folders_paged(setup_data):
     client = EntityAPI()
     objs = set()
     url = None
@@ -56,7 +79,7 @@ def test_get_root_folders_paged():
     assert len(objs) == paged_set.total
 
 
-def test_get_children_of_folder():
+def test_get_children_of_folder(setup_data):
     client = EntityAPI()
     paged_set = client.children(FOLDER_ID)
     assert paged_set.total == 171
@@ -65,7 +88,7 @@ def test_get_children_of_folder():
         assert f.parent == FOLDER_ID
 
 
-def test_get_children_of_folder_descendants():
+def test_get_children_of_folder_descendants(setup_data):
     client = EntityAPI()
     objs = set()
     for f in client.descendants(FOLDER_ID):

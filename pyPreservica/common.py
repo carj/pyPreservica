@@ -23,10 +23,11 @@ import xml.etree.ElementTree
 from enum import Enum
 from pathlib import Path
 import pyotp
-from requests import Response, Session
+from requests import Session
 from urllib3.util import Retry
 import requests
 from requests.adapters import HTTPAdapter
+from typing import TypeVar
 
 import pyPreservica
 
@@ -79,9 +80,9 @@ class FileHash:
 
 def identifiersToDict(identifiers: set) -> dict:
     """
-    Convert a set of tuples to a dict
-    :param identifiers:
-    :return:
+        Convert a set of tuples to a dict
+        :param identifiers:
+        :return:
     """
     result = {}
     for identifier_tuple in identifiers:
@@ -405,6 +406,9 @@ class Bitstream:
         self.length = int(length)
         self.fixity = fixity
         self.content_url = content_url
+        self.bs_index = None
+        self.gen_index = None
+        self.co_ref = None
 
     def __str__(self):
         return f"""
@@ -416,6 +420,26 @@ class Bitstream:
     def __repr__(self):
         return self.__str__()
 
+
+class ExternIdentifier:
+    """
+        Class to represent the External Identifier Object in the Preservica data model
+    """
+
+    def __init__(self, identifier_type: str, identifier_value: str):
+        self.type = identifier_type
+        self.value = identifier_value
+        self.id = None
+
+    def __str__(self):
+        return f"""
+           Identifier:          {self.id}
+           Identifier Type:     {self.type}
+           Identifier Value:    {self.value}
+        """
+
+    def __repr__(self):
+        return self.__str__()
 
 class Generation:
     """
@@ -525,6 +549,9 @@ class ContentObject(Entity):
         self.tag = "ContentObject"
 
 
+EntityT = TypeVar("EntityT", Folder, Asset, ContentObject, None)
+
+
 class Representation:
     """
         Class to represent the Representation Object in the Preservica data model
@@ -563,6 +590,22 @@ class Thumbnail(Enum):
     SMALL = "small"
     MEDIUM = "medium"
     LARGE = "large"
+
+
+class AsyncProgress(Enum):
+    """
+    Enumeration of the possible status of an asynchronous process
+    """
+    ABORTED = "ABORTED"
+    ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
+    PENDING = "PENDING"
+    SUSPENDING = "SUSPENDING"
+    SUSPENDED = "SUSPENDED"
+    UNKNOWN = "UNKNOWN"
+    FAILED = "FAILED"
+    FINISHED_MIXED_OUTCOME = "FINISHED_MIXED_OUTCOME"
+    CANCELLED = "CANCELLED"
 
 
 def sanitize(filename) -> str:
@@ -630,7 +673,7 @@ class AuthenticatedAPI:
             logger.error(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
             raise RuntimeError(f"The API requires the user to have at least the ROLE_SDB_MANAGER_USER")
 
-    def _find_user_roles_(self) -> list:
+    def _find_user_roles_(self) -> list[str]:
         """
             Get a list of roles for the user
             :return list of roles:
@@ -638,11 +681,13 @@ class AuthenticatedAPI:
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/user/details", headers=headers)
         if request.status_code == requests.codes.ok:
-            roles = json.loads(str(request.content.decode('utf-8')))['roles']
+            roles: list[str] = json.loads(str(request.content.decode('utf-8')))['roles']
             return roles
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self._find_user_roles_()
+        return []
+
 
     def security_tags_base(self, with_permissions: bool = False) -> dict:
         """
@@ -719,7 +764,7 @@ class AuthenticatedAPI:
         Return the edition of this tenancy
         """
         if self.major_version < 8 and self.minor_version < 3:
-            raise RuntimeError("Entitlement  API is only available when connected to a v7.3 System")
+            raise RuntimeError("Entitlement API is only available when connected to a v7.3 System")
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
 
@@ -758,6 +803,7 @@ class AuthenticatedAPI:
                 self.sec_ns = f"{NS_SEC_ROOT}/v{self.major_version}.{self.minor_version}"
                 self.admin_ns = f"{NS_ADMIN}/v{self.major_version}.{self.minor_version}"
 
+
     def __version_number__(self):
         """
         Determine the version number of the server
@@ -772,6 +818,10 @@ class AuthenticatedAPI:
             self.major_version = int(version_numbers[0])
             self.minor_version = int(version_numbers[1])
             self.patch_version = int(version_numbers[2])
+
+            if self.server == "preview.preservica.com":
+                self.minor_version = 1
+
             return version
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
@@ -782,7 +832,7 @@ class AuthenticatedAPI:
             RuntimeError(request.status_code, "version number failed")
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 7.0 Compatible) " \
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 8.0 Compatible) " \
                f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
                f"in tenancy {self.tenant}"
 
@@ -799,7 +849,7 @@ class AuthenticatedAPI:
         with open('credentials.properties', 'wt', encoding="utf-8") as configfile:
             config.write(configfile)
 
-    def manager_token(self, username: str, password: str):
+    def manager_token(self, username: str, password: str) -> str:
         data = {'username': username, 'password': password, 'tenant': self.tenant}
         response = self.session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
         if response.status_code == requests.codes.ok:
@@ -811,7 +861,7 @@ class AuthenticatedAPI:
             logger.error(str(response.content))
             RuntimeError(response.status_code, "Could not generate valid manager approval token")
 
-    def __token__(self):
+    def __token__(self) -> str:
         """
             Generate am API token to use to authenticate calls
             :return: API Token
@@ -834,6 +884,7 @@ class AuthenticatedAPI:
                         if self.tenant is None:
                             self.tenant = response.json()['tenant']
                         if self.two_fa_secret_key:
+                            logger.debug("Found Two Factor Token")
                             totp = pyotp.TOTP(self.two_fa_secret_key)
                             data = {'username': self.username,
                                     'continuationToken': response.json()['continuationToken'],
@@ -846,8 +897,8 @@ class AuthenticatedAPI:
                             else:
                                 msg = "Failed to create a 2FA authentication token. Check your credentials are correct"
                                 logger.error(msg)
-                                logger.error(str(response.content))
-                                raise RuntimeError(response.status_code, msg)
+                                logger.error(str(response_2fa.content))
+                                raise RuntimeError(response_2fa.status_code, msg)
                         else:
                             msg = "2FA twoFactorToken required to authenticate against this account using 2FA"
                             logger.error(msg)

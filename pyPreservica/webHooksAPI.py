@@ -8,7 +8,6 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-import json
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import hmac
@@ -74,6 +73,8 @@ class TriggerType(Enum):
     MOVED = "MOVED"
     INDEXED = "FULL_TEXT_INDEXED"
     SECURITY_CHANGED = "CHANGED_SECURITY_DESCRIPTOR"
+    INGEST_FAILED = "INGEST_FAILED"
+    CHANGE_ASSET_VISIBILITY  = "CHANGE_ASSET_VISIBILITY"
 
 
 class WebHooksAPI(AuthenticatedAPI):

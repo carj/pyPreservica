@@ -6,7 +6,7 @@ from pyPreservica import *
 def test_format_families():
     par = PreservationActionRegistry()
     document = par.format_families()
-    assert len(json.loads(document)['formatFamilies']) == 185
+    assert len(json.loads(document)['formatFamilies']) == 192
 
 
 def test_format():

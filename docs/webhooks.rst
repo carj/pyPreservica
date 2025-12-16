@@ -22,7 +22,12 @@ Subscribing
 
 Before a system can receive notifications from Preservica, it must subscribe to a notification trigger.
 
-Preservica currently supports three different triggers, "MOVED", "SECURITY_CHANGED" and "INDEXED".
+Preservica currently supports four different triggers:
+
+* "MOVED"               An Entity has been moved
+* "SECURITY_CHANGED"    The security tag on an Entity has changed
+* "INDEXED"             The ingest has completed and the search index updated
+* "INGEST_FAILED"       The ingest failed
 
 The "Indexed" notification is sent after an object has been ingested and the full text index has been extracted,
 at this point the thumbnail and search contents are available.
@@ -171,3 +176,81 @@ using the pyPreservica EntityAPI()
                 client.thumbnail(asset, f"{ref}.jpg")
 
 
+
+
+Event Driven Serverless Architecture
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the examples above, a web server is used to receive the web hook notifications.
+This can turn out to be inefficient as the web server needs to be running on a server even when no notifications are being sent.
+
+In turns out that webhooks are especially well suited to modern serverless architecture such as Amazon Lambda and Azure Functions.
+Running a dedicated web server can be inefficient and unnecessary.
+
+AWS Lambda and Azure Functions are code fragments which are triggered to run from external events such as web hooks.
+This is a simple and cost-effective approach to processing events.
+
+* No application server provisioning and maintenance required
+* Web server infrastructure is provided for you through the API Gateway
+* Only pay for the milliseconds used
+* Highly Scalable
+* Secure
+
+AWS has a dedicated set of infrastructure based on the API Gateway service which allows public API endpoints to be created.
+These API endpoints act as the "front door" for the webhook applications managing traffic management,
+CORS support, authorization and access control, throttling, and monitoring etc.
+For the Preservica webhook use case the API gateway only needs to accept HTTP POST requests.
+
+.. image:: images/aws-gateway.png
+
+When the API gateway receives a webhook notification it will pass the message payload from Preservica to the
+AWS Lambda function which will carry out the appropriate action.
+
+AWS Lambda supports multiple languages such as Java, Go, PowerShell, Node.js, C#, Python, and Ruby code,
+so you can build your applications in the language of your choice.
+
+A basic AWS Lambda function for Preservica web hooks in Python would look something like:
+
+ .. code-block:: python
+
+    import json
+    import os
+    import hmac
+    import hashlib
+
+
+    def lambda_handler(event, context):
+        secret_key = os.environ.get('PRES_SECRET_KEY')
+        if 'queryStringParameters' in event:
+            if event['queryStringParameters'] is not None:
+                if 'challengeCode' in event['queryStringParameters']:
+                    message = event['queryStringParameters']['challengeCode']
+                    signature = hmac.new(key=bytes(secret_key, 'latin-1'), msg=bytes(message, 'latin-1'),
+                                         digestmod=hashlib.sha256).hexdigest()
+                    return {
+                        "statusCode": 200,
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "body": json.dumps({
+                            "challengeCode": f"{message}", "challengeResponse": f"{signature}"})
+                    }
+        else:
+            if 'Preservica-Signature' in event['headers']:
+                verify_body = f"preservica-webhook-auth{event['body']}"
+                signature = hmac.new(key=bytes(secret_key, 'latin-1'), msg=bytes(verify_body, 'latin-1'),
+                                     digestmod=hashlib.sha256).hexdigest()
+                doc = json.loads(event['body'])
+                if signature == event['headers']['Preservica-Signature']:
+                    for reference in list(doc['events']):
+                        ref = reference['entityRef']
+                        ## DO WORK HERE
+                    return {
+                        "statusCode": 200,
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "body": json.dumps(event['body'])
+                    }
+
+Where we are fetching the shared key from the environment variables.

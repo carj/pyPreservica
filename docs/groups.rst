@@ -1,5 +1,5 @@
-Metadata Groups API
-~~~~~~~~~~~~~~~~~~~~~
+Metadata Groups and Forms API
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Metadata Groups API is designed allows the creation of custom metadata within NGI (New Generation Interface).
 
@@ -166,3 +166,56 @@ You can add new metadata fields to an existing Group using
     client.add_fields(group_id="my group",  new_fields=new_fields)
 
 The new fields are appended to the end of the group metadata.
+
+
+Listing Forms
+^^^^^^^^^^^^^^^^
+
+To fetch all the existing Forms as a dict object use the following
+
+.. code-block:: python
+
+    client = MetadataGroupsAPI()
+
+    for form in client.forms():
+        print(form)
+
+You can filter by a schema URI by passing it as the argument
+
+.. code-block:: python
+
+    client = MetadataGroupsAPI()
+
+    for form in client.forms('http://www.openarchives.org/OAI/2.0/oai_dc/'):
+        print(form)
+
+
+Fetching a Form
+^^^^^^^^^^^^^^^^^^
+
+Each Form has a unique string id, this id can be use to fetch an individual Form as a dictionary
+
+.. code-block:: python
+
+    client = MetadataGroupsAPI()
+
+    form = client.form('1ecf5df5184eab25702a667703e0d037'):
+    print(form['title'])
+
+Create a new Form
+^^^^^^^^^^^^^^^^^^^^^
+
+To add a new Form use the ```add_form``` function. The function can accept either a string containing a
+json document or a Python dictionary object.
+
+For example, to read a form metadata from a file use:
+
+
+.. code-block:: python
+
+    client = MetadataGroupsAPI()
+
+    with open("dcterms.json", 'rt', encoding="utf-8") as fd:
+        d: dict = json.loads(str(fd.read()))
+        md.add_form(d)
+

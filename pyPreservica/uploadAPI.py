@@ -13,7 +13,7 @@ import shutil
 import tempfile
 import uuid
 import xml
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import sleep
 from xml.dom import minidom
 from xml.etree import ElementTree
@@ -22,11 +22,12 @@ from xml.etree.ElementTree import Element, SubElement
 import boto3
 import s3transfer.tasks
 import s3transfer.upload
-
+from botocore.session import get_session
 from boto3.s3.transfer import TransferConfig, S3Transfer
 from botocore.config import Config
 from botocore.credentials import RefreshableCredentials
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
+from dateutil.tz import tzlocal
 from s3transfer import S3UploadFailedError
 from tqdm import tqdm
 
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 MB = 1024 * 1024
 GB = 1024 ** 3
-transfer_config = TransferConfig(multipart_threshold=int((1 * GB) / 16))
+transfer_config = TransferConfig(multipart_threshold=int(32 * MB))
 
 CONTENT_FOLDER = "content"
 PRESERVATION_CONTENT_FOLDER = "p1"
@@ -481,7 +482,7 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
     content_type = kwargs.get('CustomType', "")
 
     if not compress:
-        shutil.register_archive_format("szip", _make_stored_zipfile, None, "UnCompressed ZIP file")
+        shutil.register_archive_format(name="szip", function=_make_stored_zipfile, extra_args=None, description="UnCompressed ZIP file")
 
     has_preservation_files = bool((preservation_files_dict is not None) and (len(preservation_files_dict) > 0))
     has_access_files = bool((access_files_dict is not None) and (len(access_files_dict) > 0))
@@ -910,16 +911,21 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
     if has_preservation_files:
         if default_asset_title is None:
             default_asset_title = os.path.splitext(os.path.basename(preservation_files_list[0]))[0]
-
         # create the asset
-        xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
+        if io_ref is None:
+            xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
 
     if has_access_files:
         if default_asset_title is None:
             default_asset_title = os.path.splitext(os.path.basename(access_files_list[0]))[0]
-
         if io_ref is None:
             xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
+
+    if io_ref is None:
+        default_asset_title = kwargs.get('Title', None)
+        if default_asset_title is None:
+            default_asset_title = "New Asset"
+        xip, io_ref = __create_io__(file_name=default_asset_title, parent_folder=parent_folder, **kwargs)
 
     if has_preservation_files:
         # add the content objects
@@ -1421,7 +1427,7 @@ class UploadAPI(AuthenticatedAPI):
         try:
             auth = tweepy.AppAuthHandler(twitter_consumer_key, twitter_secret_key)
             api = tweepy.API(auth, wait_on_rate_limit=True)
-        except TweepError:
+        except RuntimeError:
             logger.error("No valid Twitter API keys. Could not authenticate")
             raise RuntimeError("No valid Twitter API keys. Could not authenticate")
         if api is not None:
@@ -1529,7 +1535,7 @@ class UploadAPI(AuthenticatedAPI):
         """
             Ingest a web video such as YouTube etc based on the URL
 
-            :param str url: URL to the youtube video
+            :param str url: URL to the YouTube video
             :param Folder parent_folder: The folder to ingest the video into
             :param str Title: Optional asset title
             :param str Description: Optional asset description
@@ -1659,30 +1665,52 @@ class UploadAPI(AuthenticatedAPI):
                          security_tag: str = "open",
                          delete_after_upload: bool = True, max_MB_ingested: int = -1):
 
+        from pyPreservica import EntityAPI
+
+        def entity_value(client: EntityAPI, identifier: str) -> Entity:
+            back_off: int = 5
+            while True:
+                try:
+                    entities = client.identifier("code", identifier)
+                    if bool(len(entities) > 0):
+                        return entities.pop()
+                    else:
+                        return None
+                except HTTPException as e:
+                    sleep(back_off)
+                    back_off = back_off * 2
+
+        def entity_exists(client: EntityAPI, identifier: str) -> bool:
+            back_off: int = 5
+            while True:
+                try:
+                    entities = client.identifier("code", identifier)
+                    return bool(len(entities) > 0)
+                except HTTPException as e:
+                    sleep(back_off)
+                    back_off = back_off * 2
+
         def get_parent(client, identifier, parent_reference):
-            id = str(os.path.dirname(identifier))
-            if not id:
-                id = identifier
-            entities = client.identifier("code", id)
-            if len(entities) > 0:
-                folder = entities.pop()
+            dirname_id: str = str(os.path.dirname(identifier))
+            if not dirname_id:
+                dirname_id = identifier
+            folder = entity_value(client, dirname_id)
+            if folder is not None:
                 folder = client.folder(folder.reference)
                 return folder.reference
             else:
                 return parent_reference
 
         def get_folder(client, name, tag, parent_reference, identifier):
-            entities = client.identifier("code", identifier)
-            if len(entities) == 0:
+            folder = entity_value(client, identifier)
+            if folder is None:
                 logger.info(f"Creating new folder with name {name}")
                 folder = client.create_folder(name, name, tag, parent_reference)
                 client.add_identifier(folder, "code", identifier)
             else:
                 logger.info(f"Found existing folder with name {name}")
-                folder = entities.pop()
             return folder
 
-        from pyPreservica import EntityAPI
         entity_client = EntityAPI(username=self.username, password=self.password, server=self.server,
                                   tenant=self.tenant,
                                   two_fa_secret_key=self.two_fa_secret_key, use_shared_secret=self.shared_secret,
@@ -1712,7 +1740,7 @@ class UploadAPI(AuthenticatedAPI):
                     files.remove(file)
                     continue
                 asset_code = os.path.join(code, file)
-                if len(entity_client.identifier("code", asset_code)) == 0:
+                if not entity_exists(entity_client, asset_code):
                     bytes_ingested = bytes_ingested + os.stat(full_path).st_size
                     logger.info(f"Adding new file: {file} to package ready for upload")
                     file_identifiers = {"code": asset_code}
@@ -1734,9 +1762,9 @@ class UploadAPI(AuthenticatedAPI):
                     self.upload_zip_package(path_to_zip_package=package, callback=progress_display,
                                             delete_after_upload=delete_after_upload)
                 else:
-                    self.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket_name,
-                                                  callback=progress_display,
-                                                  delete_after_upload=delete_after_upload)
+                    self.upload_zip_to_Source(path_to_zip_package=package, container_name=bucket_name,
+                                              show_progress=bool(progress_display is not None),
+                                              delete_after_upload=delete_after_upload)
 
                 logger.info(f"Uploaded " + "{:.1f}".format(bytes_ingested / (1024 * 1024)) + " MB")
 
@@ -1910,9 +1938,42 @@ class UploadAPI(AuthenticatedAPI):
         endpoint = f'{self.protocol}://{self.server}/api/s3/buckets'
         self.token = self.__token__()
 
-        s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=self.token,
-                                 aws_secret_access_key="NOT_USED",
-                                 config=Config(s3={'addressing_style': 'path'}))
+
+        retries= {
+            'max_attempts': 5,
+            'mode': 'adaptive'
+        }
+
+        def new_credentials():
+            cred_metadata: dict = {}
+            cred_metadata['access_key'] =  self.__token__()
+            cred_metadata['secret_key'] = "NOT_USED"
+            cred_metadata['token'] = ""
+            cred_metadata["expiry_time"] = (datetime.now(tzlocal()) + timedelta(minutes=12)).isoformat()
+            logger.info("Refreshing credentials at: " + str(datetime.now(tzlocal())))
+            return cred_metadata
+
+        session = get_session()
+
+        session_credentials = RefreshableCredentials.create_from_metadata(
+            metadata=new_credentials(),
+            refresh_using=new_credentials,
+            advisory_timeout = 4 * 60,
+            mandatory_timeout = 12 * 60,
+            method = 'Preservica'
+        )
+
+        autorefresh_session = boto3.Session(botocore_session=session)
+
+        session._credentials = session_credentials
+
+        config = Config(s3={'addressing_style': 'path'}, read_timeout=120, connect_timeout=120,
+               request_checksum_calculation="WHEN_REQUIRED",
+               response_checksum_validation="WHEN_REQUIRED",
+               retries=retries, tcp_keepalive=True)
+
+
+        s3_client = autorefresh_session.client('s3', endpoint_url=endpoint, config=config)
 
         metadata = {}
         if folder is not None:
@@ -1925,21 +1986,48 @@ class UploadAPI(AuthenticatedAPI):
             try:
                 key_id = str(uuid.uuid4()) + ".zip"
 
+
+                # how big is the package
+                package_size = os.path.getsize(path_to_zip_package)
+                if package_size > 1 * GB:
+                    transfer_config.multipart_chunksize = 16 * MB   ## Min 64 Chunks
+                if package_size > 8 * GB:
+                    transfer_config.multipart_chunksize = 32 * MB   ## Min 256 Chunks
+                if package_size > 24 * GB:
+                    transfer_config.multipart_chunksize = 48 * MB   ## Min 512 Chunks
+                if package_size > 48 * GB:
+                    transfer_config.multipart_chunksize = 64 * MB
+
+                logger.info("Using Multipart Chunk Size: " + str(transfer_config.multipart_chunksize))
+
                 transfer = S3Transfer(client=s3_client, config=transfer_config)
 
                 transfer.PutObjectTask = PutObjectTask
                 transfer.CompleteMultipartUploadTask = CompleteMultipartUploadTask
                 transfer.upload_file = upload_file
 
-                response = transfer.upload_file(self=transfer, filename=path_to_zip_package, bucket=bucket, key=key_id,
+
+                response = transfer.upload_file(self=transfer, filename=path_to_zip_package, bucket=bucket,
+                                                key=key_id,
                                                 extra_args=metadata,
                                                 callback=callback)
+
 
                 if delete_after_upload:
                     os.remove(path_to_zip_package)
 
                 return response['ResponseMetadata']['HTTPHeaders']['preservica-progress-token']
 
-            except ClientError as e:
-                logger.error(e)
-                raise e
+            except (NoCredentialsError, PartialCredentialsError) as ex:
+                logger.error(ex)
+                raise ex
+
+            except ClientError as ex:
+                logger.error(ex)
+                raise ex
+
+
+
+
+
+

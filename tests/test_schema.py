@@ -38,11 +38,11 @@ def test_get_xml_documents():
     xml_documents = client.xml_documents()
     assert type(xml_documents) is list
     assert len(xml_documents) > 10
-    for xml in xml_documents:
-        assert type(xml) is dict
-        assert "Name" in xml
-        assert "SchemaUri" in xml
-        assert "ApiId" in xml
+    for x in xml_documents:
+        assert type(x) is dict
+        assert "Name" in x
+        assert "SchemaUri" in x
+        assert "ApiId" in x
 
 
 def test_get_xml_document_by_uri():
@@ -53,16 +53,16 @@ def test_get_xml_document_by_uri():
 
 def test_add_xml_document():
     client = AdminAPI()
-    client.delete_xml_document("http://www.crossref.org/schema/5.3.0")
-    xml = requests.get(
+    client.delete_xml_document("http://www.crossref.org/schema/5.4.0")
+    xml_doc = requests.get(
         "https://gitlab.com/crossref/schema/-/raw/master/best-practice-examples/book5.3.0.xml").content.decode("utf-8")
-    client.add_xml_document("book5.3.0", xml)
-    xml_document = client.xml_document("http://www.crossref.org/schema/5.3.0")
-    assert len(xml_document) == len(xml)
-    client.delete_xml_document("http://www.crossref.org/schema/5.3.0")
+    client.add_xml_document("book5.4.0", xml_doc)
+    xml_document = client.xml_document("http://www.crossref.org/schema/5.4.0")
+    assert len(xml_document) == len(xml_doc)
+    client.delete_xml_document("http://www.crossref.org/schema/5.4.0")
 
     with open("test_data/mods.xml", mode="rb") as fd:
-        client.add_xml_document("mods31", xml)
+        client.add_xml_document("mods31", xml_doc)
 
     xml_document = client.xml_document("http://www.loc.gov/mods/v31")
     client.delete_xml_document("http://www.loc.gov/mods/v31")
@@ -73,12 +73,12 @@ def test_get_xml_transforms():
     xml_transforms = client.xml_transforms()
     assert type(xml_transforms) is list
     assert len(xml_transforms) > 10
-    for xml in xml_transforms:
-        assert type(xml) is dict
-        assert "Name" in xml
-        assert "FromSchemaUri" in xml
-        assert "ToSchemaUri" in xml
-        assert "ApiId" in xml
+    for x in xml_transforms:
+        assert type(x) is dict
+        assert "Name" in x
+        assert "FromSchemaUri" in x
+        assert "ToSchemaUri" in x
+        assert "ApiId" in x
 
 
 def test_get_xml_transform_by_uri():
