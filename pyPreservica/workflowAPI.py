@@ -332,13 +332,13 @@ class WorkflowAPI(AuthenticatedAPI):
             creator = kwargs.get("creator")
             params["creator"] = creator
 
-        if "from" in kwargs:
-            from_date = kwargs.get("from")
-            params["from"] = from_date
+        if "from_date" in kwargs:
+            from_date = kwargs.get("from_date")
+            params["from"] = parse_date_to_iso(from_date)
 
-        if "to" in kwargs:
-            to_date = kwargs.get("to")
-            params["to"] = to_date
+        if "to_date" in kwargs:
+            to_date = kwargs.get("to_date")
+            params["to"] = parse_date_to_iso(to_date)
 
         params["start"] = int(start_value)
         params["max"] = int(maximum)

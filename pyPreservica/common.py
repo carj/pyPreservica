@@ -28,6 +28,8 @@ from urllib3.util import Retry
 import requests
 from requests.adapters import HTTPAdapter
 from typing import TypeVar
+import datetime
+import dateutil
 
 import pyPreservica
 
@@ -1033,3 +1035,15 @@ class AuthenticatedAPI:
 
         logger.debug(self.xip_ns)
         logger.debug(self.entity_ns)
+
+def parse_date_to_iso(date):
+    try:
+        date = datetime.datetime.fromisoformat(date.replace('Z','+0000'))
+        if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
+            date = date.replace(tzinfo=datetime.timezone.utc)
+        date = date.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
+    except ValueError:
+        date = dateutil.parser.parse(date)
+        if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
+            date = date.replace(tzinfo=datetime.timezone.utc)
+        date = date.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
