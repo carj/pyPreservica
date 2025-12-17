@@ -334,11 +334,11 @@ class WorkflowAPI(AuthenticatedAPI):
 
         if "from_date" in kwargs:
             from_date = kwargs.get("from_date")
-            params["from_date"] = from_date
+            params["from_date"] = parse_date_to_iso(from_date)
 
         if "to_date" in kwargs:
             to_date = kwargs.get("to_date")
-            params["to_date"] = to_date
+            params["to_date"] = parse_date_to_iso(to_date)
 
         params["start"] = int(start_value)
         params["max"] = int(maximum)
