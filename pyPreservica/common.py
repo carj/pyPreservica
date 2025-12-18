@@ -28,7 +28,7 @@ from urllib3.util import Retry
 import requests
 from requests.adapters import HTTPAdapter
 from typing import TypeVar
-import datetime
+from datetime import datetime
 import dateutil
 
 import pyPreservica
