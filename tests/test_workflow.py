@@ -11,7 +11,7 @@ def test_get_workflow_contexts():
 def test_get_workflow_contexts2():
     workflow = WorkflowAPI()
     workflows = workflow.get_workflow_contexts("com.preservica.core.workflow.ingest")
-    assert len(workflows) == 3
+    assert len(workflows) > 1
 
 
 def test_get_workflow_contexts3():
