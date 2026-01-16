@@ -509,6 +509,45 @@ For example the following python fragment appends a new element to an existing d
             client.update_metadata(folder, schema, xml_string)   # call into the API
 
 
+
+Bulk Addition of Metadata
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Preservica provides an API which allows bulk addition of metadata onto existing assets from a CSV file.
+All the Assets to be updated must be from the same metadata group.
+
+The Assets to be updated must not already contain metadata from the group defined in the spreadsheet.
+This API cannot be used to update existing metadata.
+
+The format of the spreadsheet is similar to the metadata spreadsheet used to add metadata to Assets
+as they are ingested. A good starting place is to download the template from your Preservica system for the
+Group you are interested in and add a new column for the entity ref.
+Templates can be downloaded using :ref:`download-csv-template`
+
+.. csv-table::
+   :header: "PRESERVICA_CSV_TEMPLATE", "PRESERVICA_ENTITY_REF", "http://www.preservica.com/metadata/group/test;/ns:test/ns:id"
+   :widths: 15, 10, 30
+
+   "file or folder name",   "entity ref",                           "ID"
+   "sample.png",            "7dffc3e1-3e3d-4b46-9563-20caf64b0f58", "1234"
+   "sample.png",            "f81d4fae-7dec-11d0-a765-00a0c91e6bf6", "8832"
+
+
+The first column is the file or folder name, this is for user reference so doesn't need to be populated.
+The second column is the asset ref which is used to identify the asset to add metadata to.
+The rest of the columns are the descriptive metadata you want to add.
+
+.. note::
+    If you are adding metadata corresponding to a controlled vocabulary, use the numeric ID not the text value
+
+To add the metadata just pass the csv file to the :py:meth:`add_group_metadata` function.
+
+
+
+.. code-block:: python
+
+        pid = client.add_group_metadata("my_metadata.csv")
+
+
 Relationships Between Entities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

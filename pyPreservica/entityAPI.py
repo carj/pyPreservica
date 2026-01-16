@@ -17,6 +17,7 @@ from io import BytesIO
 from time import sleep
 from typing import Any, Generator, Tuple, Iterable, Union, Callable
 
+
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
@@ -58,11 +59,15 @@ class EntityAPI(AuthenticatedAPI):
 
     def bitstream_chunks(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> Generator:
         """
-        Generator function to return bitstream chunks
+        Generator function to return bitstream chunks, allows the clients to
+        process chunks as they are downloaded.
 
-        :param bitstream:   The bitstream
-        :param chunk_size:  The chunk size to return (defaults to 4K)
-        :return:            A chunk of the requested bitstream content
+        :param  bitstream: A bitstream object
+        :type  url: Bitstream
+        :param  chunk_size: Optional size of the chunks to be downloaded
+        :type  chunk_size: int
+        :return: Iterator
+        :rtype: Generator
         """
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")
@@ -118,9 +123,14 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def bitstream_location(self, bitstream: Bitstream):
+    def bitstream_location(self, bitstream: Bitstream) -> list:
         """"
         Retrieves information about a bitstreams storage locations
+
+        :param Bitstream bitstream: The bitstream object
+        :return: A list of strings containing all the storage locations of this bitstream
+        :rtype: list
+
         """
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream argument is not a Bitstream object")
@@ -340,6 +350,15 @@ class EntityAPI(AuthenticatedAPI):
             IncludedGenerations
             IncludeParentHierarchy
 
+
+        :param Entity entity: The entity to export Asset or Folder
+        :param str IncludeContent: "Content", "NoContent"
+        :param str IncludeMetadata: "Metadata", "NoMetadata", "MetadataWithEvents"
+        :param str IncludedGenerations: "LatestActive", "AllActive", "All"
+        :param str IncludeParentHierarchy: "true", "false"
+        :return: The path to the opex ZIP file
+        :rtype: str
+
         """
         status = "ACTIVE"
         pid = self.__export_opex_start__(entity, **kwargs)
@@ -354,12 +373,12 @@ class EntityAPI(AuthenticatedAPI):
 
     def download(self, entity: Entity, filename: str) -> str:
         """
-           Download a file from an asset
+         Download the first generation of the access representation of an asset
 
-           Returns the filename of the new file
-
-           :param entity: The entity containing the file
-           :param filename: The filename to write the bytes to
+        :param Entity entity: The entity
+        :param str filename: The file the image is written to
+        :return: The filename
+        :rtype: str
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}'}
@@ -406,13 +425,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def thumbnail(self, entity: Entity, filename: str, size=Thumbnail.LARGE):
         """
-            Download the thumbnail of an asset or folder
+            Get the thumbnail image for an asset or folder
 
-            Returns the filename of the new thumbnail file or None if the entity has no thumbnail
-
-            :param entity: The entity containing the file
-            :param filename: The filename to write the bytes to
-            :param size: The size of the thumbnail
+        :param Entity entity: The entity
+        :param str filename: The file the image is written to
+        :param Thumbnail size: The size of the thumbnail image
+        :return: The filename
+        :rtype: str
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}', 'size': f'{size.value}'}
@@ -437,14 +456,14 @@ class EntityAPI(AuthenticatedAPI):
 
     def delete_identifiers(self, entity: Entity, identifier_type: str = None, identifier_value: str = None):
         """
-             Delete external identifiers from an entity
+         Delete identifiers on an Entity object
 
-             Returns the entity
-
-             :param entity: The entity to delete identifiers from
-             :param identifier_type: The type of the identifier to delete.
-             :param identifier_value: The value of the identifier to delete.
-          """
+        :param Entity entity: The entity the identifiers are deleted from
+        :param str identifier_type: The identifier type
+        :param str identifier_value: The identifier value
+        :return: entity
+        :rtype: Entity
+        """
 
         if (self.major_version < 7) and (self.minor_version < 1):
             raise RuntimeError("delete_identifiers API call is not available when connected to a v6.0 System")
@@ -537,12 +556,11 @@ class EntityAPI(AuthenticatedAPI):
 
     def identifiers_for_entity(self, entity: Entity) -> set[Tuple]:
         """
-             Get all external identifiers on an entity
+             Return a set of identifiers which belong to the entity
 
-             Returns the set of external identifiers on the entity
-
-             :param entity: The Entity (Asset or Folder)
-             :type  entity: Entity
+            :param Entity entity: The entity
+            :return: Set of identifiers as tuples
+            :rtype: set(Tuple)
           """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(
@@ -574,12 +592,12 @@ class EntityAPI(AuthenticatedAPI):
 
     def identifier(self, identifier_type: str, identifier_value: str) -> set[EntityT]:
         """
-         Get all entities which have the external identifier
+         Return a set of entities with external identifiers which match the type and value
 
-         Returns the set of entities which have the external identifier
-
-         :param identifier_type: The identifier type
-         :param identifier_value: The identifier value
+        :param str identifier_type: The identifier type
+        :param str identifier_value: The identifier value
+        :return: Set of entity objects which have a reference and title attribute
+        :rtype: set(Entity)
           """
         headers = {HEADER_TOKEN: self.token}
         payload = {'type': identifier_type, 'value': identifier_value}
@@ -613,14 +631,14 @@ class EntityAPI(AuthenticatedAPI):
 
     def add_identifier(self, entity: Entity, identifier_type: str, identifier_value: str):
         """
-             Add a new identifier to an entity
+         Add a new external identifier to an Entity object
 
-             Returns the internal identifier DB key
-
-            :param entity: The Entity
-            :param identifier_type: The identifier type
-            :param identifier_value: The identifier value
-          """
+        :param Entity entity: The entity the identifier is added to
+        :param str identifier_type: The identifier type
+        :param str identifier_value: The identifier value
+        :return: An internal id for this external identifier
+        :rtype: str
+        """
 
         if self.major_version < 7 and self.minor_version < 1:
             raise RuntimeError("add_identifier API call is not available when connected to a v6.0 System")
@@ -860,10 +878,10 @@ class EntityAPI(AuthenticatedAPI):
         """
             Add a new relationship link between two Assets or Folders
 
-            :param from_entity: The Source Entity
+            :param from_entity: The Source entity to link from
             :type from_entity: Entity
 
-            :param to_entity: The Target Entity
+            :param to_entity: The Target entity
             :type to_entity: Entity
 
             :param  relationship_type: The Relationship type
@@ -909,13 +927,15 @@ class EntityAPI(AuthenticatedAPI):
 
     def delete_metadata(self, entity: EntityT, schema: str) -> EntityT:
         """
-        Deletes all the metadata fragments on an entity which match the schema URI
+        Delete an existing descriptive XML document on an entity by its schema
+        This call will delete all fragments with the same schema
 
-        Returns The updated Entity
-
-        :param entity: The Entity to delete metadata from
-        :param schema: The schema URI to match against
+        :param Entity entity: The entity to add the metadata to
+        :param str schema: The metadata schema URI
+        :return: The updated Entity
+        :rtype: Entity
         """
+
         headers = {HEADER_TOKEN: self.token}
         for url in entity.metadata:
             if schema == entity.metadata[url]:
@@ -934,27 +954,30 @@ class EntityAPI(AuthenticatedAPI):
         return self.entity(entity.entity_type, entity.reference)
 
 
-    def add_metadata_csv(self, csv_file: str) -> str:
+    def add_group_metadata(self, csv_file: str) -> str:
         """
            Perform bulk additions of metadata with a CSV file.
+           This is designed for metadata which populates a New Gen Metadata Group
+           Returns The process ID which will track the updates
+           Requires DataManagement permission
 
-           Returns The updated Entity
-
-           :param csv_file:   The path of the CSV metadata file
+           :param str csv_file:   The path of the CSV metadata file
+           :return: The process ID
+           :rtype: str
            """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/csv;charset=UTF-8'}
 
         url = f'{self.protocol}://{self.server}/api/entity/actions/metadata-csv-edits'
 
-        with open(csv_file, 'rb') as csvfile:
-            with self.session.post(url, headers=headers, data=csvfile.read()) as request:
+        with open(csv_file, 'rb') as fd:
+            with self.session.post(url, headers=headers, data=fd) as request:
                 if request.status_code == requests.codes.unauthorized:
                     self.token = self.__token__()
-                    return self.add_metadata_csv(csv_file)
+                    return self.add_group_metadata(csv_file)
                 elif request.status_code == requests.codes.accepted:
                     return str(request.content.decode('utf-8'))
                 else:
-                    exception = HTTPException(None, request.status_code, request.url, "add_metadata_csv",
+                    exception = HTTPException(None, request.status_code, request.url, "add_group_metadata",
                                               request.content.decode('utf-8'))
                     logger.error(exception)
                     raise exception
@@ -962,13 +985,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def update_metadata(self, entity: EntityT, schema: str, data: Any) -> EntityT:
         """
-        Update all existing metadata fragments which match the schema
+        Update an existing descriptive XML document on an entity
 
-        Returns The updated Entity
-
-        :param data:   The updated XML as a string or as IO bytes
-        :param entity: The Entity to update
-        :param schema: The schema URI to match against
+        :param Entity entity: The entity to add the metadata to
+        :param str schema: The metadata schema URI
+        :param data data: The XML document as a string or as a file bytes
+        :return: The updated Entity
+        :rtype: Entity
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
@@ -1009,14 +1032,14 @@ class EntityAPI(AuthenticatedAPI):
     def add_metadata_as_fragment(self, entity: EntityT, schema: str, xml_fragment: str) -> EntityT:
         """
         Add a metadata fragment with a given namespace URI to an Entity
-
         Don't parse the xml fragment which may add extra namespaces etc
 
         Returns The updated Entity
 
-        :param xml_fragment:  The new XML as a string
-        :param entity: The Entity to update
-        :param schema: The schema URI of the XML document
+        :param str xml_fragment:  The new XML as a string
+        :param Entity entity: The entity to update
+        :param str schema: The schema URI of the XML document
+        :rtype: Entity
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
@@ -1044,13 +1067,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def add_metadata(self, entity: EntityT, schema: str, data) -> EntityT:
         """
-        Add a metadata fragment with a given namespace URI
+        Add a new descriptive XML document to an existing entity
 
-        Returns The updated Entity
-
-        :param data:   The new XML as a string or as IO bytes
-        :param entity: The Entity to update
-        :param schema: The schema URI of the XML document
+        :param Entity entity: The entity to add the metadata to
+        :param str schema: The metadata schema URI
+        :param data data: The XML document as a string or as file bytes
+        :return: The updated entity with the new metadata
+        :rtype: Entity
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
@@ -1084,11 +1107,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def save(self, entity: EntityT) -> EntityT:
         """
-        Save the title and description of an entity
+        Updates the title and description of an entity
+        The security tag and parent are not saved via this method call
 
-        Returns The updated Entity
-
-        :param entity: The Entity to update
+        :param entity: The entity (asset, folder, content_object) to be updated
+        :type  entity: Entity
+        :return: The updated entity
+        :rtype: Entity
         """
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -1154,8 +1179,10 @@ class EntityAPI(AuthenticatedAPI):
 
         Returns The updated Entity
 
-        :param entity:      The Entity to update
-        :param dest_folder: The Folder which will become the new parent of this entity
+        :param Entity entity: The entity to move either asset or folder
+        :param Entity dest_folder: The new destination folder. This can be None to move a folder to the root of the repository
+        :return: Progress ID token
+        :rtype: str
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
         if isinstance(entity, Asset) and dest_folder is None:
@@ -1182,6 +1209,14 @@ class EntityAPI(AuthenticatedAPI):
         return AsyncProgress[self.get_async_progress(pid)]
 
     def get_async_progress(self, pid: str) -> str:
+        """
+        Return the status of a running process
+
+
+        :param pid: The progress ID
+        :return:  Workflow status
+        :rtype: str
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/entity/progress/{pid}", headers=headers)
         if request.status_code == requests.codes.ok:
@@ -1202,14 +1237,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def move_sync(self, entity: EntityT, dest_folder: Folder) -> EntityT:
         """
-        Move an Entity (Asset or Folder) to a new Folder
-        If dest_folder is None then the entity must be a Folder and will be moved to the root of the repository
+        Move an entity (asset or folder) to a new folder
+        This call blocks until the move is complete
 
-        Returns The updated Entity.
-        Blocks until the move is complete.
-
-        :param entity:      The Entity to update
-        :param dest_folder: The Folder which will become the new parent of this entity
+        :param Entity entity: The entity to move either asset or folder
+        :param Entity dest_folder: The new destination folder. This can be None to move a folder to the root of the repository
+        :return: The updated entity
+        :rtype: Entity
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
         if isinstance(entity, Asset) and dest_folder is None:
@@ -1242,13 +1276,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def move(self, entity: EntityT, dest_folder: Folder) -> EntityT:
         """
-        Move an Entity (Asset or Folder) to a new Folder
-        If dest_folder is None then the entity must be a Folder and will be moved to the root of the repository
+        Move an entity (asset or folder) to a new folder
+        This call is an alias for the move_sync (blocking) method.
 
-        Returns The updated Entity
-
-        :param entity:      The Entity to update
-        :param dest_folder: The Folder which will become the new parent of this entity
+        :param Entity entity: The entity to move either asset or folder
+        :param Entity dest_folder: The new destination folder. This can be None to move a folder to the root of the repository
+        :return: The updated entity
+        :rtype: Entity
         """
         return self.move_sync(entity, dest_folder)
 
@@ -1300,7 +1334,9 @@ class EntityAPI(AuthenticatedAPI):
 
         Returns XML documents in a tuple
 
-        :param entity:       The entity with the metadata
+        :param Entity entity:       The entity with the metadata
+        :return: A list of Tuples, the first value is the schmea and the second is the metadata
+        :rtype: Generator[Tuple[str, str]]
         """
 
         for uri, schema in entity.metadata.items():
@@ -1308,12 +1344,12 @@ class EntityAPI(AuthenticatedAPI):
 
     def metadata_for_entity(self, entity: Entity, schema: str) -> Union[str, None]:
         """
-        Retrieve the first metadata fragment on an entity with a matching schema URI
+       Fetch the first metadata document which matches the schema URI from an entity
 
-        Returns XML document as a string
-
-        :param entity:       The entity with the metadata
-        :param schema:       The schema URI
+        :param Entity entity: The entity containing the metadata
+        :param str schema: The metadata schema URI
+        :return: The first XML document on the entity matching the schema URI
+        :rtype: str
         """
 
         # if the entity is a lightweight enum version request the full object
@@ -1348,12 +1384,15 @@ class EntityAPI(AuthenticatedAPI):
 
     def security_tag_sync(self, entity: EntityT, new_tag: str) -> EntityT:
         """
-         Change the security tag for a folder or asset
+        Change the security tag of an asset or folder
+        This is a blocking call which returns after all entities have been updated.
 
-         Returns the updated entity after the security tag has been updated.
-
-         :param entity:       The entity to change
-         :param new_tag:      The new security tag
+        :param entity: The entity (asset, folder) to be updated
+        :type  entity: Entity
+        :param new_tag: The new security tag to be set on the entity
+        :type  new_tag: str
+        :return: The updated entity
+        :rtype: Entity
          """
         self.token = self.__token__()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
@@ -1380,12 +1419,15 @@ class EntityAPI(AuthenticatedAPI):
 
     def security_tag_async(self, entity: Entity, new_tag: str):
         """
-          Change the security tag for a folder or asset
+        Change the security tag of an asset or folder
+        This is a non blocking call which returns immediately.
 
-          Returns a process ID asynchronous (without blocking)
-
-          :param entity:       The entity to change
-          :param new_tag:      The new security tag
+        :param entity: The entity (asset, folder) to be updated
+        :type  entity: Entity
+        :param  new_tag: The new security tag to be set on the entity
+        :type  new_tag: str
+        :return: A progress id which can be used to monitor the workflow
+        :rtype: str
           """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain'}
         end_point = f"/{entity.path}/{entity.reference}/security-descriptor"
@@ -1404,11 +1446,11 @@ class EntityAPI(AuthenticatedAPI):
 
     def metadata(self, uri: str) -> str:
         """
-        Retrieve the metadata fragment which is referenced by the URI
+        Fetch the metadata document by its identifier, this is the key from the entity metadata map
 
-        Returns XML document as a string
-
-        :param uri:          The endpoint of the metadata fragment
+        :param str uri: The metadata identifier
+        :return: An XML document as a string
+        :rtype: str
         """
         request = self.session.get(uri, headers={HEADER_TOKEN: self.token})
         if request.status_code == requests.codes.ok:
@@ -1428,12 +1470,15 @@ class EntityAPI(AuthenticatedAPI):
 
     def entity(self, entity_type: EntityType, reference: str) -> EntityT:
         """
-        Retrieve an entity by its type and reference
+        Returns a generic entity based on its reference identifier
 
-        Returns Entity (Asset, Folder, ContentObject)
-
-        :param entity_type:          The type of entity to fetch
-        :param reference:            The unique identifier of the entity
+        :param  entity_type: The type of entity
+        :type  entity_type: EntityType
+        :param reference: The unique identifier for the entity
+        :type  reference: str
+        :return: The entity either Asset, Folder or ContentObject
+        :rtype: Entity
+        :raises RuntimeError: if the identifier is incorrect
         """
         if entity_type is EntityType.CONTENT_OBJECT:
             return self.content_object(reference)
@@ -1449,10 +1494,12 @@ class EntityAPI(AuthenticatedAPI):
 
         Returns Asset
 
-        :param title:           The title of the new Asset
-        :param description:     The description of the new Asset
-        :param parent:          The parent folder
-        :param security_tag:    The security setting
+        :param str title:           The title of the new Asset
+        :param str description:     The description of the new Asset
+        :param Folder parent:          The parent folder
+        :param str security_tag:    The security tag, defaults to open
+        :return:                The new physical object
+        :rtype:                 Asset
         """
 
         if (self.major_version < 7) and (self.minor_version < 4):
@@ -1605,12 +1652,16 @@ class EntityAPI(AuthenticatedAPI):
 
 
     def asset(self, reference: str) -> Asset:
+
         """
-         Retrieve an Asset by its reference
+         Returns an asset object back by its internal reference identifier
 
-         Returns Asset
+        :param reference: The unique identifier for the asset usually its uuid
+        :type  reference: str
+        :return: The Asset object
+        :rtype: Asset
+        :raises RuntimeError: if the identifier is incorrect
 
-         :param reference:            The unique identifier of the entity
          """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{IO_PATH}/{reference}', headers=headers)
@@ -1638,11 +1689,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def folder(self, reference: str) -> Folder:
         """
-         Retrieve a Folder by its reference
+         Returns a folder object back by its internal reference identifier
 
-         Returns Folder
-
-         :param reference:            The unique identifier of the entity
+        :param reference: The unique identifier for the folder usually its uuid
+        :type  reference: str
+        :return: The Folder object
+        :rtype: Folder
+        :raises RuntimeError: if the identifier is incorrect
          """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{SO_PATH}/{reference}', headers=headers)
@@ -1670,11 +1723,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def content_object(self, reference: str) -> ContentObject:
         """
-         Retrieve an ContentObject by its reference
+         Returns a content object back by its internal reference identifier
 
-         Returns ContentObject
-
-         :param reference:            The unique identifier of the entity
+        :param  reference: The unique identifier for the content object usually its uuid
+        :type  reference: str
+        :return: The content object
+        :rtype: ContentObject
+        :raises RuntimeError: if the identifier is incorrect
          """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{CO_PATH}/{reference}', headers=headers)
@@ -1702,11 +1757,12 @@ class EntityAPI(AuthenticatedAPI):
 
     def content_objects(self, representation: Representation) -> list[ContentObject]:
         """
-         Retrieve a list of content objects within a representation
+         Return a list of content objects for a representation
 
-         :param representation:
-
-         :returns list[ContentObject]
+        :param  representation: The representation
+        :type  representation: Representation
+        :return: List of content objects
+        :rtype: list(ContentObject)
 
          """
         headers = {HEADER_TOKEN: self.token}
@@ -1738,12 +1794,15 @@ class EntityAPI(AuthenticatedAPI):
 
     def generation(self, url: str, content_ref: str = None) -> Generation:
         """
-         Retrieve a list of generation objects
+        Retrieve a list of generation objects
 
-         :param url:
-         :param content_ref:
-         :returns Generation
-         """
+        :param url:
+        :param content_ref:
+
+        :return: Generation
+        :rtype:  Generation
+        """
+
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(url, headers=headers)
         if request.status_code == requests.codes.ok:
@@ -1876,11 +1935,12 @@ class EntityAPI(AuthenticatedAPI):
 
     def bitstream(self, url: str) -> Bitstream:
         """
-         Retrieve a bitstream by its url
+         Fetch a bitstream object from the server using its URL
 
-         Returns Bitstream
-
-         :param url:
+        :param  url: The URL to the bitstream
+        :type  url: str
+        :return: a bitstream object
+        :rtype: Bitstream
          """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(url, headers=headers)
@@ -1916,9 +1976,16 @@ class EntityAPI(AuthenticatedAPI):
     def replace_generation_sync(self, content_object: ContentObject, file_name, fixity_algorithm=None,
                                 fixity_value=None) -> str:
         """
-            Replace the last active generation of a content object with a new digital file.
+        Replace the last active generation of a content object with a new digital file.
 
-            Starts the workflow and blocks until the workflow completes.
+        Starts the workflow and blocks until the workflow completes.
+
+        :param ContentObject content_object: The content object to replace
+        :param str file_name: The path to the new content object
+        :param str fixity_algorithm: Optional fixity algorithm
+        :param str fixity_value: Optional fixity value
+        :return: Completed workflow status
+        :rtype: str
 
         """
 
@@ -1937,7 +2004,14 @@ class EntityAPI(AuthenticatedAPI):
         """
         Replace the last active generation of a content object with a new digital file.
 
-        Starts the workflow and returns
+        Starts the workflow and returns a process ID
+
+        :param ContentObject content_object: The content object to replace
+        :param str file_name: The path to the new content object
+        :param str fixity_algorithm: Optional fixity algorithm
+        :param str fixity_value: Optional fixity value
+        :return:  Process ID
+        :rtype: str
 
         """
         if (self.major_version < 7) and (self.minor_version < 2) and (self.patch_version < 1):
@@ -1991,11 +2065,12 @@ class EntityAPI(AuthenticatedAPI):
 
     def generations(self, content_object: ContentObject) -> list[Generation]:
         """
-        Retrieve list of generations on a content object
+        Return a list of Generation objects for a content object
 
-        Returns list
-
-        :param content_object:
+        :param  content_object: The content object
+        :type  content_object: ContentObject
+        :return: list of generations
+        :rtype: list(Generation)
         """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(
@@ -2025,13 +2100,11 @@ class EntityAPI(AuthenticatedAPI):
 
     def bitstreams_for_asset(self, asset: Union[Asset, Entity]) -> Iterable[Bitstream]:
         """
-
-        Return all the bitstreams within an asset.
+        Return all the active bitstreams within an asset.
         This includes all the representations and content objects
 
-
         :param asset:               The asset
-        :return:
+        :return: Iterable
         """
 
         for representation in self.representations(asset):
@@ -2046,10 +2119,14 @@ class EntityAPI(AuthenticatedAPI):
 
     def representations(self, asset: Asset) -> set[Representation]:
         """
-        Retrieve set of representations on an Asset
+        Return a set of representations for the asset
 
-        :param asset:   The asset
-        :returns set[Representation]
+        Representations are used to define how the information object are composed in terms of technology and structure.
+
+        :param asset: The asset containing the required representations
+        :type  asset: Asset
+        :return: Set of Representation objects
+        :rtype: set(Representation)
         """
         headers = {HEADER_TOKEN: self.token}
         if not isinstance(asset, Asset):
@@ -2077,11 +2154,11 @@ class EntityAPI(AuthenticatedAPI):
 
     def remove_thumbnail(self, entity: Entity):
         """
-          remove a thumbnail icon to a folder or asset
+        Remove the thumbnail for the entity to the uploaded image
 
-
-          :param entity:   The Entity
-          """
+        :param entity: The entity with the thumbnail
+        :type  entity: Entity
+        """
         if self.major_version < 7 and self.minor_version < 2:
             raise RuntimeError("Thumbnail API is only available when connected to a v6.2 System")
 
@@ -2104,50 +2181,14 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    # def add_preservation_representation(self, entity: Entity, preservation_file: str, name: str = "Preservation"):
-    #     """
-    #     Add a new Preservation representation to an existing asset.
-    #
-    #     :param entity:          The existing asset which will receive the new representation
-    #     :param preservation_file:     The new digital file
-    #     :param name:            The name of the new access representation defaults to "Access"
-    #     :return:
-    #     """
-    #
-    #     if self.major_version < 7 and self.minor_version < 12:
-    #         raise RuntimeError("Add Representation API is only available when connected to a v6.12 System")
-    #
-    #     if isinstance(entity, Folder) or isinstance(entity, ContentObject):
-    #         raise RuntimeError("Add Representation cannot be added to Folders and Content Objects")
-    #
-    #     headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
-    #
-    #     filename = os.path.basename(preservation_file)
-    #
-    #     params = {'type': 'Preservation', 'name': name, 'filename': filename}
-    #
-    #     with open(preservation_file, 'rb') as fd:
-    #         request = self.session.post(
-    #             f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/representations',
-    #             data=fd, headers=headers, params=params)
-    #         if request.status_code == requests.codes.accepted:
-    #             return str(request.content.decode('utf-8'))
-    #         elif request.status_code == requests.codes.unauthorized:
-    #             self.token = self.__token__()
-    #             return self.add_access_representation(entity, preservation_file, name)
-    #         else:
-    #             exception = HTTPException(entity.reference, request.status_code, request.url,
-    #                                       "add_preservation_representation", request.content.decode('utf-8'))
-    #             logger.error(exception)
-    #             raise exception
 
     def add_access_representation(self, entity: Entity, access_file: str, name: str = "Access"):
         """
         Add a new Access representation to an existing asset.
 
-        :param entity:          The existing asset which will receive the new representation
-        :param access_file:     The new digital file
-        :param name:            The name of the new access representation defaults to "Access"
+        :param Entity entity:       The existing asset which will receive the new representation
+        :param str access_file:     The new digital file
+        :param str name:            The name of the new access representation defaults to "Access"
         :return:
         """
 
@@ -2180,12 +2221,14 @@ class EntityAPI(AuthenticatedAPI):
 
     def add_thumbnail(self, entity: Entity, image_file: str):
         """
-         add a thumbnail icon to a folder or asset
+        Set the thumbnail for the entity to the uploaded image
 
+        Supported image formats are png, jpeg, tiff, gif and bmp. The image must be 10MB or less in size.
 
-         :param entity:       The Entity
-         :param image_file:   Path to image file
-         """
+        :param Entity entity: The entity
+        :param str image_file: The path to the image
+        """
+
         if self.major_version < 7 and self.minor_version < 2:
             raise RuntimeError("Thumbnail API is only available when connected to a v6.2 System")
 
@@ -2238,11 +2281,14 @@ class EntityAPI(AuthenticatedAPI):
 
     def all_descendants(self, folder: Union[Folder, Entity] = None) -> Generator[Entity, None, None]:
         """
-         Retrieve list of entities below a folder in the repository
+        Return all child entities recursively of a folder or repository down to the assets using a lazy iterator.
+        The paging is done internally using a default page
+        size of 100 elements. Callers can iterate over the result to get all children with a single call.
 
-         Returns list
+        :param str folder: The parent folder reference, None for the children of root folders
+        :return: A set of entity objects (Folders and Assets)
+        :rtype: set(Entity)
 
-         :param folder: The folder to find children of
          """
         for entity in self.descendants(folder=folder):
             yield entity
@@ -2250,6 +2296,17 @@ class EntityAPI(AuthenticatedAPI):
                 yield from self.all_descendants(folder=entity)
 
     def descendants(self, folder: Union[str, Folder] = None) -> Generator[Entity, None, None]:
+
+        """
+        Return the immediate child entities of a folder using a lazy iterator. The paging is done internally using a default page
+        size of 100 elements. Callers can iterate over the result to get all children with a single call.
+
+        :param str folder: The parent folder reference, None for the children of root folders
+        :return: A set of entity objects (Folders and Assets)
+        :rtype: set(Entity)
+
+        """
+
         maximum = 100
         paged_set = self.children(folder, maximum=maximum, next_page=None)
         for entity in paged_set.results:
@@ -2259,7 +2316,23 @@ class EntityAPI(AuthenticatedAPI):
             for entity in paged_set.results:
                 yield entity
 
+
+
     def children(self, folder: Union[str, Folder] = None, maximum: int = 100, next_page: str = None) -> PagedSet:
+
+        """
+        Return the child entities of a folder one page at a time. The caller is responsible for
+        requesting the next page of results.
+
+        This function is deprecated, use descendants instead as the paging is automatic
+
+        :param str folder: The parent folder reference, None for the children of root folders
+        :param int maximum: The maximum size of the result set in each page
+        :param str next_page: A URL for the next page of results
+        :return: A set of entity objects
+        :rtype: set(Entity)
+        """
+
         headers = {HEADER_TOKEN: self.token}
         data = {'start': str(0), 'max': str(maximum)}
 
@@ -2312,6 +2385,16 @@ class EntityAPI(AuthenticatedAPI):
             raise exception
 
     def all_ingest_events(self, previous_days: int = 1) -> Generator:
+        """
+        Returns a list of ingest only events for the user's tenancy
+
+        This method uses a generator function to make repeated calls to the server for every page of results.
+
+        :param int previous_days: The number of days to look back for events
+        :return: A generator of events
+        :rtype: Generator
+        """
+
         self.token = self.__token__()
         previous = datetime.utcnow() - timedelta(days=previous_days)
         from_date = previous.replace(tzinfo=timezone.utc).isoformat()
@@ -2327,6 +2410,14 @@ class EntityAPI(AuthenticatedAPI):
                 yield entity
 
     def all_events(self) -> Generator:
+        """
+        Returns a list of events for the user's tenancy
+
+        This method uses a generator function to make repeated calls to the server for every page of results.
+
+        :return: A generator of events
+        :rtype: Generator
+        """
         self.token = self.__token__()
         paged_set = self._all_events_page()
         for entity in paged_set.results:
@@ -2372,7 +2463,15 @@ class EntityAPI(AuthenticatedAPI):
             return PagedSet(result_list, has_more, int(total_hits.text), url)
         return None
 
+
+
+
     def entity_from_event(self, event_id: str) -> Generator:
+        """
+        Returns an entity from the user's tenancy
+        :rtype: Generator
+        
+        """
         self.token = self.__token__()
         paged_set = self._entity_from_event_page(event_id, 25, None)
         for entity in paged_set.results:
@@ -2527,6 +2626,16 @@ class EntityAPI(AuthenticatedAPI):
             raise exception
 
     def entity_events(self, entity: Entity) -> Generator:
+        """
+        Returns a list of event actions performed against this entity
+
+        This method uses a generator function to make repeated calls to the server for every page of results.
+
+        :param Entity entity: The entity
+        :return: A list of events
+        :rtype: list
+
+        """
         self.token = self.__token__()
         paged_set = self._entity_events_page(entity)
         for entity in paged_set.results:
@@ -2537,6 +2646,17 @@ class EntityAPI(AuthenticatedAPI):
                 yield entity
 
     def updated_entities(self, previous_days: int = 1) -> Generator:
+        """
+        Fetch a list of entities which have changed (been updated) over the previous n days.
+
+        This method uses a generator function to make repeated calls to the server for every page of results.
+
+        :param int previous_days: The number of days to check for changes.
+        :return: A list of entities
+        :rtype: list
+
+        """
+
         self.token = self.__token__()
         maximum = 25
         paged_set = self._updated_entities_page(previous_days=previous_days, maximum=maximum, next_page=None)
@@ -2596,12 +2716,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def delete_asset(self, asset: Asset, operator_comment: str, supervisor_comment: str, credentials_path: str = "credentials.properties"):
         """
-        Delete an asset from the repository
+        Initiate and approve the deletion of an asset.
 
-        :param asset:               The Asset
-        :param operator_comment:    The operator comment on the deletion
-        :param supervisor_comment:  The supervisor comment on the deletion
-        :param credentials_path:    The path to the credentials file
+        :param Asset asset: The asset to delete
+        :param str operator_comment: The comments from the operator which are added to the logs
+        :param str supervisor_comment: The comments from the supervisor which are added to the logs
+        :return: The asset reference
+        :rtype: str
         """
         if isinstance(asset, Asset):
             return self._delete_entity(asset, operator_comment, supervisor_comment, credentials_path)
@@ -2610,13 +2731,13 @@ class EntityAPI(AuthenticatedAPI):
 
     def delete_folder(self, folder: Folder, operator_comment: str, supervisor_comment: str, credentials_path: str = "credentials.properties"):
         """
-         Delete an asset from the repository
+         Initiate and approve the deletion of a folder.
 
-
-         :param folder:             The Folder
-         :param operator_comment:   The operator comment on the deletion
-         :param supervisor_comment:  The supervisor comment on the deletion
-         :param credentials_path:    The path to the credentials file
+        :param Folder folder: The folder to delete
+        :param str operator_comment: The comments from the operator which are added to the logs
+        :param str supervisor_comment: The comments from the supervisor which are added to the logs
+        :return: The folder reference
+        :rtype: str
          """
         if isinstance(folder, Folder):
             return self._delete_entity(folder, operator_comment, supervisor_comment, credentials_path)

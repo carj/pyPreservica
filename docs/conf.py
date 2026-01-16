@@ -10,6 +10,7 @@ master_doc = 'index'
 html_logo = "images/logo.png"
 
 extensions = [
+    'sphinx.ext.apidoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',

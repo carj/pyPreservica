@@ -144,6 +144,34 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         xml.etree.ElementTree.register_namespace("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/")
         xml.etree.ElementTree.register_namespace("ead", "urn:isbn:1-931666-22-9")
 
+    def download_template(self, form_name: str):
+        """
+        Download a template csv to allow bulk input of data
+
+        """
+        headers = {HEADER_TOKEN: self.token}
+        url = f'{self.protocol}://{self.server}/api/metadata/csv-templates/download'
+
+        for form in self.forms():
+            if form['title'] == form_name:
+                form_id: str = form['id']
+                params = {'ids': form_id}
+                with self.session.get(url, headers=headers, params=params) as response:
+                    if response.status_code == requests.codes.ok:
+                        with open(f"{form_name}.csv", mode="wt", encoding="utf-8") as fd:
+                            fd.write(response.content.decode("utf-8"))
+                            fd.flush()
+                            return f"{form_name}.csv"
+                    if response.status_code == requests.codes.unauthorized:
+                        self.token = self.__token__()
+                        return self.download_template(form_name)
+                    else:
+                        exception = HTTPException(None, response.status_code, response.url, "download_template",
+                                                  response.content.decode('utf-8'))
+                        logger.error(exception)
+                        raise exception
+        return None
+
     def delete_group_namespace(self, schema: str):
         """
          Delete a new Metadata Group using its schema URI

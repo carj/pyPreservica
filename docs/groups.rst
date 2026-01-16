@@ -219,3 +219,19 @@ For example, to read a form metadata from a file use:
         d: dict = json.loads(str(fd.read()))
         md.add_form(d)
 
+
+.. _download-csv-template:
+
+Download CSV Templates
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Users can download CSV templates for bulk ingest of content and metadata, and for updating metadata after ingest.
+The CSV template is downloaded based on the form name.
+
+.. code-block:: python
+
+    client = MetadataGroupsAPI()
+
+    client.download_template("my_form")
+
+

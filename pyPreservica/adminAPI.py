@@ -251,8 +251,9 @@ class AdminAPI(AuthenticatedAPI):
             xml.etree.ElementTree.SubElement(xml_roles, "Role").text = role
         xml_request = xml.etree.ElementTree.tostring(xml_object, encoding='utf-8')
         logger.debug(xml_request)
+        params = {"source": "UX2"}
         request = self.session.post(f'{self.protocol}://{self.server}/api/admin/users', data=xml_request,
-                                    headers=headers)
+                                    headers=headers, params=params)
         if request.status_code == requests.codes.created:
             return self.user_details(username)
         elif request.status_code == requests.codes.unauthorized:

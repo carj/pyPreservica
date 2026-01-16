@@ -1,3 +1,5 @@
+from time import sleep
+
 import pytest
 from pyPreservica import *
 
@@ -18,6 +20,8 @@ def tear_down():
 @pytest.fixture
 def setup_data():
     print("\nSetting up resources...")
+
+    sleep(60)
 
     setup()
 
