@@ -10,7 +10,8 @@ licence:    Apache License 2.0
 """
 
 import csv
-from typing import Generator, Callable, Optional
+from io import BytesIO
+from typing import Generator, Callable, Optional, Union
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,29 @@ class ContentAPI(AuthenticatedAPI):
             logger.error(f"object_details failed with error code: {request.status_code}")
             raise RuntimeError(request.status_code, f"object_details failed with error code: {request.status_code}")
 
+
+    def download_bytes(self, reference):
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+        params = {'id': f'sdb:IO|{reference}'}
+        with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers,
+                              stream=True) as req:
+            if req.status_code == requests.codes.ok:
+                file_bytes = BytesIO()
+                for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                    file_bytes.write(chunk)
+                file_bytes.seek(0)
+                return file_bytes
+            elif req.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.download_bytes(reference)
+            elif req.status_code == requests.codes.not_found:
+                logger.error(f"The requested asset reference is not found in the repository: {reference}")
+                raise RuntimeError(reference, "The requested reference is not found in the repository")
+            else:
+                logger.error(f"download failed with error code: {req.status_code}")
+                raise RuntimeError(req.status_code, f"download failed with error code: {req.status_code}")
+
+
     def download(self, reference, filename):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
         params = {'id': f'sdb:IO|{reference}'}
@@ -116,6 +140,27 @@ class ContentAPI(AuthenticatedAPI):
             else:
                 logger.error(f"download failed with error code: {req.status_code}")
                 raise RuntimeError(req.status_code, f"download failed with error code: {req.status_code}")
+
+    def thumbnail_bytes(self, entity_type, reference: str, size: Thumbnail = Thumbnail.LARGE) -> Union[BytesIO, None]:
+        headers = {HEADER_TOKEN: self.token, 'accept': 'image/png'}
+        params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
+        with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params, headers=headers, stream=True) as req:
+            if req.status_code == requests.codes.ok:
+                file_bytes = BytesIO()
+                for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                    file_bytes.write(chunk)
+                file_bytes.seek(0)
+                return file_bytes
+            elif req.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.thumbnail_bytes(entity_type, reference, size)
+            elif req.status_code == requests.codes.not_found:
+                logger.error(req.content.decode("utf-8"))
+                logger.error(f"The requested reference is not found in the repository: {reference}")
+                raise RuntimeError(reference, "The requested reference is not found in the repository")
+            else:
+                logger.error(f"thumbnail failed with error code: {req.status_code}")
+                raise RuntimeError(req.status_code, f"thumbnail failed with error code: {req.status_code}")
 
     def thumbnail(self, entity_type, reference, filename, size=Thumbnail.LARGE):
         headers = {HEADER_TOKEN: self.token, 'accept': 'image/png'}
@@ -363,7 +408,11 @@ class ContentAPI(AuthenticatedAPI):
             if value == "":
                 field_list.append('{' f' "name": "{key}", "values": [] ' + '}')
             else:
-                field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
+                if isinstance(value, str):
+                    field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
+                if isinstance(value, list):
+                    v = f' {",".join(f'"{w}"' for w in value)} '
+                    field_list.append('{' f' "name": "{key}", "values":[ {v} ]' '}')
 
         filter_terms = ','.join(field_list)
 
@@ -395,7 +444,11 @@ class ContentAPI(AuthenticatedAPI):
             if value == "":
                 field_list.append('{' f' "name": "{key}", "values": [] ' + '}')
             else:
-                field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
+                if isinstance(value, str):
+                    field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
+                if isinstance(value, list):
+                    v = f' {",".join(f'"{w}"' for w in value)} '
+                    field_list.append('{' f' "name": "{key}", "values":[ {v} ]' '}')
 
         filter_terms = ','.join(field_list)
 

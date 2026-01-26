@@ -9,6 +9,7 @@ licence:    Apache License 2.0
 
 """
 from http.server import BaseHTTPRequestHandler
+from typing import Generator
 from urllib.parse import urlparse, parse_qs
 import hmac
 from pyPreservica.common import *
@@ -16,6 +17,44 @@ from pyPreservica.common import *
 logger = logging.getLogger(__name__)
 
 BASE_ENDPOINT = '/api/webhook'
+
+class FlaskWebhookHandler:
+
+    def __init__(self, request, secret_key: str):
+        self.request = request
+        self.secret_key = secret_key
+
+
+    def response_ok(self):
+        return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+
+    def is_challenge(self) -> bool:
+        challenge_code = self.request.args.get('challengeCode')
+        return challenge_code is not None
+
+    def verify_challenge(self):
+        challenge_code = self.request.args.get('challengeCode')
+        if challenge_code is not None:
+            challenge_response: str = hmac.new(key=bytes(self.secret_key, 'latin-1'), msg=bytes(challenge_code, 'latin-1'),
+                                 digestmod=hashlib.sha256).hexdigest()
+            body = json.dumps({"challengeCode": f"{challenge_code}", "challengeResponse": f"{challenge_response}"})
+            return body, 200, {"application/json": 'text/plain; charset=utf-8'}
+
+        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+
+
+
+    def process_request(self) -> Generator:
+        preservica_signature = self.request.headers.get('Preservica-Signature')
+        if preservica_signature is not None:
+            message_body = data = self.request.data
+            verify_body = f"preservica-webhook-auth{message_body.decode('utf-8')}"
+            digest = hmac.new(key=bytes(self.secret_key, 'latin-1'), msg=bytes(verify_body, 'latin-1'),
+                              digestmod=hashlib.sha256).hexdigest()
+            if preservica_signature == digest:
+                json_body = json.loads(message_body.decode('utf-8'))
+                for event in json_body['events']:
+                    yield event
 
 
 class WebHookHandler(BaseHTTPRequestHandler):

@@ -27,7 +27,7 @@ from .retentionAPI import RetentionAPI, RetentionAssignment, RetentionPolicy
 from .parAPI import PreservationActionRegistry
 from .adminAPI import AdminAPI
 from .monitorAPI import MonitorAPI, MonitorCategory, MonitorStatus, MessageStatus
-from .webHooksAPI import WebHooksAPI, TriggerType, WebHookHandler
+from .webHooksAPI import WebHooksAPI, TriggerType, WebHookHandler, FlaskWebhookHandler
 from .authorityAPI import AuthorityAPI, Table
 from .mdformsAPI import MetadataGroupsAPI, Group, GroupField, GroupFieldType
 from .settingsAPI import SettingsAPI
@@ -35,6 +35,6 @@ from .settingsAPI import SettingsAPI
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the pyPreservica package
-__version__ = "3.3.2"
+__version__ = "3.4.0"
 
 __license__ = "Apache License Version 2.0"
