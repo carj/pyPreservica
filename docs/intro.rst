@@ -340,7 +340,12 @@ You can create a new credentials.properties file automatically using the ``save_
 
 4 **Shared Secrets**
 
-pyPreservica now supports authentication using shared secrets rather than a login account username and password.
+.. warning::
+    The shared secret authentication method is deprecated and may be removed in future releases. It should not be used for new projects.
+    See https://developers.preservica.com/blog/developer-blog-api-updates-in-preservica-8-4
+
+
+pyPreservica supports authentication using shared secrets rather than a login account username and password.
 This allows a trusted external applications such as pyPreservica to acquire a Preservica API authentication token
 without having to use a set of login credentials.
 

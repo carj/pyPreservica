@@ -254,3 +254,5 @@ A basic AWS Lambda function for Preservica web hooks in Python would look someth
                     }
 
 Where we are fetching the shared key from the environment variables.
+
+For a description of how to automate the process of creating simple webhook services see https://jcarr.org.uk/2026/01/24/webhook-deployment/

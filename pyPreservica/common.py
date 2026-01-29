@@ -29,7 +29,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from typing import TypeVar
 from datetime import datetime
-import dateutil
+from dateutil.parser import parse
+import dateutil.tz
 
 import pyPreservica
 
@@ -867,6 +868,8 @@ class AuthenticatedAPI:
             logger.error(str(response.content))
             RuntimeError(response.status_code, "Could not generate valid manager approval token")
 
+        return None
+
     def __token__(self) -> str:
         """
             Generate am API token to use to authenticate calls
@@ -936,6 +939,7 @@ class AuthenticatedAPI:
                 msg = "Failed to create a shared secret authentication token. Check your credentials are correct"
                 logger.error(msg)
                 raise RuntimeError(response.status_code, msg)
+        return None
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False, two_fa_secret_key: str = None,
@@ -1038,12 +1042,14 @@ class AuthenticatedAPI:
 
 def parse_date_to_iso(date):
     try:
-        date = datetime.datetime.fromisoformat(date.replace('Z','+0000'))
+        date = datetime.fromisoformat(date.replace('Z','+0000'))
         if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
-            date = date.replace(tzinfo=datetime.timezone.utc)
+            date = date.replace(tzinfo=dateutil.tz.UTC)
         date = date.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
+        return date
     except ValueError:
-        date = dateutil.parser.parse(date)
+        date = parse(date)
         if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
-            date = date.replace(tzinfo=datetime.timezone.utc)
+            date = date.replace(tzinfo=dateutil.tz.UTC)
         date = date.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
+        return date

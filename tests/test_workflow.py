@@ -35,3 +35,10 @@ def test_get_workflow_contexts_type():
     workflows = workflow.get_workflow_contexts_by_type("DataManagement")
     assert len(workflows) == 22
 
+
+
+def test_get_workflow_instances():
+    workflow = WorkflowAPI()
+    assert len(list(workflow.workflow_instances(workflow_state="Completed", workflow_type="Ingest",  from_date="2025-01-01", to_date="2026-01-01"))) == 423
+
+    assert len(list(workflow.workflow_instances(workflow_state="Aborted", workflow_type="Ingest",  from_date="2025-01-01", to_date="2026-01-01"))) == 9

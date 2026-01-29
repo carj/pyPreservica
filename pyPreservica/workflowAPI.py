@@ -290,7 +290,7 @@ class WorkflowAPI(AuthenticatedAPI):
         """
 
         start_value = int(0)
-        maximum = int(25)
+        maximum = int(100)
         total_count = maximum
         while total_count > start_value:
             result = self.__workflow_instances__(workflow_state, workflow_type, maximum=maximum,
@@ -359,13 +359,13 @@ class WorkflowAPI(AuthenticatedAPI):
                 started_element = instance.find(f".//{{{NS_WORKFLOW}}}Started")
                 if started_element is not None:
                     if hasattr(started_element, "text"):
-                        workflow_instance.started = datetime.datetime.strptime(started_element.text,
+                        workflow_instance.started = time.strptime(started_element.text,
                                                                                '%Y-%m-%dT%H:%M:%S.%fZ')
 
                 finished_element = instance.find(f".//{{{NS_WORKFLOW}}}Finished")
                 if finished_element is not None:
                     if hasattr(finished_element, "text"):
-                        workflow_instance.finished = datetime.datetime.strptime(finished_element.text,
+                        workflow_instance.finished = time.strptime(finished_element.text,
                                                                                 '%Y-%m-%dT%H:%M:%S.%fZ')
 
                 workflow_instance.state = instance.find(f".//{{{NS_WORKFLOW}}}State").text
