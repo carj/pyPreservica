@@ -229,6 +229,15 @@ def __make_representation_multiple_co__(xip, rep_name, rep_type, rep_files, io_r
 def cvs_to_cmis_xslt(csv_file, xml_namespace, root_element, title="Metadata Title", export_folder=None,
                      additional_namespaces=None):
     """
+
+    Deprecated function, use csv_to_cmis_xslt instead.
+
+    """
+    return csv_to_cmis_xslt(csv_file, xml_namespace, root_element, title, export_folder, additional_namespaces)
+
+def csv_to_cmis_xslt(csv_file, xml_namespace, root_element, title="Metadata Title", export_folder=None,
+                     additional_namespaces=None):
+    """
             Create a custom CMIS transform to display metadata within UA.
 
     """
@@ -301,6 +310,12 @@ def cvs_to_cmis_xslt(csv_file, xml_namespace, root_element, title="Metadata Titl
 
 def cvs_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additional_namespaces=None):
     """
+        Deprecated function, use csv_to_xsd instead.
+    """
+    return csv_to_xsd(csv_file, xml_namespace, root_element, export_folder, additional_namespaces)
+
+def csv_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additional_namespaces=None):
+    """
         Create a XSD definition based on the csv file
 
     """
@@ -356,6 +371,7 @@ def cvs_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additi
     return xsd_file
 
 
+
 def csv_to_search_xml(csv_file, xml_namespace, root_element, title="Metadata Title", export_folder=None,
                       additional_namespaces=None):
     """
@@ -406,8 +422,15 @@ def csv_to_search_xml(csv_file, xml_namespace, root_element, title="Metadata Tit
     file.close()
     return search_xml
 
-
 def cvs_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename", export_folder=None,
+               additional_namespaces=None):
+    """
+        Deprecated function, use csv_to_xml instead.
+    """
+
+    return csv_to_xml(csv_file, xml_namespace, root_element, file_name_column, export_folder, additional_namespaces)
+
+def csv_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename", export_folder=None,
                additional_namespaces=None):
     """
         Export the rows of a CSV file as XML metadata documents which can be added to Preservica assets

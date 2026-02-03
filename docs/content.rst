@@ -67,6 +67,34 @@ xip.* fields and any custom indexes which have been created through custom index
 
     client.indexed_fields():
 
+
+Full Text Index
+^^^^^^^^^^^^^^^^^
+
+If a document has been `OCR'd <https://en.wikipedia.org/wiki/Optical_character_recognition_>`_ the the full text index will
+contain the extracted text. To extract the value of the full text index for an Asset use the following call:
+
+.. code-block:: python
+
+    text: str = client.full_text("48c79abd-01f3-4b77-8132-546a76e0d337")
+
+The reference supplied must be a valid Asset reference.
+
+This allows you to copy the full text index into a description field to allow users to view the OCR text,
+for example:
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    content = ContentAPI()
+    entity = EntityAPI()
+
+    asset = entity.asset("48c79abd-01f3-4b77-8132-546a76e0d337")
+
+    asset.description = content.full_text(asset.reference)
+    entity.save(asset)
+
 Search
 ^^^^^^^^^
 

@@ -70,6 +70,29 @@ class ContentAPI(AuthenticatedAPI):
 
         return self.security_tags_base(with_permissions=with_permissions)
 
+
+    def full_text(self, reference: str):
+        """
+        Return the full text index value for the reference
+        The reference must be an Asset.
+
+        If the Asset has been OCR'd then this will return the OCR text
+
+        :param reference: The Asset reference
+        :return The value of the full text index or None if not found:
+        :rtype str:
+        """
+
+        hits = list(self.simple_search_list(query=f"id:{reference}",
+                                  list_indexes=['xip.reference', 'xip.full_text', 'xip.document_type']))
+        if len(hits) == 1:
+            hit = hits[0]
+            if (hit['xip.reference'] == reference) and (hit['xip.document_type'] == 'IO'):
+                return str(hit['xip.full_text'])
+
+        return None
+
+
     def object_details(self, entity_type, reference: str) -> dict:
         """
 

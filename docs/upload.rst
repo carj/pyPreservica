@@ -540,7 +540,7 @@ XML files.
 
 .. code-block:: python
 
-    cvs_to_xml(csv_file="my-spreadsheet.csv", root_element="Metadata", file_name_column="filename", xml_namespace="https://test.com/Metadata")
+    csv_to_xml(csv_file="my-spreadsheet.csv", root_element="Metadata", file_name_column="filename", xml_namespace="https://test.com/Metadata")
 
 This will read the ``my-spreadsheet.csv`` csv file and create a set of XML documents, one for each row in the csv file.
 The XML files will be named after the value in the filename column.
@@ -562,7 +562,7 @@ You can create a XSD schema for the documents by calling
 
 .. code-block:: python
 
-    cvs_to_xsd(csv_file="my-spreadsheet.csv", root_element="Metadata", xml_namespace="https://test.com/Metadata")
+    csv_to_xsd(csv_file="my-spreadsheet.csv", root_element="Metadata", xml_namespace="https://test.com/Metadata")
 
 Which will generate a document ``Metadata.xsd``
 
@@ -588,7 +588,7 @@ display. You can generate one by calling
 
 .. code-block:: python
 
-    cvs_to_cmis_xslt(csv_file="my-spreadsheet.csv", root_element="Metadata", title="My Metadata Title",
+    csv_to_cmis_xslt(csv_file="my-spreadsheet.csv", root_element="Metadata", title="My Metadata Title",
            xml_namespace="https://test.com/Metadata")
 
 You can also auto-generate a custom search index document which will add indexes for each column in the spreadsheet
