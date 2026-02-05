@@ -11,7 +11,7 @@ licence:    Apache License 2.0
 
 import uuid
 import datetime
-from typing import Callable
+from typing import Callable, Generator
 from xml.etree import ElementTree
 
 from pyPreservica.common import *
@@ -65,13 +65,125 @@ class WorkflowContext:
         return self.__str__()
 
 
+class Process:
+    """
+    Defines an Ingest Process.
+    """
+
+    def __init__(self, process_id: str, process_name: str):
+        self.process_id = process_id
+        self.name = process_name
+        self.description = ""
+        self.type = None
+        self.active: bool = False
+        self.trigger_type = None
+
+    def __str__(self):
+        return f"""
+              Process ID:           {self.process_id}
+              Process Name:         {self.name}
+              Process description:  {self.description}
+              Process type:         {self.type}
+              Process active:       {self.active}
+              Process trigger type: {self.trigger_type}
+        """
+
+    def __repr__(self):
+        return self.__str__()
+
+class ProcessAPI(AuthenticatedAPI):
+    """
+    API for starting processes, and retrieving and updating configuration for processes.
+
+    https://demo.preservica.com/api/process/documentation.html
+
+    """
+
+    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
+                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
+                 protocol: str = "https", request_hook: Callable = None, credentials_path: str = 'credentials.properties'):
+
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
+                         protocol, request_hook, credentials_path)
+        self.base_url = "api/process"
+
+
+
+    def __set_status__(self, process_id: str, state: str) -> bool:
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
+        request = self.session.put(
+            f'{self.protocol}://{self.server}/{self.base_url}/ingest/configs/{process_id}/active', headers=headers, data=str(state))
+        if request.status_code == requests.codes.ok:
+            config = json.loads(request.content.decode("utf-8"))
+            return bool(config['active'])
+        if request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.__set_status__(process_id, state)
+        else:
+            logger.error(request)
+            raise RuntimeError(request.status_code, "deactivate_process")
+
+    def deactivate_process(self, process_id: str) -> bool:
+        """
+            Deactivate an ingest process.
+
+            :param process_id: The id of the process
+            :type process_id:  str
+            :return:
+            :rtype:
+
+        """
+        return self.__set_status__(process_id, 'false')
+
+    def reactivate_process(self, process_id: str) -> bool:
+        """
+            Reactivate an ingest process.
+
+            :param process_id: The id of the process
+            :type process_id:  str
+            :return:
+            :rtype:
+
+        """
+        return self.__set_status__(process_id, 'true')
+
+    def ingest_process(self, ingest_types=None) -> list:
+        """
+        Return all the ingest processes.
+
+        :return: list of Processes
+        :rtype:  list
+        """
+        headers = {HEADER_TOKEN: self.token}
+        params = {}
+        if ingest_types is not None:
+            params['types'] = ingest_types
+        with self.session.get(f'{self.protocol}://{self.server}/{self.base_url}/ingest/configs', headers=headers, params=params)  as request:
+            if request.status_code == requests.codes.ok:
+                results = []
+                json_dict = json.loads(request.content.decode("utf-8"))
+                for entry in json_dict['configs']:
+                    p = Process(entry['apiId'], entry['name'])
+                    p.description = entry['description']
+                    p.type = entry['type']
+                    p.active = bool(entry['active'])
+                    p.trigger_type = entry['trigger']['type']
+                    results.append(p)
+                return results
+            if request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.ingest_process(ingest_types)
+
+        return []
+
 class WorkflowAPI(AuthenticatedAPI):
     """
         A class for calling the Preservica Workflow API
 
         This API can be used to programmatically manage the Preservica Workflows.
 
-        https://preview.preservica.com/sdb/rest/workflow/documentation.html
+        https://demo.preservica.com/sdb/rest/workflow/documentation.html
 
     """
 
@@ -87,7 +199,7 @@ class WorkflowAPI(AuthenticatedAPI):
                          protocol, request_hook, credentials_path)
         self.base_url = "sdb/rest/workflow"
 
-    def get_workflow_contexts_by_type(self, workflow_type: str):
+    def get_workflow_contexts_by_type(self, workflow_type: str) -> list:
         """
         Return a list of Workflow Contexts which have the same Workflow type
 
@@ -120,7 +232,7 @@ class WorkflowAPI(AuthenticatedAPI):
             logger.error(request.content)
             raise RuntimeError(request.status_code, "get_workflow_contexts_by_type")
 
-    def get_workflow_contexts(self, definition: str):
+    def get_workflow_contexts(self, definition: str) -> list:
         """
         Return a list of Workflow Contexts which have the same Workflow Definition
 
@@ -280,7 +392,7 @@ class WorkflowAPI(AuthenticatedAPI):
             logger.error(request.content)
             raise RuntimeError(request.status_code, "workflow_instance")
 
-    def workflow_instances(self, workflow_state: str, workflow_type: str, **kwargs):
+    def workflow_instances(self, workflow_state: str, workflow_type: str, **kwargs) -> Generator[WorkflowInstance, None, None]:
         """
         Return a list of Workflow instances
 

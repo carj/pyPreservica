@@ -12,7 +12,7 @@ licence:    Apache License 2.0
 import os.path
 import uuid
 import xml.etree.ElementTree
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from io import BytesIO
 from time import sleep
 from typing import Any, Generator, Tuple, Iterable, Union, Callable
@@ -63,7 +63,7 @@ class EntityAPI(AuthenticatedAPI):
         process chunks as they are downloaded.
 
         :param  bitstream: A bitstream object
-        :type  url: Bitstream
+        :type   bitstream: Bitstream
         :param  chunk_size: Optional size of the chunks to be downloaded
         :type  chunk_size: int
         :return: Iterator
@@ -867,6 +867,7 @@ class EntityAPI(AuthenticatedAPI):
 
             return PagedSet(results, has_more, int(total_hits.text), url)
         elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
             return self.__relationships__(entity=entity, maximum=maximum, next_page=next_page)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "relationships",
@@ -2055,6 +2056,7 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             return str(request.content.decode('utf-8'))
         elif request.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
             return self.replace_generation_async(content_object=content_object, file_name=file_name,
                                                  fixity_algorithm=fixity_algorithm, fixity_value=fixity_value)
         else:
@@ -2718,6 +2720,8 @@ class EntityAPI(AuthenticatedAPI):
         """
         Initiate and approve the deletion of an asset.
 
+        :param credentials_path:
+        :type credentials_path:
         :param Asset asset: The asset to delete
         :param str operator_comment: The comments from the operator which are added to the logs
         :param str supervisor_comment: The comments from the supervisor which are added to the logs

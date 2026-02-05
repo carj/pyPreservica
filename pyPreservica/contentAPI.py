@@ -20,18 +20,21 @@ class SortOrder(Enum):
     asc = 1
     desc = 2
 
+class Operator(Enum):
+    IS = "IS"
+    NOT = "NOT"
+
 class Field:
     name: str
-    value: Optional[str]
-    operator: Optional[str]
+    value: Optional[Union[str, list[str]]] = None
+    operator: Optional[Operator]
     sort_order: Optional[SortOrder]
 
-    def __init__(self, name: str, value: str, operator: Optional[str]=None, sort_order: Optional[SortOrder]=None):
+    def __init__(self, name: str, value: Union[str, list[str]], operator: Optional[Operator]=Operator.IS, sort_order: Optional[SortOrder]=None):
         self.name = name
         self.value = value
         self.operator = operator
         self.sort_order = sort_order
-
 
 
 class ContentAPI(AuthenticatedAPI):
@@ -73,8 +76,8 @@ class ContentAPI(AuthenticatedAPI):
 
     def full_text(self, reference: str):
         """
-        Return the full text index value for the reference
-        The reference must be an Asset.
+        Return the full text index value for asset.
+        The reference must be for an Asset.
 
         If the Asset has been OCR'd then this will return the OCR text
 
@@ -341,10 +344,23 @@ class ContentAPI(AuthenticatedAPI):
             metadata_elements.append(field.name)
             if field.value is None or field.value == "":
                 field_list.append('{' f' "name": "{field.name}", "values": [] ' + '}')
-            elif field.operator == "NOT":
-                field_list.append('{' f' "name": "{field.name}", "values": ["{field.value}"], "operator": "NOT" ' + '}')
             else:
-                field_list.append('{' f' "name": "{field.name}", "values": ["{field.value}"] ' + '}')
+
+                if isinstance(field.value, str):
+                    if field.operator == Operator.NOT:
+                        field_list.append(
+                            '{' f' "name": "{field.name}", "values": ["{field.value}"], "operator": "NOT" ' + '}')
+                    else:
+                        field_list.append('{' f' "name": "{field.name}", "values":[ "{field.value}" ]' '}')
+                if isinstance(field.value, list):
+                    values = [f'"{w}"' for w in field.value]
+                    v:str = f' {",".join(values)} '
+                    if field.operator == Operator.NOT:
+                        field_list.append(
+                            '{' f' "name": "{field.name}", "values": [ {v} ], "operator": "NOT" ' + '}')
+                    else:
+                        field_list.append('{' f' "name": "{field.name}", "values":[ {v} ]' '}')
+
 
             if field.sort_order is not None:
                 sort_list.append(f'{{"sortFields": ["{field.name}"], "sortOrder": "{field.sort_order.name}"}}')
@@ -434,7 +450,8 @@ class ContentAPI(AuthenticatedAPI):
                 if isinstance(value, str):
                     field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
                 if isinstance(value, list):
-                    v = f' {",".join(f'"{w}"' for w in value)} '
+                    values = [f'"{w}"' for w in value]
+                    v: str = f' {",".join(values)} '
                     field_list.append('{' f' "name": "{key}", "values":[ {v} ]' '}')
 
         filter_terms = ','.join(field_list)
@@ -470,7 +487,8 @@ class ContentAPI(AuthenticatedAPI):
                 if isinstance(value, str):
                     field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
                 if isinstance(value, list):
-                    v = f' {",".join(f'"{w}"' for w in value)} '
+                    values = [f'"{w}"' for w in value]
+                    v: str = f' {",".join(values)} '
                     field_list.append('{' f' "name": "{key}", "values":[ {v} ]' '}')
 
         filter_terms = ','.join(field_list)

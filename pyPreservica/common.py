@@ -81,7 +81,7 @@ class FileHash:
         return hash_algorithm.hexdigest()
 
 
-def identifiersToDict(identifiers: set) -> dict:
+def identifiers_to_dict(identifiers: set) -> dict:
     """
         Convert a set of tuples to a dict
         :param identifiers:
@@ -867,8 +867,7 @@ class AuthenticatedAPI:
             logger.error(response.status_code)
             logger.error(str(response.content))
             RuntimeError(response.status_code, "Could not generate valid manager approval token")
-
-        return None
+            return ""
 
     def __token__(self) -> str:
         """
@@ -939,7 +938,7 @@ class AuthenticatedAPI:
                 msg = "Failed to create a shared secret authentication token. Check your credentials are correct"
                 logger.error(msg)
                 raise RuntimeError(response.status_code, msg)
-        return None
+        return ""
 
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False, two_fa_secret_key: str = None,

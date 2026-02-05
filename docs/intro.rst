@@ -146,7 +146,7 @@ pyPreservica is available from the Python Package Index (PyPI)
 
 https://pypi.org/project/pyPreservica/
 
-pyPreservica is built and tested against Python 3.8. Older versions of Python may not work.
+pyPreservica is built and tested against Python 3.10 onwards. Older versions of Python may not work.
 
 
 To install pyPreservica, simply run this simple command in your terminal of choice:

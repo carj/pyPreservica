@@ -197,6 +197,16 @@ For example to create a report on the security tags of all assets within a folde
     client.search_index_filter_csv(query="%", csv_file="security.csv", filter_values=filters)
 
 
+Filter values can also be provided as a list of values to match on:
+
+.. code-block:: python
+
+    client = ContentAPI()
+
+    filters = {"xip.title": "%", "xip.description": "%", "xip.security_descriptor": ["open", "public"], "xip.parent_ref": "48c79abd-01f3-4b77-8132-546a76e0d337"}
+    client.search_index_filter_csv(query="%", csv_file="security.csv", filter_values=filters)
+
+
 Search Progress
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -262,11 +272,19 @@ To exclude filters in the search use:
 
 .. code-block:: python
 
-    fields = [Field(name='xip.title', value='Blockchain', operator="NOT",  sort_order=SortOrder.desc)]
+    fields = [Field(name='xip.title', value='Blockchain', operator=Operator.NOT,  sort_order=SortOrder.desc)]
 
     for hit in content.search_fields(query="%", fields=fields):
         print(hit)
 
+To use a list of possible values use:
+
+.. code-block:: python
+
+    term = Field(name='xip.security_descriptor', value=["open", "public"])
+
+    for hit in content.search_fields(query="%", fields=[term]):
+        print(hit)
 
 Reporting Examples
 ^^^^^^^^^^^^^^^^^^^^
