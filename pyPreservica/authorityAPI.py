@@ -20,7 +20,7 @@ BASE_ENDPOINT = '/api/reference-metadata'
 
 
 class Table:
-    def __init__(self, reference: str, name: str, security_tag: str, displayField: str, metadataConnections: list):
+    def __init__(self, reference: str, name: str, security_tag: str, metadataConnections: list, displayField: str=None):
         self.reference = reference
         self.name = name
         self.security_tag = security_tag
@@ -29,10 +29,11 @@ class Table:
         self.fields = None
 
     def __str__(self):
+        displayField = self.displayField or "<None>"
         return f"Ref:\t\t\t{self.reference}\n" \
                f"Name:\t\t\t{self.name}\n" \
                f"Security Tag:\t{self.security_tag}\n" \
-               f"Display Field:\t\t\t{self.displayField}\n" \
+               f"Display Field:\t\t\t{displayField}\n" \
                f"Metadata Connections:\t\t\t{self.metadataConnections}\n" \
                f"Fields:\t\t\t{self.fields}\n"
 
@@ -190,8 +191,7 @@ class AuthorityAPI(AuthenticatedAPI):
         if response.status_code == requests.codes.ok:
             json_response = str(response.content.decode('utf-8'))
             doc = json.loads(json_response)
-            table = Table(doc['ref'], doc['name'], doc['securityDescriptor'], doc['displayField'],
-                          doc['metadataConnections'])
+            table = Table(doc['ref'], doc['name'], doc['securityDescriptor'], doc['metadataConnections'], doc.get('displayField'))
             table.fields = doc['fields']
             return table
         else:
@@ -218,8 +218,7 @@ class AuthorityAPI(AuthenticatedAPI):
             doc = json.loads(json_response)
             results = set()
             for table in doc['tables']:
-                t = Table(table['ref'], table['name'], table['securityDescriptor'], table['displayField'],
-                          table['metadataConnections'])
+                t = Table(table['ref'], table['name'], table['securityDescriptor'], table['metadataConnections'], table.get('displayField'))
                 results.add(t)
             return results
         else:
