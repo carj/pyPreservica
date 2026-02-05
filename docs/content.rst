@@ -55,7 +55,7 @@ or
 
 
 
-indexed-fields
+Indexed Fields
 ^^^^^^^^^^^^^^^^^
 
 Get a list of all the indexed metadata fields within the Preservica search engine. This includes the default
@@ -70,13 +70,18 @@ xip.* fields and any custom indexes which have been created through custom index
 
 Full Text Index
 ^^^^^^^^^^^^^^^^^
+If a document contains text such as a PDF or a Word document or it has been `OCR'd <https://en.wikipedia.org/wiki/Optical_character_recognition_>`_
+the full text index will contain the extracted text.
 
-If a document has been `OCR'd <https://en.wikipedia.org/wiki/Optical_character_recognition_>`_ the the full text index will
-contain the extracted text. To extract the value of the full text index for an Asset use the following call:
+To extract the value of the full text index for an Asset use the following call:
 
 .. code-block:: python
 
-    text: str = client.full_text("48c79abd-01f3-4b77-8132-546a76e0d337")
+    from pyPreservica import *
+
+    content = ContentAPI()
+
+    text: str = content.full_text("48c79abd-01f3-4b77-8132-546a76e0d337")
 
 The reference supplied must be a valid Asset reference.
 
