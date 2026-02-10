@@ -10,6 +10,7 @@ licence:    Apache License 2.0
 """
 
 import csv
+import json
 from typing import List, Set
 
 from pyPreservica.common import *
@@ -20,22 +21,30 @@ BASE_ENDPOINT = '/api/reference-metadata'
 
 
 class Table:
-    def __init__(self, reference: str, name: str, security_tag: str, metadataConnections: list, displayField: str=None):
-        self.reference = reference
+    def __init__(self, name: str, security_tag: str, displayField: str=None, metadataConnections: list=[]):
+        self.reference = None
         self.name = name
+        self.description = None
         self.security_tag = security_tag
         self.displayField = displayField
         self.metadataConnections = metadataConnections
         self.fields = None
 
     def __str__(self):
-        displayField = self.displayField or "<None>"
-        return f"Ref:\t\t\t{self.reference}\n" \
+        table_str: str = f"Ref:\t\t\t{self.reference}\n" \
                f"Name:\t\t\t{self.name}\n" \
-               f"Security Tag:\t{self.security_tag}\n" \
-               f"Display Field:\t\t\t{displayField}\n" \
-               f"Metadata Connections:\t\t\t{self.metadataConnections}\n" \
-               f"Fields:\t\t\t{self.fields}\n"
+               f"Security Tag:\t{self.security_tag}\n"
+
+        if self.description is not None:
+            table_str = table_str + f"Description:\t\t\t{self.description}\n"
+        if self.displayField is not None:
+            table_str =  table_str + f"Display Field:\t\t\t{self.displayField}\n"
+        if self.metadataConnections is not None:
+               table_str =  table_str + f"Metadata Connections:\t\t\t{self.metadataConnections}\n"
+        if self.fields is not None:
+               table_str =  table_str + f"Fields:\t\t\t{self.fields}\n"
+
+        return table_str
 
 
 class AuthorityAPI(AuthenticatedAPI):
@@ -171,6 +180,45 @@ class AuthorityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
+    def add_table(self, new_table: Table):
+        """
+         Add a new authority table
+
+         :return: An authority table
+         :rtype: Table
+
+         """
+        headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8', 'Content-Type': 'application/json'}
+
+        table_data = {"name": new_table.name}
+        if new_table.description is not None:
+            table_data['description'] = new_table.description
+        if new_table.security_tag is not None:
+            table_data['securityDescriptor'] = new_table.security_tag
+        if new_table.displayField is not None:
+            table_data['displayField'] = new_table.displayField
+        if new_table.metadataConnections is not None:
+            table_data['metadataConnections'] = new_table.metadataConnections
+        if new_table.fields is not None:
+            table_data['fields'] = new_table.fields
+
+        response = self.session.post(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables', data=json.dumps(table_data), headers=headers)
+
+        if response.status_code == requests.codes.unauthorized:
+            self.token = self.__token__()
+            return self.add_table(new_table)
+        if response.status_code == requests.codes.created:
+            json_response = str(response.content.decode('utf-8'))
+            doc = json.loads(json_response)
+            return self.table(doc['ref'])
+        else:
+            exception = HTTPException("", response.status_code, response.url, "add_table",
+                                      response.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
+        return None
+
     def table(self, reference: str) -> Table:
         """
         fetch an authority table by its reference
@@ -191,8 +239,12 @@ class AuthorityAPI(AuthenticatedAPI):
         if response.status_code == requests.codes.ok:
             json_response = str(response.content.decode('utf-8'))
             doc = json.loads(json_response)
-            table = Table(doc['ref'], doc['name'], doc['securityDescriptor'], doc['metadataConnections'], doc.get('displayField'))
-            table.fields = doc['fields']
+            table = Table(doc['name'], doc['securityDescriptor'], doc.get('displayField', None), doc.get('metadataConnections', None))
+            table.reference = doc['ref']
+            if 'fields' in doc:
+                table.fields = doc['fields']
+            if 'description' in doc:
+                table.fields = doc['description']
             return table
         else:
             exception = HTTPException("", response.status_code, response.url, "table",
@@ -218,7 +270,10 @@ class AuthorityAPI(AuthenticatedAPI):
             doc = json.loads(json_response)
             results = set()
             for table in doc['tables']:
-                t = Table(table['ref'], table['name'], table['securityDescriptor'], table['metadataConnections'], table.get('displayField'))
+                t = Table(table['name'], table['securityDescriptor'], table.get('displayField', None), table.get('metadataConnections', None))
+                t.reference = table['ref']
+                if 'description' in table:
+                    t.description = table['description']
                 results.add(t)
             return results
         else:
