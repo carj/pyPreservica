@@ -3,9 +3,8 @@ Welcome to pyPreservica's documentation
 
 Release v\ |version|.
 
-..
-    #image:: https://pepy.tech/badge/pyPreservica
-    #target: https://pepy.tech/project/pyPreservica
+..  image:: https://pepy.tech/badge/pyPreservica
+    :target: https://pepy.tech/project/pyPreservica
 
 .. image:: https://img.shields.io/pypi/pyversions/pyPreservica.svg
     :target: https://pypi.org/project/pyPreservica/
@@ -22,7 +21,7 @@ Release v\ |version|.
 
 **pyPreservica** is an open source, python client for the Preservica APIs
 
-----------------------------
+-------------------------------------------------------------------------
 
 pyPreservica is a 3rd party Python Software Development Kit (SDK) for the Preservica API,
 which allows Preservica users to write software that makes use of the Preservica repository services.

@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath('../pyPreservica/'))
 
 master_doc = 'index'
 
-html_logo = "images/logo.png"
+html_logo = "images/trace.svg"
 
 extensions = [
     'sphinx.ext.apidoc',
@@ -21,7 +21,9 @@ extensions = [
     'sphinxcontrib.googleanalytics'
 ]
 
-html_theme = "sphinx_rtd_theme"
+#html_theme = "sphinx_rtd_theme"
+
+html_theme = "sphinx_clarity_theme"
 
 html_extra_path = ["googled4940437d6a0a50d.html"]
 

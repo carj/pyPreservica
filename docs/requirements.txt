@@ -10,4 +10,5 @@ azure-storage-blob
 tqdm
 urllib3
 sphinx_rtd_theme
+sphinx_clarity_theme
 sphinxcontrib-googleanalytics

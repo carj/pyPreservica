@@ -1,0 +1,14 @@
+
+.idea
+
+build/
+dist/
+
+.venv/
+
+.venv1/
+.github/
+
+credentials.properties
+
+pyPreservica.egg-info/

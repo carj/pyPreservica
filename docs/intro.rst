@@ -139,7 +139,7 @@ to be created to make the information accessible.
 
 **Bitstreams** represent the actual computer files as ingested into Preservica, i.e. the TIFF photograph or the PDF document.
 
-PIP Installation
+Installation
 ----------------
 
 pyPreservica is available from the Python Package Index (PyPI)

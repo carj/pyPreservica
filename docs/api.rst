@@ -266,7 +266,9 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 .. py:currentmodule:: pyPreservica
 .. autofunction:: simple_asset_package
 .. autofunction:: complex_asset_package
-.. autofunction:: cvs_to_xml
+.. autofunction:: csv_to_xml
+.. autofunction:: csv_to_xsd
+.. autofunction:: csv_to_cmis_xslt
 .. autoclass:: UploadAPI
     :members:
 
