@@ -49,18 +49,17 @@ There is no support for use of the library by Preservica Ltd. For support see :r
 
    intro
    tutorial
-   Reference
-       entity
-       content
-       upload
-       admin
-       retention
-       workflow
-       webhooks
-       authority
-       groups
-       par
-       monitor
+   entity
+   content
+   upload
+   admin
+   retention
+   workflow
+   webhooks
+   authority
+   groups
+   par
+   monitor
    example
    api
 
