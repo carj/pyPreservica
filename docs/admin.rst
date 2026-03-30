@@ -1,5 +1,6 @@
+=================
 Admin API
-~~~~~~~~~~~~~~~
+=================
 
 pyPreservica 1.2 onwards now provides interfaces to the Administration and Management API
 
@@ -17,9 +18,9 @@ The Administration and Management API client is created using
 
     client = AdminAPI()
 
-
+--------------------------------------------------------------------------
 Metadata Management (XSD Schema's, XML Documents & XSLT Transforms)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------------------------------------
 
 Preservica holds XML metadata schema's, XML templates and XSLT transforms, you can access the document stores
 programmatically via the admin API.
@@ -188,9 +189,10 @@ and deletion is via the URI
 
     client.delete_xml_schema("http://purl.org/dc/elements/1.1/")
 
-
+--------------------------------------------------------------------------
 User Management
-^^^^^^^^^^^^^^^^^^^
+--------------------------------------------------------------------------
+
 
 List all the users within the tenancy by their username
 
@@ -264,8 +266,10 @@ Change the display name of a user
     client.change_user_display_name(username, "New Display Name")
 
 
+--------------------------------------------------------------------------
 Security Tags
-^^^^^^^^^^^^^^^^^^^
+--------------------------------------------------------------------------
+
 
 To get a list of all security tags in the system use:
 

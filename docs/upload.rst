@@ -1,5 +1,6 @@
+=================
 Upload API
-~~~~~~~~~~~~~~~~~~
+=================
 
 PyPreservica provides some limited capabilities for the Upload Content API
 
@@ -12,8 +13,9 @@ Zipped OPEX packages are also supported. https://developers.preservica.com/docum
 
 The package can also be a regular zip file containing just folders and files with or without simple .metadata files.
 
+--------------------
 Uploading Packages
-^^^^^^^^^^^^^^^^^^^^^
+--------------------
 
 The upload API client is created using
 
@@ -97,8 +99,10 @@ which will upload into a monitored cloud location on either platform
     upload.upload_zip_to_Source(path_to_zip_package="my-large-package.zip", container_name=bucket, folder=folder)
 
 
+-------------------------------
 Monitoring Upload Progress
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------
+
 
 The ``upload_zip_package`` function accepts an optional Callback parameter.
 The parameter references a class that pyPreservica invokes intermittently during the transfer operation.
@@ -138,9 +142,9 @@ The default pyPreservica ``UploadProgressCallback`` looks like
                 sys.stdout.flush()
 
 
-
+-------------------------------
 Creating Packages
-^^^^^^^^^^^^^^^^^^^^
+-------------------------------
 
 The UploadAPI module also contains functions for creating XIPv6 packages directly from content files.
 
@@ -241,9 +245,10 @@ page of a book should be the first item added to the list.
 
 
 
-
+---------------------------------------------------
 Creating Packages with Multiple Representations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------------
+
 If you have a single preservation and access representation then ``complex_asset_package`` will create the package you need.
 If you have more than one representation of each type than you need to use ``generic_asset_package``
 
@@ -271,8 +276,9 @@ Preservica will render the first access representation, so the viewer you want t
 For example above if you want to use the multi-page book viewer as the default renderer, make "Multi-Page Access" the first entry,
 if you want the PDF viewer to be the default renderer, then make "Single Page Access" the first dict entry.
 
+---------------------------------------------------
 Custom Fixity Generation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------------
 
 By default the ``simple_asset_package`` and ``complex_asset_package`` routines will create packages which contain
 `SHA1 <https://en.wikipedia.org/wiki/SHA-1>`_ fixity values.
@@ -323,9 +329,9 @@ For example if your fixity values are stored in a spreadsheet (csv) files you ma
                 return "SHA256", sha(full_path)
 
 
-
+---------------------------------------------------
 Bulk Package Creation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------------
 
 The ``simple_asset_package`` and ``complex_asset_package`` functions create a submission package containing a single Asset.
 If you have many single file assets to ingest you can call these functions for each file.
@@ -363,14 +369,15 @@ The equivalent to the code above would be:
     client.upload_zip_package(path_to_zip_package=package_path)
 
 
-
+---------------------------------------------------
 Package Examples
-^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------------
 
 The following code samples show different ways of ingesting data into Preservica for different use cases.
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Ingest a single digital file as an asset, with a progress bar during upload, delete the package after upload has completed.
------------------------------------------------------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -394,8 +401,9 @@ Ingest a single digital file as an asset, with a progress bar during upload, del
 
     upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, callback=callback, delete_after_upload=True)
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Ingest a single digital file as an asset, with a custom asset Title and Description
----------------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -420,8 +428,9 @@ Ingest a single digital file as an asset, with a custom asset Title and Descript
     upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, callback=callback, delete_after_upload=True)
 
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Ingest each jpeg file in a directory as an individual asset
---------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -440,9 +449,9 @@ Ingest each jpeg file in a directory as an individual asset
         package = simple_asset_package(preservation_file=image, parent_folder=folder)
         upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket)
 
-
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Ingest a single digital file as an asset with a 3rd party identifier and custom metadata
-------------------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -474,9 +483,9 @@ Ingest a single digital file as an asset with a 3rd party identifier and custom 
 
     upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, delete_after_upload=True)
 
-
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Create a single Asset with 2 Representations (Preservation and Access) each Representation has 1 Content Object
-------------------------------------------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -495,8 +504,9 @@ Create a single Asset with 2 Representations (Preservation and Access) each Repr
     bucket = "com.preservica.upload"
     upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, delete_after_upload=True)
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Create a package with 1 Asset 2 Representations (Preservation and Access) and multiple Content Objects (one for every image)
-------------------------------------------------------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 .. code-block:: python
@@ -519,9 +529,9 @@ Create a package with 1 Asset 2 Representations (Preservation and Access) and mu
     upload.upload_zip_package_to_S3(path_to_zip_package=package, bucket_name=bucket, delete_after_upload=True)
 
 
-
+-------------------------
 Spreadsheet Metadata
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------
 
 pyPreservica now provides some experimental support for working with metadata in spreadsheets.
 The library provides support for generating descriptive metadata XML documents for each row in a spreadsheet, creating
@@ -598,9 +608,9 @@ You can also auto-generate a custom search index document which will add indexes
     csv_to_search_xml(csv_file="my-spreadsheet.csv", root_element="Metadata",
            xml_namespace="https://test.com/Metadata")
 
-
+-------------------------
 Ingest Web Video
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------
 
 pyPreservica now contains the ability to ingest web video directly from video hosting sites such as YouTube and others.
 To use this functionality you need to install the additional Python Project youtube_dl
@@ -673,9 +683,10 @@ identifiers.
     upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_dict, Title=title, SecurityTag="public")
 
 
-
+-------------------------
 Ingest Twitter Feeds
-^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------
+
 To use this functionality you need to install the additional Python Project tweepy
 
 .. code-block:: console
@@ -729,9 +740,9 @@ file or an environment variable using the keys:  ``TWITTER_CONSUMER_KEY`` and ``
     The tweets can then be rendered directly from within Preservica.
 
 
-
+------------------------------------
 Crawl and ingest from a filesystem
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
 The UploadAPI class provides a mechanism for users to crawl and ingest all digital files on a filesystem. The crawl will
 replicate the on disk folder structure in Preservica.

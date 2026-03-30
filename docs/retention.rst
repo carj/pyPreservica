@@ -1,10 +1,12 @@
+=================
 Retention API
-~~~~~~~~~~~~~~~~~~
+=================
 
 https://eu.preservica.com/api/entity/documentation.html#/%2Fretention-policies
 
+----------------------
 Retention Policies
-^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 Fetch a list of all retention policies
 
@@ -56,9 +58,9 @@ Delete a Policy
     retention.delete_policy(policy.reference)
 
 
-
+----------------------
 Retention Assignments
-^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 Assign a policy onto an asset
 

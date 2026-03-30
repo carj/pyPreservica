@@ -1,5 +1,6 @@
+=================
 WebHook API
-~~~~~~~~~~~~~~~
+=================
 
 pyPreservica now contains APIs for accessing the web hook API.
 
@@ -16,9 +17,9 @@ shared secret key.
 
 The Webhook API requires the user to have at least the repository manager role, ROLE_SDB_MANAGER_USER
 
-
+-----------------
 Subscribing
-^^^^^^^^^^^^^
+-----------------
 
 Before a system can receive notifications from Preservica, it must subscribe to a notification trigger.
 
@@ -59,9 +60,9 @@ where hexHmac256Response is a hex hmac256 of the challengeCode using the shared 
 
 If the web server is unable to correctly verify the subscription then an exception is thrown.
 
-
+-------------------------
 Listing Subscriptions
-^^^^^^^^^^^^^^^^^^^^^
+-------------------------
 
 You can query the system for a list of current subscriptions for a tenancy.
 
@@ -74,9 +75,9 @@ You can query the system for a list of current subscriptions for a tenancy.
     print(json_doc)
 
 
-
+-------------------------
 Unsubscribe
-^^^^^^^^^^^^^^^^^^^^^
+-------------------------
 
 To unsubscribe to a web hook, you need the subscription id
 
@@ -95,9 +96,9 @@ To unsubscribe to all web hooks use
 
     webhook.unsubscribe_all()
 
-
+-------------------------
 Reference Web Server
-^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------
 
 To receive web hook notifications pyPreservica has provided a reference web server implementation which provides
 support for negotiation of the challenge request handshake during the subscription request and
@@ -177,9 +178,9 @@ using the pyPreservica EntityAPI()
 
 
 
-
+---------------------------------------
 Event Driven Serverless Architecture
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------
 
 In the examples above, a web server is used to receive the web hook notifications.
 This can turn out to be inefficient as the web server needs to be running on a server even when no notifications are being sent.

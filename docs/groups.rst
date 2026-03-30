@@ -1,12 +1,14 @@
+===================================
 Metadata Groups and Forms API
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+===================================
 
 The Metadata Groups API is designed allows the creation of custom metadata within NGI (New Generation Interface).
 
 You can find Swagger UI for this API at https://us.preservica.com/api/metadata/documentation.html#/%2Fgroups
 
+---------------------------
 Listing Existing Groups
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 You can query the system for all metadata groups using the following
 
@@ -35,8 +37,9 @@ If you need the underlying JSON document rather than a Python Object, you can us
 
 this returns a list of dict object containing all groups.
 
+---------------------------
 Fetching a Metadata Group
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 If you need the full set of metadata fields belonging to the group then you need to fetch a full `Group` object using the
 group id:
@@ -55,9 +58,9 @@ The `Group` object contains a list of metadata fields.
 
 
 
-
+---------------------------
 Deleting Groups
-^^^^^^^^^^^^^^^^^^
+---------------------------
 
 You can delete a group using its Group ID
 
@@ -76,9 +79,9 @@ or via the namespace URI attached to the Group.
     client.delete_group_namespace(namespace)
 
 
-
+---------------------------
 Create a New Group
-^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 There are two options for creating a new group, either pass a well-formed JSON document describing the group or
 pass a list of `GroupField` objects.
@@ -148,9 +151,9 @@ If you dont have a JSON document, you can create the group and the required meta
 
     client.add_group(group_name="my group", description="my group description", fields=group_fields)
 
-
+---------------------------
 Adding new Fields
-^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 You can add new metadata fields to an existing Group using
 
@@ -167,9 +170,9 @@ You can add new metadata fields to an existing Group using
 
 The new fields are appended to the end of the group metadata.
 
-
+---------------------------
 Listing Forms
-^^^^^^^^^^^^^^^^
+---------------------------
 
 To fetch all the existing Forms as a dict object use the following
 
@@ -189,9 +192,9 @@ You can filter by a schema URI by passing it as the argument
     for form in client.forms('http://www.openarchives.org/OAI/2.0/oai_dc/'):
         print(form)
 
-
+---------------------------
 Fetching a Form
-^^^^^^^^^^^^^^^^^^
+---------------------------
 
 Each Form has a unique string id, this id can be use to fetch an individual Form as a dictionary
 
@@ -202,8 +205,9 @@ Each Form has a unique string id, this id can be use to fetch an individual Form
     form = client.form('1ecf5df5184eab25702a667703e0d037'):
     print(form['title'])
 
+---------------------------
 Create a new Form
-^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 To add a new Form use the ```add_form``` function. The function can accept either a string containing a
 json document or a Python dictionary object.
@@ -222,8 +226,9 @@ For example, to read a form metadata from a file use:
 
 .. _download-csv-template:
 
+---------------------------
 Download CSV Templates
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 Users can download CSV templates for bulk ingest of content and metadata, and for updating metadata after ingest.
 The CSV template is downloaded based on the form name.

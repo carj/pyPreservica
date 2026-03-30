@@ -1,5 +1,7 @@
+=========================
 Authority Records API
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=========================
+
 
 This API is used for managing the controlled vocabulary (Authority) records within Preservica.
 
@@ -8,9 +10,9 @@ Each table can consist of multiple records and each record has multiple fields.
 
 .. image:: images/reference_md.png
 
-
+---------------------
 Authority Tables
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 
 Fetch a list of all Authority tables
 
@@ -32,9 +34,9 @@ Get a single Authority table by its reference
     table = authority.table(ref):
 
 
-
+---------------------
 Authority Records
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 
 Fetch a record by its reference
 

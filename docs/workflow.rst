@@ -1,5 +1,6 @@
+=================
 Workflow API
-~~~~~~~~~~~~~~
+=================
 
 The workflow API allows clients to interact with the workflow engine, you can start workflows programmatically
 and monitor the workflow queue etc.
@@ -20,8 +21,9 @@ Now, create the ``WorkflowAPI`` client
 
     client = WorkflowAPI()
 
+-------------------------------
 Fetching Workflow Contexts
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------
 
 The WorkflowAPI allows users to fetch a list of workflow contexts. A workflow context is a workflow definition
 which has been configured and is ready to run.
@@ -48,9 +50,9 @@ The list of available types are:
     for workflow_context in client.get_workflow_contexts_by_type("Ingest"):
         print(workflow_context.workflow_name)
 
-
+-------------------------------
 Fetching Workflow Instances
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------
 
 A workflow instance is a workflow context which has been started and has either completed or is in progress.
 
@@ -87,9 +89,9 @@ Workflow Types
     for workflow_instance in client.workflow_instances("Completed", "Ingest"):
         print(workflow_instance)
 
-
+-------------------------------
 Starting Workflows
-^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------
 
 Once you have a workflow context setup, you can start workflows via the API.
 

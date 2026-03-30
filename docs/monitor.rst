@@ -1,13 +1,15 @@
+=================
 Monitor API
-~~~~~~~~~~~~~~~~~~
+=================
 
 
 This is an API for monitoring certain types of long running process within Preservica, for example OPEX ingests.
 
 You can find Swagger UI for this API at https://us.preservica.com/api/processmonitor/documentation.html
 
+----------------
 Monitors
-^^^^^^^^^^^^^
+----------------
 
 Returns a generator of monitors. The ID returned for each monitor can be used as an ID parameter in other endpoints.
 These IDs might change between releases, so you should not persist them as permanent object links.
@@ -37,9 +39,9 @@ Filters can be applied to limit the returned data, for example:
 
 
 
-
+----------------
 Messages
-^^^^^^^^^^^^^^^
+----------------
 
 Returns a generator of process messages for each Monitor.
 
@@ -63,9 +65,9 @@ Messages can be filtered
         for message in client.messages(monitor['MonitorId'], status=MessageStatus.ERROR):
             print(message)
 
-
+----------------------
 Monitor Timeseries
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 Get the historical record of progress for a single monitor.
 

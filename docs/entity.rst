@@ -1,5 +1,8 @@
+
+
+=================
 Entity API
-~~~~~~~~~~~~~~~~~~
+=================
 
 Making a call to the Preservica repository is very simple.
 
@@ -23,9 +26,9 @@ Now, let's create the ``EntityAPI`` client object, this can have any name, but l
 The ``client`` object will manage the connection to the server and will be responsible for 
 creating the API authentication tokens as needed.
 
-
+-----------------------------------------------------------
 Fetching Entities (Assets, Folders & Content Objects)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------------------
 
 The following Python code examples show how data model entities, (Assets, Folders & Content Objects) 
 can be returned from Preservica using their internal Preservica identifiers.
@@ -95,8 +98,9 @@ To get a list of parent Folders of an Asset all the way to the root of the repos
         print(folder.title)
 
 
+-----------------------------------------------------------
 Fetching Children of Entities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------------------
 
 The immediate children of a Folder can also be retrieved using the library.
 
@@ -203,9 +207,9 @@ again if you need a list of every Asset in the system you can filter using
         print(asset.title)
 
 
-
+-----------------------------------------------------------
 Creating new Folders
-^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------------------
 
 Folder objects can be created directly in the repository, the ``create_folder()`` function takes 3
 mandatory parameters, folder title, description and security tag.
@@ -226,9 +230,9 @@ reference of the parent as the last argument.
 
 
 
-
+-----------------------------------------------------------
 Adding Physical Assets
-^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------------------
 
 Preservica supports the creation of intellectual entities which correspond to physical objects. These are similar to
 regular assets, but they do not point to digital files like regular assets.
@@ -250,8 +254,9 @@ Physical assets support 3rd party identifiers, thumbnails and descriptive metada
     client.add_identifier(physical_asset, "ISBN", "978-3-16-148410-0")
     client.add_thumbnail(physical_asset, "icon.png")
 
+-----------------------------------------------------------
 Updating Entities
-^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------------------
 
 We can update either the title or description attribute for Assets,
 Folders and Content Objects using the ``save()`` method
@@ -303,9 +308,9 @@ If you want to change the type back, just set the value to None
     asset = client.save(asset)
 
 
-
+-----------------------------------------------------------
 Security Tags
-^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------------------
 
 To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running process.
 You can choose either a asynchronous (non-blocking) call which returns immediately or synchronous (blocking call) which
@@ -334,8 +339,9 @@ It only applies to the named entity passed as an argument.
     entity = client.security_tag_sync(entity, new_tag)
 
 
+-----------------------------------------------------------
 3rd Party External Identifiers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------------------
 
 3rd party or external identifiers are a useful way to provide additional names or identities to objects to
 provide an alternate way of accessing them.
@@ -408,8 +414,9 @@ Will delete all identifiers which have type "ISBN"
 
 Will only delete identifiers which match the type and value
 
+----------------------------------------
 Descriptive Metadata
-^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------
 
 You can query an entity to determine if it has any attached descriptive metadata using the metadata attribute.
 This returns a dictionary object the dictionary key is a url which can be used to the fetch metadata
@@ -509,9 +516,10 @@ For example the following python fragment appends a new element to an existing d
             client.update_metadata(folder, schema, xml_string)   # call into the API
 
 
-
+----------------------------------------
 Bulk Addition of Metadata
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------
+
 Preservica provides an API which allows bulk addition of metadata onto existing assets from a CSV file.
 All the Assets to be updated must be from the same metadata group.
 
@@ -547,9 +555,9 @@ To add the metadata just pass the csv file to the :py:meth:`add_group_metadata` 
 
         pid = client.add_group_metadata("my_metadata.csv")
 
-
+----------------------------------------
 Relationships Between Entities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------
 
 Preservica allows arbitrary relationships between entities such as Assets and Folders.
 These relationships appear in the Preservica user interface as links from one entity to another.
@@ -619,8 +627,10 @@ If only need to delete a specific relationship, you can pass the relationship na
 
     client.delete_relationships(A_asset, "Supersedes")
 
+----------------------------------------------------
 Representations, Content Objects & Generations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
+
 
 Each Asset in Preservica contains one or more representations, such as Preservation or Access etc.
 All Assets have at least one Preservation representation which is created when the Asset is ingested.
@@ -705,9 +715,9 @@ objects. Each property is a single dictionary object with the following keys: PU
             print(key, value)
 
 
-
+----------------------------------------------------
 BitStreams
-^^^^^^^^^^^^
+----------------------------------------------------
 
 Generations also contain a list of bitstreams, these contain information about the bitstreams such as file size
 and fixity etc.
@@ -797,9 +807,9 @@ The storage adapters which hold a copy of the bitstream can be found using:
         locations = client.bitstream_location(bitstream)
 
 
-
+----------------------------------------------------
 BitStream Integrity Check History
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 You can request the history of all integrity checks which have been carried out on a bitstream
 
@@ -814,8 +824,9 @@ The list of returned checks includes both full and quick integrity checks.
 .. note::
     This call does not start a new check, it only returns information about previous checks.
 
+----------------------------------------------------
 Merging Assets
-^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 You can create a new multi-part Asset from all the Assets in a folder using the ``merge_folder`` call.
 The new Asset will be added to the folder containing the Assets to be merged.
@@ -840,9 +851,9 @@ The call returns a process id which can be used to track the status of the merge
 
     There is currently no way to easily find the reference UUID of the newly created Asset.
 
-
+----------------------------------------------------
 Adding Representations
-^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 Since version Preservica 6.12 the API allows new Access representations to be added to an existing Asset.
 This allows organisations to migrate content outside of Preservica or add new access versions after the preservation
@@ -861,8 +872,9 @@ The Preservica tenancy requires the ``post.new.representation.feature`` flag to 
 
 
 
+----------------------------------------------------
 Moving Entities
-^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 We can move entities between folders using the ``move`` call
 
@@ -899,8 +911,9 @@ argument to ``get_async_progress``
     status = client.get_async_progress(pid)
 
 
+----------------------------------------------------
 Deleting Entities
-^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 You can initiate and approve a deletion request using the API.
 
@@ -943,9 +956,9 @@ Deleting a folder
     This API call deletes entities within the repository, it both initiates and approves the deletion request
     and therefore must be used with care.
 
-
+----------------------------------------------------
 Finding Updated Entities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 We can query Preservica for entities which have changed over the last n days using
 
@@ -956,8 +969,9 @@ We can query Preservica for entities which have changed over the last n days usi
 
 The argument is the number of previous days to check for changes. This call does paging internally.
 
+----------------------------------------------------
 Downloading Files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 The pyPreservica library also provides a web service call which is part of the content API which allows downloading of digital
 content directly without having to request the Representations and Generations first.
@@ -977,9 +991,9 @@ For complex multi-part assets which have been through preservation actions it ma
 and the ``bitstream_content()`` function to fetch the exact bitstream you need.
 
 
-
+----------------------------------------------------
 Events on Specific Entities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 List actions performed against this entity
 
@@ -992,9 +1006,9 @@ List actions performed against this entity
         print(event)
 
 
-
+----------------------------------------------------
 Events Across Entities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 List actions performed against all entities within the repository. The event is a ``dict()`` object containing
 the event attributes. This call is generator function which returns the events as needed.
@@ -1005,8 +1019,9 @@ the event attributes. This call is generator function which returns the events a
         print(event)
 
 
+----------------------------------------------------
 Ingest Events
-^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 Return a generator of ingest events over the last n days
 
@@ -1016,8 +1031,9 @@ Return a generator of ingest events over the last n days
         print(ingest_event)
 
 
+----------------------------------------------------
 Asset and Folder Thumbnail Images
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 You can now add and remove icons on Assets and Folders using the API. 
 The icons will be displayed in the Explorer and Universal Access interfaces.
@@ -1057,9 +1073,9 @@ You can specify the size of the thumbnail by passing a second argument
 
 
 
-
+----------------------------------------------------
 Replacing Content Objects
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 Preservica now supports replacing individual Content Objects within an Asset. The use case here is you have uploaded
 a large digitised object such as book and you subsequently discover that a page has been digitised incorrectly.
@@ -1099,8 +1115,9 @@ back to the caller.
     workflow_status = client.replace_generation_sync(content_object, file)
 
 
+----------------------------------------------------
 Export OPEX Package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------
 
 pyPreservica allows clients to request a full package export from the system by folder or asset,
 this will start an export workflow and download the resulting dissemination package when the export workflow has completed.

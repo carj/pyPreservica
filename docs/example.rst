@@ -1,7 +1,10 @@
+========================
 Example Applications
-~~~~~~~~~~~~~~~~~~~~~~
+========================
 
-**Updating a descriptive metadata element value**
+--------------------------------------------------
+Updating a descriptive metadata element value
+--------------------------------------------------
 
 If you need to bulk update metadata values the following script will check every asset in a folder given by the "folder-uuid"
 and find the matching descriptive metadata document by its namespace "your-xml-namespace".
@@ -49,7 +52,9 @@ a filter() on the lazy iterator provides a version which does not need the addit
                 asset = client.update_metadata(asset, "your-xml-namespace", new_xml)
                 print("Updated asset: " + asset.title)
 
-**Adding Metadata from a Spreadsheet**
+--------------------------------------------------
+Adding Metadata from a Spreadsheet
+--------------------------------------------------
 
 One common use case which can be solved with pyPreservica is adding descriptive metadata to existing Preservica assets or folders
 using metadata held in a spreadsheet. Normally each column in the spreadsheet contains a metadata attribute and each row represents a
@@ -97,8 +102,9 @@ The metadata should be saved as a UTF-8 CSV file called dublincore.csv ::
             print("The CSV file should contain a assetId column containing the Preservica identifier for the asset to be updated")
 
 
-
-**Creating Searchable Transcripts from Oral Histories**
+-----------------------------------------------------
+Creating Searchable Transcripts from Oral Histories
+-----------------------------------------------------
 
 The following is an example python script which uses a 3rd party Machine Learning API to automatically generate a text
 transcript from an audio file such as a WAVE file.

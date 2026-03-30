@@ -1,5 +1,6 @@
+=================
 Content API
-~~~~~~~~~~~~~~~
+=================
 
 pyPreservica now contains interfaces to the content API which supports searching the repository.
 
@@ -16,9 +17,9 @@ The content API client is created using
 
     client = ContentAPI()
 
-
+--------------------
 object-details
-^^^^^^^^^^^^^^^^^
+--------------------
 
 Get the details for a Asset or Folder as a Python dictionary object containing CMIS attributes
 
@@ -54,9 +55,9 @@ or
 
 
 
-
+--------------------
 Indexed Fields
-^^^^^^^^^^^^^^^^^
+--------------------
 
 Get a list of all the indexed metadata fields within the Preservica search engine. This includes the default
 xip.* fields and any custom indexes which have been created through custom index files.
@@ -67,9 +68,10 @@ xip.* fields and any custom indexes which have been created through custom index
 
     client.indexed_fields():
 
-
+--------------------
 Full Text Index
-^^^^^^^^^^^^^^^^^
+--------------------
+
 If a document contains text such as a PDF or a Word document or it has been `OCR'd <https://en.wikipedia.org/wiki/Optical_character_recognition_>`_
 the full text index will contain the extracted text.
 
@@ -100,8 +102,9 @@ for example:
     asset.description = content.full_text(asset.reference)
     entity.save(asset)
 
+--------------------
 Search
-^^^^^^^^^
+--------------------
 
 Search the repository using a single expression which matches on any indexed field.
 
@@ -211,7 +214,7 @@ Filter values can also be provided as a list of values to match on:
     filters = {"xip.title": "%", "xip.description": "%", "xip.security_descriptor": ["open", "public"], "xip.parent_ref": "48c79abd-01f3-4b77-8132-546a76e0d337"}
     client.search_index_filter_csv(query="%", csv_file="security.csv", filter_values=filters)
 
-
+^^^^^^^^^^^^^^^^^^^^^
 Search Progress
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -251,8 +254,9 @@ To use the default callback in your scripts include the following line
 
     client.search_callback(client.ReportProgressCallBack())
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Excluding results from Search
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The search API now allows results to be excluded from results by applying a operator to exclude terms.
 
@@ -291,11 +295,13 @@ To use a list of possible values use:
     for hit in content.search_fields(query="%", fields=[term]):
         print(hit)
 
+----------------------
 Reporting Examples
-^^^^^^^^^^^^^^^^^^^^
+----------------------
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Create a spreadsheet containing all Assets within the repository
---------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Generate a CSV report on all assets within the system, spreadsheet columns include asset title, description,
 security tag etc
@@ -318,8 +324,9 @@ security tag etc
         client.search_index_filter_csv("%", "assets.csv", metadata_fields)
 
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Create a spreadsheet containing all Assets and Folders within the repository
--------------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -338,8 +345,9 @@ Create a spreadsheet containing all Assets and Folders within the repository
         client.search_index_filter_csv("%", "all_objects.csv", metadata_fields)
 
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Create a spreadsheet containing all Assets and Folders underneath a specific folder
--------------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -364,8 +372,9 @@ Create a spreadsheet containing all Assets and Folders underneath a specific fol
         content.search_index_filter_csv("%", "assets.csv", metadata_fields)
 
 
+--------------------
 User Security Tags
-^^^^^^^^^^^^^^^^^^^^^
+--------------------
 
 You can get a list of available security tags for the current user by calling:
 

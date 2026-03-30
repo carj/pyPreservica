@@ -1,5 +1,6 @@
+===========================
 Why Should I Use This?
-----------------------
+===========================
 
 The goal of pyPreservica is to allow you to make use of the Preservica Entity API for reading and writing objects within
 a Preservica repository without having to manage the underlying REST HTTPS requests and XML parsing.
@@ -14,12 +15,13 @@ synchronisation with 3rd party systems etc.
     licensed.  See https://preservica.com/digital-archive-software/products-editions for details.
 
 
-
+==================
 SDK Features
------------------------
+==================
 
+-----------------------
 Entity API Features
-^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 -  Fetch and Update Entity Objects (Folders, Assets, Content Objects)
 -  Add, Delete and Update External Identifiers
@@ -39,15 +41,17 @@ Entity API Features
 -  Fetch audit trail events on Entities and across the repository
 -  Create Relationships between Assets
 
+-----------------------
 Content API Features
-^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 -  Fetch a list of indexed Solr Fields
 -  Search based on a single query term
 -  Filtered searches on indexed fields
 
+-----------------------
 Upload API Features
-^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 -  Create single Content Object Packages with multiple Representations
 -  Create multiple Content Object Packages with multiple Representations
@@ -56,37 +60,42 @@ Upload API Features
 -  Ingest Web Video
 -  Ingest Twitter Feeds
 
+-----------------------
 Admin API Features
-^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 -  Schema Management (XML Templates, XSD Schema's & XSLT Transforms)
 -  User Management (create and remove user accounts)
 -  Security Tags (add and remove security tags)
 
+------------------------------------
 Retention Management API Features
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
 -  Create new retention policies
 -  Delete retention policies
 -  Update retention policies
 -  Assign retention policies to entities
 
+-----------------------
 Workflow API Features
-^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 - Get Workflow Contexts
 - Get Workflow Instance
 - Start Workflow Instances
 
+-----------------------
 Webhook API Features
-^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 - Subscribe to Webhook endpoints
 - Unsubscribe
 - List Subscriptions
 
+---------------------------------
 Authority Records API Features
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 -  Get an Authority table by its reference
 -  List all Authority tables
@@ -95,8 +104,9 @@ Authority Records API Features
 -  Delete records from an Authority table
 
 
+---------------------------------------------
 New Generation Groups and Forms Features
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------
 
 -  Create new Groups
 -  Delete Groups
@@ -104,8 +114,9 @@ New Generation Groups and Forms Features
 -  Fetch existing Groups
 
 
+==================
 Background
-------------
+==================
 
 They key to working with the pyPreservica library is that the services follow the Preservica core data model closely.
 
@@ -139,8 +150,9 @@ to be created to make the information accessible.
 
 **Bitstreams** represent the actual computer files as ingested into Preservica, i.e. the TIFF photograph or the PDF document.
 
+==================
 Installation
-----------------
+==================
 
 pyPreservica is available from the Python Package Index (PyPI)
 
@@ -167,8 +179,9 @@ pyPreservica is under active development and the latest version is installed usi
 
     $ pip install --upgrade pyPreservica
 
+=======================
 Get the Source Code
--------------------
+=======================
 
 pyPreservica is developed on GitHub, where the code is
 `always available <https://github.com/carj/pyPreservica>`_.
@@ -180,14 +193,15 @@ You can clone the public repository
     $ git clone git://github.com/carj/pyPreservica.git
 
 
+=======================
 Contributing
-------------
+=======================
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/carj/pyPreservica
 
-
+=======================
 Support
-------------
+=======================
 
 pyPreservica is 3rd party open source client and is
 not affiliated or supported by `Preservica Ltd <https://preservica.com/>`_
@@ -199,8 +213,9 @@ Bug reports can be raised directly on either `GitHub <https://github.com/carj/py
 
 General questions and queries about using pyPreservica posted on the google group forum above.
 
+=======================
 Examples
-------------
+=======================
 
 Using the python console, create the entity API client object and request an Asset
 (Information Object) by its unique reference and display some of its attributes.
@@ -261,9 +276,9 @@ uploads it directly to the Preservica server using the S3 protocol.
     >>> zip_p = simple_asset_package(preservation_file="picture.tiff", parent_folder=folder)
     >>> client.upload_zip_package(zip_p)
 
-
+=======================
 Authentication
------------------
+=======================
 
 pyPreservica provides 4 different methods for authentication. The library requires the username and password of a
 Preservica user and an optional Tenant identifier along with the server hostname.
@@ -371,9 +386,9 @@ If you are using a credentials.properties file then
 
     client = EntityAPI(use_shared_secret=True)
 
-
+========================
 2 Factor Authentication
-------------------------
+========================
 
 pyPreservica now supports the new 2-Factor authentication for APIs introduced with Preservica 6.8
 
@@ -422,9 +437,9 @@ i.e ::
     Preservica uses time based One Time Passwords (OTP), this means the time on your local machine must match time
     on the server.
 
-
+========================
 SSL Certificates
------------------
+========================
 
 pyPreservica will by default connect to servers which use the https:// protocol and will always validate certificates
 when connected via https.
@@ -451,8 +466,9 @@ environment variable. e.g.
     $ export REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/my-server.cert
 
 
+========================
 Application Logging
--------------------
+========================
 
 You can add logging to your pyPreservica scripts by simply including the following
 
@@ -495,7 +511,7 @@ Here’s a sample implementation.
 
 
 Low Level Logging
-^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 pyPreservica now provides low level event hooks into the underlying API requests to the server.
 To use this functionality, create a call back function with the following signature `call_back(r, *args, **kwargs)`
