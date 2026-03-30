@@ -126,7 +126,7 @@ The handler can then be used to create a web server, the web server should be ru
 
 For example a simple web hook server which prints the events to the console as they arrive would be:
 
- .. code-block:: python
+.. code-block:: python
 
     from http.server import HTTPServer
     from sys import argv
@@ -157,7 +157,7 @@ For example a simple web hook server which prints the events to the console as t
 
 The web server would then be started using:
 
- .. code-block:: shell
+.. code-block:: shell
 
     $ python3 server.py 0.0.0.0:8000
 
@@ -165,7 +165,7 @@ The web server would then be started using:
 A more interesting web hook handler might be one which downloads the thumbnail image from each Asset as it is ingested
 using the pyPreservica EntityAPI()
 
- .. code-block:: python
+.. code-block:: python
 
     class MyWebHook(WebHookHandler):
         def do_WORK(self, json_payload):
@@ -211,7 +211,7 @@ so you can build your applications in the language of your choice.
 
 A basic AWS Lambda function for Preservica web hooks in Python would look something like:
 
- .. code-block:: python
+.. code-block:: python
 
     import json
     import os
@@ -255,4 +255,5 @@ A basic AWS Lambda function for Preservica web hooks in Python would look someth
 
 Where we are fetching the shared key from the environment variables.
 
-For a description of how to automate the process of creating simple webhook services see https://jcarr.org.uk/2026/01/24/webhook-deployment/
+For a description of how to automate the process of creating simple webhook services
+see https://jcarr.org.uk/2026/01/24/webhook-deployment/

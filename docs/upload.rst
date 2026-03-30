@@ -181,7 +181,7 @@ with two representations (Preservation & Access)
 
 .. code-block:: python
 
-    package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg"
+    package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg",
                                         parent_folder=folder)
 
 It is possible to configure the asset within the package using the following additional keyword arguments.
@@ -620,7 +620,7 @@ You also need to tell Preservica which folder the new video asset will be ingest
 
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
 
-    upload.ingest_web_video(url="https://www.youtube.com/watch?v=4GCr9gljY7s", parent_folder=folder):
+    upload.ingest_web_video(url="https://www.youtube.com/watch?v=4GCr9gljY7s", parent_folder=folder)
 
 The new asset will get the title and description from youtube metadata. The asset will be given the default
 security tag of "open".

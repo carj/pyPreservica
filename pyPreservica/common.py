@@ -940,12 +940,16 @@ class AuthenticatedAPI:
                 raise RuntimeError(response.status_code, msg)
         return ""
 
+
+    def config(self):
+        return self.config
+
     def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
                  use_shared_secret: bool = False, two_fa_secret_key: str = None,
                  protocol: str = "https", request_hook=None, credentials_path: str = 'credentials.properties'):
 
-        config = configparser.ConfigParser(interpolation=configparser.Interpolation())
-        config.read(os.path.relpath(credentials_path), encoding='utf-8')
+        self.config = configparser.ConfigParser(interpolation=configparser.Interpolation())
+        self.config.read(os.path.relpath(credentials_path), encoding='utf-8')
         self.session: Session = requests.Session()
 
         if request_hook is not None:
@@ -970,7 +974,7 @@ class AuthenticatedAPI:
             two_fa_secret_key = os.environ.get('PRESERVICA_2FA_TOKEN')
             if two_fa_secret_key is None:
                 try:
-                    two_fa_secret_key = config['credentials']['twoFactorToken']
+                    two_fa_secret_key = self.config['credentials']['twoFactorToken']
                 except KeyError:
                     pass
         self.two_fa_secret_key = two_fa_secret_key
@@ -978,7 +982,7 @@ class AuthenticatedAPI:
             username = os.environ.get('PRESERVICA_USERNAME')
             if username is None:
                 try:
-                    username = config['credentials']['username']
+                    username = self.config['credentials']['username']
                 except KeyError:
                     pass
         if not username:
@@ -992,7 +996,7 @@ class AuthenticatedAPI:
             password = os.environ.get('PRESERVICA_PASSWORD')
             if password is None:
                 try:
-                    password = config['credentials']['password']
+                    password = self.config['credentials']['password']
                 except KeyError:
                     pass
         if not password:
@@ -1006,7 +1010,7 @@ class AuthenticatedAPI:
             tenant = os.environ.get('PRESERVICA_TENANT')
             if tenant is None:
                 try:
-                    tenant = config['credentials']['tenant']
+                    tenant = self.config['credentials']['tenant']
                 except KeyError:
                     pass
         if not tenant:
@@ -1018,7 +1022,7 @@ class AuthenticatedAPI:
             server = os.environ.get('PRESERVICA_SERVER')
             if server is None:
                 try:
-                    server = config['credentials']['server']
+                    server = self.config['credentials']['server']
                 except KeyError:
                     pass
         if not server:

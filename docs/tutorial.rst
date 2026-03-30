@@ -28,7 +28,7 @@ Open the Windows command prompt or Terminal application and run the following co
 
     python --version
 
-You should a version number printed on the screen
+You should see a version number printed on the screen
 
 .. image:: images/python-version.png
 
@@ -42,7 +42,7 @@ Development Environment
 If you are going to be creating new pyPreservica scripts rather than just running existing scripts then a
 dedicated Python development environment makes things easier.
 
-There a two excellent Python development environments which are free to use, `MS Visual Code <https://code.visualstudio.com/>`_ and
+There are two excellent Python development environments which are free to use, `MS Visual Code <https://code.visualstudio.com/>`_ and
 `JetBrains PyCharm Community Edition <https://www.jetbrains.com/pycharm/>`_ .
 
 The following tutorial provides a detailed description of setting up your first project using PyCharm

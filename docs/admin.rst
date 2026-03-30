@@ -93,7 +93,7 @@ This now allows you to fetch a template from Preservica, update it and add it to
     dublin_core_metadata = xml.etree.ElementTree.tostring(entity_response).decode("utf-8")
 
     package = simple_asset_package(preservation_file="my-image.tiff",
-                                   Asset_Metadata={"http://www.openarchives.org/OAI/2.0/oai_dc/", dublin_core_metadata})
+                                   Asset_Metadata={"http://www.openarchives.org/OAI/2.0/oai_dc/": dublin_core_metadata})
 
 You can use similar code to fetch the XSD schema documents
 

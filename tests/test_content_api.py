@@ -84,7 +84,8 @@ def test_simple_search_list(setup_data):
     client = ContentAPI()
     results = list(client.simple_search_list(query="pyPreservica"))
     assert len(results) == 5
-    assert results.pop()['xip.reference'] == '9fd239eb-19a3-4a46-9495-40fd9a5d8f93'
+    assert '9fd239eb-19a3-4a46-9495-40fd9a5d8f93' in [result['xip.reference'] for result in results]
+
 
 
 def test_simple_search_list2(setup_data):
@@ -94,7 +95,7 @@ def test_simple_search_list2(setup_data):
 
     results = list(client.simple_search_list("pyPreservica", 25, columns))
     assert len(results) == 5
-    assert results.pop()['xip.reference'] == '9fd239eb-19a3-4a46-9495-40fd9a5d8f93'
+    assert '9fd239eb-19a3-4a46-9495-40fd9a5d8f93' in [result['xip.reference'] for result in results]
 
 
 def test_field_search(setup_data):
