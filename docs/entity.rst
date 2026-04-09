@@ -207,6 +207,34 @@ again if you need a list of every Asset in the system you can filter using
         print(asset.title)
 
 
+
+
+.. admonition:: Example pyPreservica script
+   :collapsible: closed
+
+   This script will create a MS Excel compatible CSV file containing a list of all the Assets in a folder
+
+    .. code-block:: python
+
+        import csv
+        from pyPreservica import EntityAPI, only_assets, Asset
+
+        if __name__ == "__main__":
+
+            client: EntityAPI = EntityAPI()
+            folder = client.folder("629349dd-e439-4aed-ac59-3ab689b40a6e")
+
+            with open('assets.csv', mode='w', newline='', encoding='utf-8-sig') as csv_file:
+
+                writer = csv.writer(csv_file, delimiter=',', quotechar='"')
+                writer.writerow(['Asset ID', 'Asset Title', 'Asset Description', 'Asset Security Tag'])
+
+                for a in filter(only_assets, client.descendants(folder=folder)):
+                    asset: Asset = client.entity(a.entity_type, a.reference)
+                    writer.writerow([asset.reference, asset.title, asset.description, asset.security_tag])
+
+
+
 -----------------------------------------------------------
 Creating new Folders
 -----------------------------------------------------------
@@ -413,6 +441,28 @@ Will delete all identifiers which have type "ISBN"
     client.delete_identifiers(entity, identifier_type="ISBN", identifier_value="978-3-16-148410-0")
 
 Will only delete identifiers which match the type and value
+
+.. tip::
+    The 3rd party identifiers are useful way to prevent duplicate objects from being ingested.
+
+    If you are migrating content from an external system into Preservica it always makes sense to add the identifier
+    from the original system as a 3rd party identifier on the Preservica object.
+    You can then test to see if the object exists before ingesting.
+
+    For example, within the ingest code you can write:
+
+    .. code-block:: python
+
+        if len(client.identifier("DOI", "urn:nbn:de:1111-20091210269")) == 0:
+            ingest_object()
+        else:
+            print(f"Object with DOI urn:nbn:de:1111-20091210269 has already been ingested")
+            continue
+
+
+
+
+
 
 ----------------------------------------
 Descriptive Metadata
@@ -772,6 +822,34 @@ To download all the access bitstreams to the current folder you would use.
                         client.bitstream_content(bitstream, bitstream.filename)
 
 
+
+
+.. admonition:: Example pyPreservica script
+   :collapsible: closed
+
+   This script will create a MS Excel compatible CSV file containing a list of all the Bitstreams in a folder
+
+    .. code-block:: python
+
+        import csv
+        from pyPreservica import EntityAPI, only_assets, Asset
+
+        if __name__ == "__main__":
+
+            client: EntityAPI = EntityAPI()
+            folder = client.folder("629349dd-e439-4aed-ac59-3ab689b40a6e")
+
+            with open('assets.csv', mode='w', newline='', encoding='utf-8-sig') as csv_file:
+                writer = csv.writer(csv_file, delimiter=',', quotechar='"')
+                writer.writerow(['Asset ID', 'Asset Title', 'Asset Description', 'Asset Security Tag',  'Bitstream Name', 'Bitstream Length'])
+
+                for a in filter(only_assets, client.descendants(folder=folder)):
+                    asset: Asset = client.entity(a.entity_type, a.reference)
+
+                    for bs in client.bitstreams_for_asset(asset):
+                        writer.writerow([asset.reference, asset.title, asset.description, asset.security_tag, bs.filename, bs.length])
+
+
 The content files can be written to a byte array using ``bitstream_bytes()`` this
 returns a BytesIO object.
 
@@ -802,7 +880,6 @@ The storage adapters which hold a copy of the bitstream can be found using:
 
 .. code-block:: python
 
-    chunk_size8k = 8*1024
     for bitstream in client.bitstreams_for_asset(asset):
         locations = client.bitstream_location(bitstream)
 

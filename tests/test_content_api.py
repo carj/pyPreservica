@@ -1,4 +1,5 @@
 import pytest
+from time import time, time_ns
 
 from pyPreservica import *
 
@@ -37,6 +38,14 @@ def test_get_asset_details(setup_data):
     assert json_dict['id'] == 'sdb:IO|683f9db7-ff81-4859-9c03-f68cfa5d9c3d'
     assert json_dict['name'] == 'LC-USZ62-20901'
 
+
+
+def test_get_asset_details2(setup_data):
+    client = ContentAPI()
+    json_dict = client.object_details(EntityType.ASSET, ASSET_ID, exclude_dates=True)
+    assert json_dict is not None
+    assert json_dict['id'] == 'sdb:IO|683f9db7-ff81-4859-9c03-f68cfa5d9c3d'
+    assert json_dict['name'] == 'LC-USZ62-20901'
 
 def test_download_asset(setup_data):
     client = ContentAPI()

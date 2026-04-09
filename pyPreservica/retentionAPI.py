@@ -83,12 +83,14 @@ class RetentionAPI(AuthenticatedAPI):
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            ref = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Ref').text
+            ref_element = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Ref')
+            ref: str = ref_element.text
+            assert ref is not None
             assert ref == reference
             name = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Name').text
             rp = RetentionPolicy(name, ref)
             description = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Description')
-            rp.description = description.text if description else ""
+            rp.description = description.text if description is not None else ""
             security_tag = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}SecurityTag').text
             rp.security_tag = security_tag
             start_date_field = entity_response.find(
@@ -146,7 +148,7 @@ class RetentionAPI(AuthenticatedAPI):
             f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}/assignable',
             headers=headers, data=data)
         if request.status_code == requests.codes.ok:
-            pass
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.assignable_policy(reference, status)
@@ -363,7 +365,7 @@ class RetentionAPI(AuthenticatedAPI):
         request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}',
                                       headers=headers)
         if request.status_code == requests.codes.no_content:
-            pass
+            return None
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.delete_policy(reference)

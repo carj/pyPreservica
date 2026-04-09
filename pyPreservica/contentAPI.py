@@ -96,9 +96,11 @@ class ContentAPI(AuthenticatedAPI):
         return None
 
 
-    def object_details(self, entity_type, reference: str) -> dict:
+    def object_details(self, entity_type, reference: str, exclude_dates: bool = False) -> dict:
         """
 
+        :param exclude_dates: excludes cmis:createdBy, cmis:creationDate, cmis:lastModifiedBy, cmis:lastModificationDate
+        :type exclude_dates: bool
         :param entity_type:
         :param reference:
         :return: Dictionary of object attributes
@@ -108,6 +110,12 @@ class ContentAPI(AuthenticatedAPI):
             params = {'id': f'sdb:{entity_type.value}|{reference}'}
         else:
             params = {'id': f'sdb:{entity_type}|{reference}'}
+
+        if exclude_dates:
+            params['excludeproperties'] = 'history'
+        else:
+            params['excludeproperties'] = ''
+
         request = self.session.get(f'{self.protocol}://{self.server}/api/content/object-details', params=params,
                                    headers=headers)
         if request.status_code == requests.codes.ok:

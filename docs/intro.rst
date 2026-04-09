@@ -2,15 +2,15 @@
 Why Should I Use This?
 ===========================
 
-The goal of pyPreservica is to allow you to make use of the Preservica Entity API for reading and writing objects within
+The goal of pyPreservica is to allow you to make use of the Preservica APIs for reading and writing objects within
 a Preservica repository without having to manage the underlying REST HTTPS requests and XML parsing.
 The library provides a level of abstraction which reflects the underlying data model, such as structural and
 information objects.
 
 The pyPreservica library allows Preservica users to build applications which interact with the repository such as metadata
-synchronisation with 3rd party systems etc.
+synchronisation with 3rd party systems, high-throughput ingest pipelines etc.
 
-.. hint::
+.. note::
     Access to the Preservica API's for the cloud hosted system does depend on which Preservica Edition has been
     licensed.  See https://preservica.com/digital-archive-software/products-editions for details.
 
@@ -105,7 +105,7 @@ Authority Records API Features
 
 
 ---------------------------------------------
-New Generation Groups and Forms Features
+Metadata Groups and Forms Features
 ---------------------------------------------
 
 -  Create new Groups
