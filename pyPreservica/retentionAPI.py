@@ -386,22 +386,28 @@ class RetentionAPI(AuthenticatedAPI):
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         data = {'start': str(0), 'max': "250"}
-        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', data=data,
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', params=data,
                                    headers=headers)
-        if request.status_code == requests.codes.ok:
-            xml_response = str(request.content.decode('utf-8'))
-            logger.debug(xml_response)
-            entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            for assignment in entity_response.findall(f'.//{{{self.entity_ns}}}RetentionPolicy'):
-                ref = assignment.attrib['ref']
-                policy_name = assignment.attrib['name']
-                if policy_name == name:
-                    return self.policy(reference=ref)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.policy_by_name(name)
-        else:
-            raise RuntimeError(request.status_code, "policies failed")
+        while request: 
+            if request.status_code == requests.codes.ok:
+                xml_response = str(request.content.decode('utf-8'))
+                logger.debug(xml_response)
+                entity_response = xml.etree.ElementTree.fromstring(xml_response)
+                for assignment in entity_response.findall(f'.//{{{self.entity_ns}}}RetentionPolicy'):
+                    ref = assignment.attrib['ref']
+                    policy_name = assignment.attrib['name']
+                    if policy_name == name:
+                        return self.policy(reference=ref)
+                next_element = entity_response.find(f'.//{{{self.get_retention_api().entity_ns}}}Next')
+                if next_element is not None: 
+                   request = self.get_retention_api().session.get(next_element.text, headers=headers)
+                else:
+                    break
+            elif request.status_code == requests.codes.unauthorized:
+                self.token = self.__token__()
+                return self.policy_by_name(name)
+            else:
+                raise RuntimeError(request.status_code, "policies failed")
 
     def policies(self, maximum: int = 250, next_page: str = None) -> PagedSet:
         """
