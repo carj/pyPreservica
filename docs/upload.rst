@@ -56,9 +56,9 @@ To specify the parent folder of the ingest pass a folder object as the second ar
     upload.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder)
 
 
-For large packages it is more reliable to send the submission via the AWS S3 transfer bucket connected to a ingest workflow.
-The available transfer buckets are shown on the Preservica administration sources tab.
-The ingest can then be triggered automatically once the submission is saved to the S3 transfer bucket.
+For large packages it is more reliable to send the submission to a cloud hosted storage location connected to a ingest workflow.
+The available transfer locations are shown on the Preservica administration sources tab.
+The ingest can then be triggered automatically once the submission is saved to the cloud location.
 
 
 .. code-block:: python
@@ -86,8 +86,8 @@ If your Preservica system is deployed on Azure you can use:
     upload.upload_zip_package_to_Azure(path_to_zip_package="my-large-package.zip", container_name=bucket, folder=folder)
 
 
-If you are writing client code which could be used on both AWS or Azure platforms than you can use the following
-which will upload into a monitored cloud location on either platform
+If you are writing client code which could be used on both AWS or Azure platforms or you are not sure which cloud provider
+your Preservica system is deployed on then you can use the following code:
 
 .. code-block:: python
 
@@ -95,8 +95,9 @@ which will upload into a monitored cloud location on either platform
     client = EntityAPI()
 
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    bucket = "com.preservica.<Tenent-ID>.upload"
-    upload.upload_zip_to_Source(path_to_zip_package="my-large-package.zip", container_name=bucket, folder=folder)
+    container = "com.preservica.<Tenent-ID>.upload"
+
+    upload.upload_zip_to_Source(path_to_zip_package="my-large-package.zip", container_name=container, folder=folder)
 
 
 -------------------------------

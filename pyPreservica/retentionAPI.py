@@ -10,7 +10,7 @@ licence:    Apache License 2.0
 """
 
 import xml.etree.ElementTree
-from typing import Set, Callable
+from typing import Set, Callable, Generator
 
 from pyPreservica.common import *
 
@@ -383,30 +383,40 @@ class RetentionAPI(AuthenticatedAPI):
         :return: The retention policy
         :rtype: RetentionPolicy
 
-         """
-        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
-        data = {'start': str(0), 'max': "250"}
-        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/retention-policies', data=data,
-                                   headers=headers)
-        if request.status_code == requests.codes.ok:
-            xml_response = str(request.content.decode('utf-8'))
-            logger.debug(xml_response)
-            entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            for assignment in entity_response.findall(f'.//{{{self.entity_ns}}}RetentionPolicy'):
-                ref = assignment.attrib['ref']
-                policy_name = assignment.attrib['name']
-                if policy_name == name:
-                    return self.policy(reference=ref)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.policy_by_name(name)
-        else:
-            raise RuntimeError(request.status_code, "policies failed")
+        """
 
-    def policies(self, maximum: int = 250, next_page: str = None) -> PagedSet:
+        for policy in self.policies():
+            if policy.name == name:
+                return self.policy(reference=policy.reference)
+        return None
+
+    def policies(self) -> Generator[RetentionPolicy, None, None]:
+        """
+            Return a list of all retention policies
+            Returns a maximum of 100 policies for each call to the server
+
+            :return: Generator of retention policies
+            :rtype: Generator[RetentionPolicy]
+
+        """
+
+        paged_set = self._policies_set(maximum=100, next_page=None)
+
+        for policy in paged_set.results:
+            yield policy
+
+        while paged_set.has_more:
+            paged_set = self._policies_set(maximum=100, next_page=paged_set.next_page)
+            for policy in paged_set.results:
+                yield policy
+
+
+    def _policies_set(self, maximum: int = 250, next_page: str = None) -> PagedSet:
         """
         Return a list of all retention policies
         Returns a maximum of 250 policies by default
+
+        Internal helper function not part of the public API
 
 
         :return: Set of retention policies
@@ -428,11 +438,9 @@ class RetentionAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             result = set()
             next_url = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}Next')
-            total_results = int(entity_response.find(
-                f'.//{{{self.entity_ns}}}TotalResults').text)
+            total_results = int(entity_response.find(f'.//{{{self.entity_ns}}}TotalResults').text)
             for assignment in entity_response.findall(f'.//{{{self.entity_ns}}}RetentionPolicy'):
                 ref = assignment.attrib['ref']
-                name = assignment.attrib['name']
                 result.add(self.policy(reference=ref))
             has_more = True
             url = None
@@ -443,7 +451,7 @@ class RetentionAPI(AuthenticatedAPI):
             return PagedSet(result, has_more, total_results, url)
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.policies()
+            return self._policies_set(maximum, next_page)
         else:
             raise RuntimeError(request.status_code, "policies failed")
 
@@ -521,15 +529,17 @@ class RetentionAPI(AuthenticatedAPI):
         else:
             raise RuntimeError(request.status_code, "remove_assignments failed")
 
-    def assignments(self, entity: Entity) -> Set[RetentionAssignment]:
+
+    def assignments(self, entity: Entity) -> Generator[RetentionPolicy, None, None]:
+
         """
           Return a list of retention policies for an entity.
 
           :param entity: The entity to fetch assignments for
           :type entity: class:`Entity`
 
-          :return: Set of policy assignments
-          :rtype: Set[RetentionAssignment]
+          :return: Policy assignments
+          :rtype: Generator[RetentionAssignment]
 
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -539,7 +549,6 @@ class RetentionAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            result = set()
             for assignment in entity_response.findall(f'.//{{{self.rm_ns}}}RetentionAssignment'):
                 entity_ref = assignment.find(f'.//{{{self.rm_ns}}}Entity').text
                 assert entity_ref == entity.reference
@@ -552,8 +561,7 @@ class RetentionAPI(AuthenticatedAPI):
                 expired = bool(assignment.find(f'.//{{{self.rm_ns}}}Expired').text == 'true')
                 api_id = assignment.find(f'.//{{{self.rm_ns}}}ApiId').text
                 ra = RetentionAssignment(entity_ref, policy, api_id, start_date, expired)
-                result.add(ra)
-            return result
+                yield ra
         elif request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
             return self.assignments(entity)

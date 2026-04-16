@@ -14,7 +14,7 @@ def test_get_policy_by_name():
 
 def test_get_policies():
     retention = RetentionAPI()
-    for p in retention.policies().results:
+    for p in retention.policies():
         print(p.name)
         print(p.reference)
         print(p.description)
@@ -83,7 +83,7 @@ def test_get_assignments():
 
     asset = client.asset("b14848b5-4c4d-4d8a-b394-3b764069ee93")
 
-    retention_assignments = retention.assignments(asset)
+    retention_assignments = list(retention.assignments(asset))
 
     assert len(retention_assignments) == 1
 
@@ -102,11 +102,11 @@ def test_add_assignments():
 
     asset = client.asset("799b467f-050d-415f-b8ec-7c74b343f628")
 
-    retention_assignments = retention.assignments(asset)
+    retention_assignments = list(retention.assignments(asset))
 
     assert len(retention_assignments) == 0
 
-    policy = retention.policies().results.pop()
+    policy = list(retention.policies())[0]
 
     if not policy.assignable:
         retention.assignable_policy(policy.reference, True)
@@ -115,7 +115,7 @@ def test_add_assignments():
 
     assert retention_assignment is not None
 
-    retention_assignments = retention.assignments(asset)
+    retention_assignments = list(retention.assignments(asset))
 
     assert len(retention_assignments) == 1
 
@@ -126,7 +126,7 @@ def test_add_assignments():
 
 def test_zdelete_policy():
     retention = RetentionAPI()
-    for policy in retention.policies().results:
+    for policy in retention.policies():
         if policy.name == "API Created Policy1":
             retention.delete_policy(policy.reference)
 
