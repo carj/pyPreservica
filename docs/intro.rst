@@ -99,7 +99,7 @@ Authority Records API Features
 
 -  Get an Authority table by its reference
 -  List all Authority tables
--  Return all records from a Authority table
+-  Return all records from an Authority table
 -  Add records to an Authority table
 -  Delete records from an Authority table
 
@@ -118,7 +118,7 @@ Metadata Groups and Forms Features
 Background
 ==================
 
-They key to working with the pyPreservica library is that the services follow the Preservica core data model closely.
+The key to working with the pyPreservica library is that the services follow the Preservica core data model closely.
 
 .. image:: images/entity-API.jpg
 
@@ -134,12 +134,12 @@ Within the structural objects comes the **information objects**. These objects w
 digital assets are what PREMIS defines as an Intellectual Entity. Information objects are considered a single
 intellectual unit for purposes of management and description: for example, a book, document, map, photograph or database etc.
 
-**Representations** are used to define how the information object are composed in terms of technology and structure.
+**Representations** are used to define how the information objects are composed in terms of technology and structure.
 For example, a book may be represented as a single multiple page PDF, a single eBook file or a set of single page image files.
 
 Representations are usually associated with a use case such as access or long-term preservation.
-All Information objects have a least one representation defined by default. Multiple representations can be either
-created outside of Preservica through a process such as digitisation or within Preservica through preservation processes such a normalisation.
+All Information objects have at least one representation defined by default. Multiple representations can be either
+created outside of Preservica through a process such as digitisation or within Preservica through preservation processes such as normalisation.
 
 **Content Objects** represent the components of the asset. Simple assets such as digital images may only contain a
 single content object whereas more complex assets such as books or 3d models may contain multiple content objects.
@@ -232,7 +232,7 @@ The reference used to fetch entities (Assets, Folders) is the Preservica interna
 This is a universally unique identifier `(UUID) <https://en.wikipedia.org/wiki/Universally_unique_identifier>`_
 
 You can find the reference when viewing the object metadata within Explorer. Later on we will look at how we can fetch
-entities using other 3rd party external identifiers which may be more meaningful such as ISBNs DOIs etc.
+entities using other 3rd party external identifiers which may be more meaningful such as ISBNs, DOIs etc.
 
 To create the client object you will need valid credentials to connect to the Preservica server. See the following
 section on available authentication options.
@@ -517,7 +517,7 @@ Here’s a sample implementation.
 
 
 Low Level Logging
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 pyPreservica now provides low level event hooks into the underlying API requests to the server.
 To use this functionality, create a call back function with the following signature `call_back(r, *args, **kwargs)`
@@ -540,10 +540,11 @@ This API allows clients to do things such as audit all the API endpoints which a
         pass
 
 
+.. code-block:: python
 
-https://us.preservica.com/api/accesstoken/login
-https://us.preservica.com/api/entity/versiondetails/version
-https://us.preservica.com/api/user/details
-https://us.preservica.com/api/entity/root/children?start=0&max=100
+    https://us.preservica.com/api/accesstoken/login
+    https://us.preservica.com/api/entity/versiondetails/version
+    https://us.preservica.com/api/user/details
+    https://us.preservica.com/api/entity/root/children?start=0&max=100
 
 

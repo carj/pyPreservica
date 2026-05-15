@@ -265,7 +265,7 @@ Adding Physical Assets
 Preservica supports the creation of intellectual entities which correspond to physical objects. These are similar to
 regular assets, but they do not point to digital files like regular assets.
 
-To use Physical Assets the system needs a system property set to active the functionality, this can be done by the
+To use Physical Assets the system needs a system property set to activate the functionality, this can be done by the
 Preservica help desk.
 
 .. code-block:: python
@@ -340,8 +340,8 @@ If you want to change the type back, just set the value to None
 Security Tags
 -----------------------------------------------------------
 
-To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running process.
-You can choose either a asynchronous (non-blocking) call which returns immediately or synchronous (blocking call) which
+To change the security tag on an Asset or Folder we have a separate API. Since this may be a long running-process
+you can choose either an asynchronous (non-blocking) call which returns immediately or synchronous (blocking call) which
 waits for the security tag to be changed before returning.
 
 This is the asynchronous call which returns immediately returning a process id
@@ -443,7 +443,7 @@ Will delete all identifiers which have type "ISBN"
 Will only delete identifiers which match the type and value
 
 .. tip::
-    The 3rd party identifiers are useful way to prevent duplicate objects from being ingested.
+    The 3rd party identifiers are a useful way to prevent duplicate objects from being ingested.
 
     If you are migrating content from an external system into Preservica it always makes sense to add the identifier
     from the original system as a 3rd party identifier on the Preservica object.
@@ -508,7 +508,7 @@ Metadata can be attached to entities either by passing an XML document as a stri
 
 .. code-block:: python
 
-    folder = entity.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
+    folder = client.folder("723f6f27-c894-4ce0-8e58-4c15a526330e")
 
     xml = "<person:Person  xmlns:person='https://person.org/person'>" \
         "<person:Name>Bob Smith</person:Name>" \
@@ -622,10 +622,10 @@ and these have been provided as part of the Relationship class, but any text str
 
 .. code-block:: python
 
-    >>>Relationship.DCMI_isVersionOf
+    >>> Relationship.DCMI_isVersionOf
     http://purl.org/dc/terms/isVersionOf
 
-    >>>Relationship.DCMI_isReplacedBy
+    >>> Relationship.DCMI_isReplacedBy
     http://purl.org/dc/terms/isReplacedBy
 
 
@@ -671,7 +671,7 @@ To delete relationships between assets use:
 This will delete all relationships FROM the specified entity to another entity,
 It does not delete relationships TO this entity.
 
-If only need to delete a specific relationship, you can pass the relationship name as a second argument
+If you only need to delete a specific relationship, you can pass the relationship name as a second argument
 
 .. code-block:: python
 
@@ -724,7 +724,7 @@ You can explicitly set the title and description of each Content Object within a
 Preservica also supports adding external identifiers and descriptive metadata documents to Content Objects.
 
 
-Each Content Object will contain a least one Generation, migrated content may have multiple Generations.
+Each Content Object will contain at least one Generation, migrated content may have multiple Generations.
 
 .. code-block:: python
 
@@ -1079,7 +1079,7 @@ List actions performed against this entity
 .. code-block:: python
 
     asset = client.asset("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    for event in client.entity_events(asset)
+    for event in client.entity_events(asset):
         print(event)
 
 
@@ -1182,7 +1182,7 @@ algorithm and value.
     file = "C:/book/page421.tiff"
     pid = client.replace_generation_async(content_object, file, fixity_algorithm='SHA1', fixity_value='2fd4e1c67a2d28fced849ee1bb76e7391b93eb12')
 
-There is also an synchronous or blocking version which will wait for the replace workflow to complete before returning
+There is also a synchronous or blocking version which will wait for the replace workflow to complete before returning
 back to the caller.
 
 .. code-block:: python

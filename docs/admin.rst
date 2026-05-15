@@ -130,7 +130,7 @@ a file like object. If using a file, then make sure the file descriptor is opene
     client = AdminAPI()
 
     with open("my-template.xml", mode="rb") as f:
-        f.write(client.add_xml_document("my-template-name", f))
+        client.add_xml_document("my-template-name")
 
 or via a string
 
@@ -166,7 +166,7 @@ Using a file like object
     client = AdminAPI()
 
     with open("my-schema.xsd", mode="rb") as f:
-        f.write(client.add_xml_schema(name="my-schema", description="", originalName="my-schema.xsd", f))
+        client.add_xml_schema(name="my-schema", description="", originalName="my-schema.xsd", f))
 
 or via a string
 
@@ -213,7 +213,7 @@ Fetch the full set of user details, such as full name, email address and roles
 
     client = AdminAPI()
 
-    user = client.user_details(username):
+    user = client.user_details(username)
     print(user['FullName'])
     print(user['Email'])
 

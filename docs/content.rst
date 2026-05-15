@@ -21,7 +21,7 @@ The content API client is created using
 object-details
 --------------------
 
-Get the details for a Asset or Folder as a Python dictionary object containing CMIS attributes
+Get the details for an Asset or Folder as a Python dictionary object containing CMIS attributes
 
 .. code-block:: python
 
@@ -66,13 +66,13 @@ xip.* fields and any custom indexes which have been created through custom index
 
     client = ContentAPI()
 
-    client.indexed_fields():
+    client.indexed_fields()
 
 --------------------
 Full Text Index
 --------------------
 
-If a document contains text such as a PDF or a Word document or it has been `OCR'd <https://en.wikipedia.org/wiki/Optical_character_recognition_>`_
+If a document contains text such as a PDF or a Word document or it has been `OCR'd <https://en.wikipedia.org/wiki/Optical_character_recognition>`_
 the full text index will contain the extracted text.
 
 To extract the value of the full text index for an Asset use the following call:
@@ -124,7 +124,7 @@ the csv file name as the second argument.
 
     client = ContentAPI()
 
-    client.simple_search_csv("%", "everything.csv")
+    client.simple_search_csv("", "everything.csv")
 
     client.simple_search_csv("Oxford", "oxford.csv")
 
@@ -183,7 +183,7 @@ These calls use a Python dictionary to allow the caller to specify filter values
         print(hit)
 
 
-If you want to generate a report which can be opened directly in Excel, the use the csv version.
+If you want to generate a report which can be opened directly in Excel, thne use the csv version.
 
 .. code-block:: python
 
@@ -192,8 +192,8 @@ If you want to generate a report which can be opened directly in Excel, the use 
     filters = {"oai_dc.contributor": "*", "xip.security_descriptor": "public"}
     client.search_index_filter_csv(query="History of Oxford", csv_file="my-report.csv", filter_values=filters)
 
-The special filter value "*" is used to filter indexes which have a value, i.e. are values are not empty or missing.
-The filter value "%" is used to specify any value including empty values.
+The special filter value "*" is used to filter indexes which have a value, i.e. values which are not empty or missing.
+The filter value "" is used to specify any value including empty values.
 
 For example to create a report on the security tags of all assets within a folder you can use
 
@@ -222,10 +222,10 @@ Searching across a large Preservica repository is very quick, but returning very
 can be slow. To avoid putting undue load on the server pyPreservica will request a single page of results at a time for
 each server request.
 
-If you are using the ```simple_search_csv``` or ```search_index_filter_csv``` functions which write directly to a csv
+If you are using the ``simple_search_csv`` or ``search_index_filter_csv`` functions which write directly to a csv
 file then it can be difficult to monitor the report generation progress.
 
-To allow allow monitoring of search result downloads, you can add a callback to the search client.
+To allow monitoring of search result downloads, you can add a callback to the search client.
 The callback class will be called for every page of search results returned to the client. The value passed to the
 callback contains the total number of search hits for the query and the current number of results processed.
 
@@ -258,13 +258,13 @@ To use the default callback in your scripts include the following line
 Excluding results from Search
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The search API now allows results to be excluded from results by applying a operator to exclude terms.
+The search API now allows results to be excluded from results by applying an operator to exclude terms.
 
 .. note::
     This functionality is only available in Preservica 7.5 and later.
 
 To use this new functionality pyPreservica has provided a new search API which takes
-a list of  ```Field```  objects. The ```Field```  object has a name of the index, the value
+a list of  ``Field``  objects. The ``Field``  object has a name of the index, the value
 to search from and a sort order. There is also an optional operator which determines if the field
 value should be excluded or included in the search.
 
@@ -272,9 +272,9 @@ To include filters in the search use:
 
 .. code-block:: python
 
-    fields = [Field(name='xip.title', value='Blockchain']
+    fields = [Field(name='xip.title', value='Blockchain')]
 
-    for hit in content.search_fields(query="%", fields=fields):
+    for hit in content.search_fields(query="", fields=fields):
         print(hit)
 
 To exclude filters in the search use:
@@ -283,7 +283,7 @@ To exclude filters in the search use:
 
     fields = [Field(name='xip.title', value='Blockchain', operator=Operator.NOT,  sort_order=SortOrder.desc)]
 
-    for hit in content.search_fields(query="%", fields=fields):
+    for hit in content.search_fields(query="", fields=fields):
         print(hit)
 
 To use a list of possible values use:
@@ -292,7 +292,7 @@ To use a list of possible values use:
 
     term = Field(name='xip.security_descriptor', value=["open", "public"])
 
-    for hit in content.search_fields(query="%", fields=[term]):
+    for hit in content.search_fields(query="", fields=[term]):
         print(hit)
 
 ----------------------
@@ -321,7 +321,7 @@ security tag etc
 
         client.search_callback(client.ReportProgressCallBack())
 
-        client.search_index_filter_csv("%", "assets.csv", metadata_fields)
+        client.search_index_filter_csv("", "assets.csv", metadata_fields)
 
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -342,7 +342,7 @@ Create a spreadsheet containing all Assets and Folders within the repository
 
         client.search_callback(client.ReportProgressCallBack())
 
-        client.search_index_filter_csv("%", "all_objects.csv", metadata_fields)
+        client.search_index_filter_csv("", "all_objects.csv", metadata_fields)
 
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -369,7 +369,7 @@ Create a spreadsheet containing all Assets and Folders underneath a specific fol
 
         content.search_callback(content.ReportProgressCallBack())
 
-        content.search_index_filter_csv("%", "assets.csv", metadata_fields)
+        content.search_index_filter_csv("", "assets.csv", metadata_fields)
 
 
 --------------------
