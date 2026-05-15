@@ -6,7 +6,7 @@ PyPreservica provides some limited capabilities for the Upload Content API
 
 https://developers.preservica.com/api-reference/3-upload-content-s3-compatible
 
-The Upload API can be used for creating, uploading and automatically starting an ingest workflows with pre-created packages.
+The Upload API can be used for creating, uploading and automatically starting ingest workflows with pre-created packages.
 The Package can be either a native v5 SIP as created from a tool such as the SIP Creator or a native v6 SIP created
 manually.
 Zipped OPEX packages are also supported. https://developers.preservica.com/documentation/open-preservation-exchange-opex
@@ -67,7 +67,7 @@ The ingest can then be triggered automatically once the submission is saved to t
     client = EntityAPI()
 
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    bucket = "com.preservica.<Tenent-ID>.upload"
+    bucket = "com.preservica.<Tenant-ID>.upload"
     upload.upload_zip_package_to_S3(path_to_zip_package="my-large-package.zip", bucket_name=bucket, folder=folder)
 
 
@@ -82,7 +82,7 @@ If your Preservica system is deployed on Azure you can use:
     client = EntityAPI()
 
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    bucket = "com.preservica.<Tenent-ID>.upload"
+    bucket = "com.preservica.<Tenant-ID>.upload"
     upload.upload_zip_package_to_Azure(path_to_zip_package="my-large-package.zip", container_name=bucket, folder=folder)
 
 
@@ -95,7 +95,7 @@ your Preservica system is deployed on then you can use the following code:
     client = EntityAPI()
 
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
-    container = "com.preservica.<Tenent-ID>.upload"
+    container = "com.preservica.<Tenant-ID>.upload"
 
     upload.upload_zip_to_Source(path_to_zip_package="my-large-package.zip", container_name=container, folder=folder)
 
@@ -118,7 +118,7 @@ During the upload, the instance's ``__call__`` method will be invoked intermitte
 
     from pyPreservica import UploadProgressCallback
     my_callback=UploadProgressCallback("my-package.zip")
-    client.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder, callback=my_callback)
+    upload.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder, callback=my_callback)
 
 The default pyPreservica ``UploadProgressCallback`` looks like
 
@@ -160,7 +160,7 @@ The output is a path to the zip file which can be passed directly to the ``uploa
 
 .. code-block:: python
 
-    client.upload_zip_package(path_to_zip_package=package_path)
+    upload.upload_zip_package(path_to_zip_package=package_path)
 
 By default the Asset title and description will be taken from the file name.
 
@@ -217,7 +217,7 @@ For example to add descriptive metadata and two 3rd party identifiers use the fo
 
     metadata = {"http://purl.org/dc/elements/1.1/": "dublin_core.xml"}
     identifiers = {"DOI": "doi:10.1038/nphys1170", "ISBN": "978-3-16-148410-0"}
-    package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg"
+    package_path = simple_asset_package(preservation_file="my-image.tiff", access_file="my-image.jpg",
                                            parent_folder=folder, Asset_Metadata=metadata, Identifiers=identifiers)
 
 
@@ -261,12 +261,12 @@ you pass a dictionary, the key is the representation name and the value is the l
 .. code-block:: python
 
     preservation_representations = dict()
-    preservation_representations["Master"] = ["page-1.tiff", "page-2.tiff"," page-3.tiff"]
-    preservation_representations["BW Master"] = ["page-1.jp2", "page-2.jp2"," page-3.jp2"]
-    preservation_representations["Greyscale Master"] = ["page-1.tiff", "page-2.tiff"," page-3.tiff"]
+    preservation_representations["Master"] = ["page-1.tiff", "page-2.tiff", "page-3.tiff"]
+    preservation_representations["BW Master"] = ["page-1.jp2", "page-2.jp2", "page-3.jp2"]
+    preservation_representations["Greyscale Master"] = ["page-1.tiff", "page-2.tiff", "page-3.tiff"]
 
     access_representations = dict()
-    access_representations["Multi-Page Access"] = ["page-1.jpg", "page-2.jpg"," page-3.jpg"]
+    access_representations["Multi-Page Access"] = ["page-1.jpg", "page-2.jpg", "page-3.jpg"]
     access_representations["Single Page Access"] = ["book.pdf"]
 
     package_path = generic_asset_package(preservation_files_dict=preservation_representations, access_files_dict=access_representations, parent_folder=folder)
@@ -323,7 +323,7 @@ For example if your fixity values are stored in a spreadsheet (csv) files you ma
             with open(self.csv_file, mode='r', encoding='utf-8-sig') as csv_file:
                 csv_reader = csv.DictReader(csv_file, delimiter=',')
                 for row in csv_reader:
-                    if row['filename'] == filename
+                    if row['filename'] == filename:
                         fixity_value = row['file_checksum_sha256']
                         return "SHA256", fixity_value.lower()
                 sha = FileHash(hashlib.sha256)
@@ -466,8 +466,8 @@ Ingest a single digital file as an asset with a 3rd party identifier and custom 
 
     # Set the Asset Title and Description
 
-    title = "My Assst Title"
-    description = "My Assst Description"
+    title = "My Asset Title"
+    description = "My Asset Description"
 
     # Add 3rd Party Identifiers
 
@@ -621,7 +621,7 @@ To use this functionality you need to install the additional Python Project yout
     $ pip install --upgrade youtube_dl
 
 
-You can ingest video's directly with only the video site URL
+You can ingest videos directly with only the video site URL
 You also need to tell Preservica which folder the new video asset will be ingested into.
 
 .. code-block:: python
@@ -649,7 +649,7 @@ It will work with most sites that host video, for example using c-span.
     cspan_url = "https://www.c-span.org/video/?508691-1/ceremonial-swearing-democratic-senator-padilla"
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
 
-    upload.ingest_web_video(url=cspan_url, parent_folder=folder):
+    upload.ingest_web_video(url=cspan_url, parent_folder=folder)
 
 
 or UK parliament
@@ -662,7 +662,7 @@ or UK parliament
     uk_url = "https://parliamentlive.tv/event/index/b886f44b-0e65-47bc-b506-d0e805c01f4b"
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
 
-    upload.ingest_web_video(url=uk_url, parent_folder=folder):
+    upload.ingest_web_video(url=uk_url, parent_folder=folder)
 
 The asset will automatically have a title and description pulled from the original site.
 
@@ -681,7 +681,7 @@ identifiers.
 
     folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
 
-    upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_dict, Title=title, SecurityTag="public")
+    upload.ingest_web_video(url=url, parent_folder=folder, Identifiers=identifier_map, Title=title, SecurityTag="public")
 
 
 -------------------------
