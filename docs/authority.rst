@@ -31,7 +31,7 @@ Get a single Authority table by its reference
 
     authority = AuthorityAPI()
 
-    table = authority.table(ref):
+    table = authority.table(ref)
 
 
 ---------------------
@@ -54,7 +54,7 @@ Fetch all records from a table
 
     authority = AuthorityAPI()
 
-    table = authority.table(ref):
+    table = authority.table(ref)
 
     for record in authority.records(table):
         print(record)
@@ -66,7 +66,7 @@ Add a new authority record to an existing table, the record is a Python dictiona
 
     authority = AuthorityAPI()
 
-    table = authority.table(ref):
+    table = authority.table(ref)
 
     record  = {"id": "6", "Code": "BE",  "Latitude": "50.503887", "Longitude": "4.469936", "Name": "Belgium"}
 
@@ -79,7 +79,7 @@ Adding records from a CSV document
 
     authority = AuthorityAPI()
 
-    table = authority.table(ref):
+    table = authority.table(ref)
 
     authority.add_records(table, "countries.csv")
 
@@ -89,7 +89,7 @@ If the CSV document was saved from a MS Excel workbook, then the encoding should
 
     authority = AuthorityAPI()
 
-    table = authority.table(ref):
+    table = authority.table(ref)
 
     authority.add_records(table, "countries.csv", encoding="utf-8-sig")
 
@@ -100,7 +100,7 @@ Deleting Records from a table by its reference
 
     authority = AuthorityAPI()
 
-    table = authority.table(ref):
+    table = authority.table(ref)
 
     authority.delete_record(table, reference)
 
@@ -110,7 +110,7 @@ To delete all records from a table
 
     authority = AuthorityAPI()
 
-    table = authority.table(ref):
+    table = authority.table(ref)
 
     for record in authority.records(table):
         authority.delete_record(table, record['ref'])
