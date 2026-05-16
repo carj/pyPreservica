@@ -324,7 +324,7 @@ class ContentAPI(AuthenticatedAPI):
         :return: search result
         """
 
-        if self.major_version < 7 and self.minor_version < 5:
+        if self.major_version < 7 or (self.major_version == 7 and self.minor_version < 5):
             raise RuntimeError("search_fields API call is not available when connected to a v7.5 System")
 
         search_result = self._search_fields(query=query, fields=fields, start_index=0, page_size=page_size)
@@ -540,7 +540,7 @@ class ContentAPI(AuthenticatedAPI):
             return search_results
         elif results.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self._search_index_filter(query, start_index, page_size, filter_values)
+            return self._search_index_filter(query, start_index, page_size, filter_values, sort_values)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"search_index_filter failed")
