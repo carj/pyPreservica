@@ -703,7 +703,7 @@ class AuthenticatedAPI:
              :rtype:  dict
          """
 
-        if (self.major_version < 7) and (self.minor_version < 4) and (self.patch_version < 1):
+        if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 3) or (self.major_version == 6 and self.minor_version == 3 and self.patch_version < 1):
             raise RuntimeError("security_tags API call is only available with a Preservica v6.3.1 system or higher")
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -726,7 +726,7 @@ class AuthenticatedAPI:
             return security_tags
         if request.status_code == requests.codes.unauthorized:
             self.token = self.__token__()
-            return self.security_tags_base()
+            return self.security_tags_base(with_permissions)
         else:
             logger.error(f'security_tags failed {request.status_code}')
             raise RuntimeError(request.status_code, "security_tags failed")
@@ -769,7 +769,7 @@ class AuthenticatedAPI:
         """
         Return the edition of this tenancy
         """
-        if self.major_version < 8 and self.minor_version < 3:
+        if self.major_version < 7 or (self.major_version == 7 and self.minor_version < 3):
             raise RuntimeError("Entitlement API is only available when connected to a v7.3 System")
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
@@ -833,8 +833,7 @@ class AuthenticatedAPI:
         else:
             logger.error(f"version number failed with http response {request.status_code}")
             logger.error(str(request.content))
-            RuntimeError(request.status_code, "version number failed")
-            return None
+            raise RuntimeError(request.status_code, "version number failed")
 
 
 
@@ -866,8 +865,7 @@ class AuthenticatedAPI:
             logger.error(msg)
             logger.error(response.status_code)
             logger.error(str(response.content))
-            RuntimeError(response.status_code, "Could not generate valid manager approval token")
-            return ""
+            raise RuntimeError(response.status_code, "Could not generate valid manager approval token")
 
     def __token__(self) -> str:
         """
