@@ -248,7 +248,7 @@ class ContentAPI(AuthenticatedAPI):
             writer.writeheader()
             writer.writerows(self.simple_search_list(query, page_size, metadata_fields))
 
-    def simple_search_list(self, query: str = "%", page_size: int = 50, list_indexes: list = None):
+    def simple_search_list(self, query: str = "%", page_size: int = 50, list_indexes: list = None) -> Generator:
         search_result = self._simple_search(query, 0, page_size, list_indexes)
         for e in search_result.results_list:
             yield e

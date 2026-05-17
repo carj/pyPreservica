@@ -62,7 +62,7 @@ Search the repository:
 from pyPreservica import *
 
 content = ContentAPI()
-for hit in content.simple_search_csv("London"):
+for hit in content.simple_search_list("London"):
     print(hit)
 ```
 
