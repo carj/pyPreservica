@@ -76,9 +76,6 @@ class MonitorAPI(AuthenticatedAPI):
                 m['MonitorId'] = m.pop('mappedMonitorId')
                 m['MessageId'] = m.pop('mappedId')
             return PagedSet(messages, has_more, int(total_hits), url)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._messages_page_(monitor_id, maximum, next_page, status)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "messages failed")
@@ -116,9 +113,6 @@ class MonitorAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             response = json.loads(str(request.content.decode('utf-8')))
             return response['value']['timeseries']
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.timeseries(monitor_id)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "timeseries failed")
@@ -145,9 +139,6 @@ class MonitorAPI(AuthenticatedAPI):
             for monitor in monitors['value']['monitors']:
                 monitor['MonitorId'] = monitor.pop('mappedId')
                 yield monitor
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            yield from self.monitors(status, category)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "monitors failed")

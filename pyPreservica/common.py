@@ -23,6 +23,7 @@ import xml.etree.ElementTree
 from enum import Enum
 from pathlib import Path
 import pyotp
+from pip._internal.network import session
 from requests import Session
 from urllib3.util import Retry
 import requests
@@ -689,9 +690,6 @@ class AuthenticatedAPI:
             logger.debug(json_document)
             roles: list[str] = json.loads(json_document)['roles']
             return roles
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._find_user_roles_()
         return []
 
 
@@ -724,9 +722,6 @@ class AuthenticatedAPI:
                 else:
                     security_tags[tag.attrib['name']] = tag.attrib['name']
             return security_tags
-        if request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.security_tags_base(with_permissions)
         else:
             logger.error(f'security_tags failed {request.status_code}')
             raise RuntimeError(request.status_code, "security_tags failed")
@@ -778,9 +773,6 @@ class AuthenticatedAPI:
 
         if response.status_code == requests.codes.ok:
             return response.json()['edition']
-        elif response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.edition()
         else:
             exception = HTTPException("", response.status_code, response.url,
                                       "edition", response.content.decode('utf-8'))
@@ -827,9 +819,6 @@ class AuthenticatedAPI:
             self.patch_version = int(version_numbers[2])
 
             return version
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.__version_number__()
         else:
             logger.error(f"version number failed with http response {request.status_code}")
             logger.error(str(request.content))
@@ -845,6 +834,23 @@ class AuthenticatedAPI:
     def __repr__(self):
         return self.__str__()
 
+    def _handle_401(self, response, *args, **kwargs):
+        """
+            Requests session Event Hooks
+
+            Auto retry on token expiration
+
+        """
+        if response.status_code != requests.codes.unauthorized:
+            return None
+        if response.request.headers.get('X-STREAM-No-Retry'):
+            return  None # streaming methods handle their own retry
+
+        self.token = self.__token__()
+        response.request.headers[HEADER_TOKEN] = self.token
+        return self.session.send(response.request)
+
+
     def save_config(self):
         config = configparser.RawConfigParser(interpolation=None)
         config['credentials'] = {'username': self.username, 'password': self.password, 'tenant': self.tenant,
@@ -856,11 +862,24 @@ class AuthenticatedAPI:
             config.write(configfile)
 
     def manager_token(self, username: str, password: str) -> str:
+
+        # stop the retry on 401
+        if self._handle_401 in self.session.hooks['response']:
+            self.session.hooks['response'].remove(self._handle_401)
+
         data = {'username': username, 'password': password, 'tenant': self.tenant}
         response = self.session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
         if response.status_code == requests.codes.ok:
+
+            if self._handle_401 not in self.session.hooks['response']:
+                self.session.hooks['response'].append(self._handle_401)
+
             return response.json()['token']
         else:
+
+            if self._handle_401 not in self.session.hooks['response']:
+                self.session.hooks['response'].append(self._handle_401)
+
             msg = "Could not generate valid manager approval password"
             logger.error(msg)
             logger.error(response.status_code)
@@ -872,6 +891,12 @@ class AuthenticatedAPI:
             Generate am API token to use to authenticate calls
             :return: API Token
         """
+
+        # stop the retry on 401
+        if self._handle_401 in self.session.hooks['response']:
+            self.session.hooks['response'].remove(self._handle_401)
+
+
         logger.debug("Token Expired Requesting New Token")
         if self.shared_secret is False:
             if self.tenant is None:
@@ -882,6 +907,11 @@ class AuthenticatedAPI:
             if response.status_code == requests.codes.ok:
                 if self.tenant is None:
                     self.tenant = response.json()['tenant']
+
+                # Auth is successful so add 401 event back in.
+                if self._handle_401 not in self.session.hooks['response']:
+                    self.session.hooks['response'].append(self._handle_401)
+
                 return response.json()['token']
             else:
                 if 'message' in response.json():
@@ -901,6 +931,11 @@ class AuthenticatedAPI:
                                 f'{self.protocol}://{self.server}/api/accesstoken/complete-2fa',
                                 data=data, headers=header)
                             if response_2fa.status_code == requests.codes.ok:
+
+                                # Auth is successful so add 401 event back in.
+                                if self._handle_401 not in self.session.hooks['response']:
+                                    self.session.hooks['response'].append(self._handle_401)
+
                                 return response_2fa.json()['token']
                             else:
                                 msg = "Failed to create a 2FA authentication token. Check your credentials are correct"
@@ -918,6 +953,8 @@ class AuthenticatedAPI:
                         logger.error(str(response.content))
                         raise RuntimeError(response.status_code, msg)
                 msg = "Failed to create a password based authentication token. Check your credentials are correct"
+                if self._handle_401 not in self.session.hooks['response']:
+                    self.session.hooks['response'].append(self._handle_401)
                 logger.error(msg)
                 logger.error(str(response.content))
                 raise RuntimeError(response.status_code, msg)
@@ -931,9 +968,17 @@ class AuthenticatedAPI:
             data = {"username": self.username, "tenant": self.tenant, "timestamp": timestamp, "hash": sha1.hexdigest()}
             response = self.session.post(f'{self.protocol}://{self.server}/{endpoint}', data=data)
             if response.status_code == requests.codes.ok:
+
+                # Auth is successful so add 401 event back in.
+                if self._handle_401 not in self.session.hooks['response']:
+                    self.session.hooks['response'].append(self._handle_401)
+
                 return response.json()['token']
             else:
                 msg = "Failed to create a shared secret authentication token. Check your credentials are correct"
+                if self._handle_401 not in self.session.hooks['response']:
+                    self.session.hooks['response'].append(self._handle_401)
+
                 logger.error(msg)
                 raise RuntimeError(response.status_code, msg)
         return ""
@@ -949,6 +994,9 @@ class AuthenticatedAPI:
         self.config = configparser.ConfigParser(interpolation=configparser.Interpolation())
         self.config.read(os.path.relpath(credentials_path), encoding='utf-8')
         self.session: Session = requests.Session()
+
+        # Handle auth errors by requesting new token
+        self.session.hooks['response'].append(self._handle_401)
 
         if request_hook is not None:
             self.session.hooks['response'].append(request_hook)

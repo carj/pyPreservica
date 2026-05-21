@@ -11,7 +11,7 @@ licence:    Apache License 2.0
 
 import uuid
 import datetime
-from typing import Callable, Generator
+from typing import Callable, Generator, List
 from xml.etree import ElementTree
 
 from pyPreservica.common import *
@@ -117,9 +117,6 @@ class ProcessAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             config = json.loads(request.content.decode("utf-8"))
             return bool(config['active'])
-        if request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.__set_status__(process_id, state)
         else:
             logger.error(request)
             raise RuntimeError(request.status_code, "deactivate_process")
@@ -171,10 +168,6 @@ class ProcessAPI(AuthenticatedAPI):
                     p.trigger_type = entry['trigger']['type']
                     results.append(p)
                 return results
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.ingest_process(ingest_types)
-
         return []
 
 class WorkflowAPI(AuthenticatedAPI):
@@ -199,7 +192,7 @@ class WorkflowAPI(AuthenticatedAPI):
                          protocol, request_hook, credentials_path)
         self.base_url = "sdb/rest/workflow"
 
-    def get_workflow_contexts_by_type(self, workflow_type: str) -> list:
+    def get_workflow_contexts_by_type(self, workflow_type: str) -> list[WorkflowContext]:
         """
         Return a list of Workflow Contexts which have the same Workflow type
 
@@ -213,7 +206,7 @@ class WorkflowAPI(AuthenticatedAPI):
 
         headers = {HEADER_TOKEN: self.token}
         params = {"type": workflow_type}
-        workflow_contexts = []
+        workflow_contexts: list[WorkflowContext] = []
         request = self.session.get(f'{self.protocol}://{self.server}/{self.base_url}/contexts', headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -225,14 +218,11 @@ class WorkflowAPI(AuthenticatedAPI):
                 workflow_context = WorkflowContext(wrkfl_id, name)
                 workflow_contexts.append(workflow_context)
             return workflow_contexts
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.get_workflow_contexts(workflow_type)
         else:
             logger.error(request.content)
             raise RuntimeError(request.status_code, "get_workflow_contexts_by_type")
 
-    def get_workflow_contexts(self, definition: str) -> list:
+    def get_workflow_contexts(self, definition: str) -> list[WorkflowContext]:
         """
         Return a list of Workflow Contexts which have the same Workflow Definition
 
@@ -246,7 +236,7 @@ class WorkflowAPI(AuthenticatedAPI):
 
         headers = {HEADER_TOKEN: self.token}
         params = {"workflowDefinitionId": definition}
-        workflow_contexts = []
+        workflow_contexts: list[WorkflowContext] = []
         request = self.session.get(f'{self.protocol}://{self.server}/{self.base_url}/contexts', headers=headers, params=params)
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
@@ -258,9 +248,6 @@ class WorkflowAPI(AuthenticatedAPI):
                 workflow_context = WorkflowContext(wrkfl_id, name)
                 workflow_contexts.append(workflow_context)
             return workflow_contexts
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.get_workflow_contexts(definition)
         else:
             logger.error(request.content)
             raise RuntimeError(request.status_code, "get_workflow_contexts")
@@ -302,9 +289,6 @@ class WorkflowAPI(AuthenticatedAPI):
                                     data=xml_request)
         if request.status_code == requests.codes.created:
             return correlation_id
-        if request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.start_workflow_instance(workflow_context, **kwargs)
         else:
             logger.error(request.content)
             raise RuntimeError(request.status_code, "start_workflow_instance failed")
@@ -330,9 +314,6 @@ class WorkflowAPI(AuthenticatedAPI):
                                     headers=headers, params=params)
         if request.status_code == requests.codes.accepted:
             return
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.terminate_workflow_instance(instance_ids)
         else:
             logger.error(request.content)
             raise RuntimeError(request.status_code, "terminate_workflow_instance")
@@ -385,9 +366,6 @@ class WorkflowAPI(AuthenticatedAPI):
             workflow_instance.xml_response = xml_response
 
             return workflow_instance
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.workflow_instance(instance_id)
         else:
             logger.error(request.content)
             raise RuntimeError(request.status_code, "workflow_instance")
@@ -490,9 +468,7 @@ class WorkflowAPI(AuthenticatedAPI):
                     f".//{{{NS_WORKFLOW}}}WorkflowDefinitionTextId").text
                 workflow_instances.append(workflow_instance)
             return tuple((total_count, count, workflow_instances))
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.__workflow_instances__(workflow_state, workflow_type, maximum, start_value, **kwargs)
         else:
             logger.error(request.content)
             raise RuntimeError(request.status_code, "workflow_instances")
+

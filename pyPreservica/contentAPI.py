@@ -123,19 +123,15 @@ class ContentAPI(AuthenticatedAPI):
         elif request.status_code == requests.codes.not_found:
             logger.error(f"The requested reference is not found in the repository: {reference}")
             raise RuntimeError(reference, "The requested reference is not found in the repository")
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.object_details(entity_type, reference)
         else:
             logger.error(f"object_details failed with error code: {request.status_code}")
             raise RuntimeError(request.status_code, f"object_details failed with error code: {request.status_code}")
 
 
     def download_bytes(self, reference):
-        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:IO|{reference}'}
-        with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers,
-                              stream=True) as req:
+        with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers, stream=True) as req:
             if req.status_code == requests.codes.ok:
                 file_bytes = BytesIO()
                 for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
@@ -154,7 +150,7 @@ class ContentAPI(AuthenticatedAPI):
 
 
     def download(self, reference, filename):
-        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:IO|{reference}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers,
                               stream=True) as req:
@@ -176,7 +172,7 @@ class ContentAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, f"download failed with error code: {req.status_code}")
 
     def thumbnail_bytes(self, entity_type, reference: str, size: Thumbnail = Thumbnail.LARGE) -> Union[BytesIO, None]:
-        headers = {HEADER_TOKEN: self.token, 'accept': 'image/png'}
+        headers = {HEADER_TOKEN: self.token, 'accept': 'image/png', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params, headers=headers, stream=True) as req:
             if req.status_code == requests.codes.ok:
@@ -197,10 +193,9 @@ class ContentAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, f"thumbnail failed with error code: {req.status_code}")
 
     def thumbnail(self, entity_type, reference, filename, size=Thumbnail.LARGE):
-        headers = {HEADER_TOKEN: self.token, 'accept': 'image/png'}
+        headers = {HEADER_TOKEN: self.token, 'accept': 'image/png', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
-        with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params, headers=headers,
-                              stream=True) as req:
+        with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params, headers=headers,  stream=True) as req:
             if req.status_code == requests.codes.ok:
                 with open(filename, 'wb') as file:
                     for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
@@ -227,9 +222,6 @@ class ContentAPI(AuthenticatedAPI):
                 field = f'{ob["shortName"]}.{ob["index"]}'
                 fields[field] = ob["uri"]
             return fields
-        elif results.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.indexed_fields()
         else:
             logger.error(f"indexed_fields failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"indexed_fields failed with error code: {results.status_code}")
@@ -249,6 +241,7 @@ class ContentAPI(AuthenticatedAPI):
             writer.writerows(self.simple_search_list(query, page_size, metadata_fields))
 
     def simple_search_list(self, query: str = "%", page_size: int = 50, list_indexes: list = None) -> Generator:
+
         search_result = self._simple_search(query, 0, page_size, list_indexes)
         for e in search_result.results_list:
             yield e
@@ -291,9 +284,6 @@ class ContentAPI(AuthenticatedAPI):
 
             search_results = self.SearchResult(metadata, refs, hits, results_list, next_start)
             return search_results
-        elif results.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._simple_search(query, start_index, page_size, list_indexes)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"simple_search failed with error code: {results.status_code}")
@@ -411,9 +401,6 @@ class ContentAPI(AuthenticatedAPI):
 
             search_results = self.SearchResult(metadata, refs, hits, results_list, next_start)
             return search_results
-        elif results.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._search_fields(query, fields, start_index, page_size)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"search_index_filter failed")
@@ -450,6 +437,9 @@ class ContentAPI(AuthenticatedAPI):
         start_from = str(0)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
 
+        if filter_values is None:
+            filter_values = {'xip.reference': '', 'xip.title': ''}
+
         field_list = []
         for key, value in filter_values.items():
             if value == "":
@@ -472,9 +462,6 @@ class ContentAPI(AuthenticatedAPI):
         if results.status_code == requests.codes.ok:
             json_doc = results.json()
             return int(json_doc['value']['totalHits'])
-        elif results.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.search_index_filter_hits(query, filter_values)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"_search_index_filter_hits failed")
@@ -538,9 +525,6 @@ class ContentAPI(AuthenticatedAPI):
 
             search_results = self.SearchResult(metadata, refs, hits, results_list, next_start)
             return search_results
-        elif results.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._search_index_filter(query, start_index, page_size, filter_values, sort_values)
         else:
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"search_index_filter failed")

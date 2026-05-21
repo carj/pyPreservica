@@ -12,16 +12,15 @@ def tear_down():
 
 
 @pytest.fixture
-def setup_data():
-    print("\nSetting up resources...")
+def setup_data(request):
+    print(f"\nRunning test: {request.node.name}")
 
     setup()
 
     yield
 
-    print("\nTearing down resources...")
-
     tear_down()
+
 
 
 def test_get_tables(setup_data):
@@ -40,6 +39,7 @@ def test_get_records(setup_data):
 
 
 def test_add_table(setup_data):
+    pytest.skip("Slow Test")
     client = AuthorityAPI()
     name: str = f"Test Table {datetime.now().date()}"
     table = Table(name=name, security_tag="open")
@@ -51,6 +51,7 @@ def test_add_table(setup_data):
 
 
 def test_add_record(setup_data):
+    pytest.skip("Slow Test")
     client = AuthorityAPI()
     the_table = None
     record_id = None

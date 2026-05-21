@@ -72,7 +72,7 @@ class EntityAPI(AuthenticatedAPI):
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")
             raise RuntimeError("bitstream_bytes argument is not a Bitstream object")
-        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as request:
+        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}, stream=True) as request:
             if request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 yield from self.bitstream_chunks(bitstream)
@@ -102,7 +102,7 @@ class EntityAPI(AuthenticatedAPI):
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")
             raise RuntimeError("bitstream_bytes argument is not a Bitstream object")
-        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as response:
+        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}, stream=True) as response:
             if response.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.bitstream_bytes(bitstream)
@@ -140,19 +140,17 @@ class EntityAPI(AuthenticatedAPI):
 
         url: str = f'{self.protocol}://{self.server}/api/entity/content-objects/{bitstream.co_ref}/generations/{bitstream.gen_index}/bitstreams/{bitstream.bs_index}/storage-locations'
 
-        with self.session.get(url, headers={HEADER_TOKEN: self.token}, stream=True) as request:
+        with self.session.get(url, headers={HEADER_TOKEN: self.token}) as request:
             if request.status_code == requests.codes.ok:
                 xml_response = str(request.content.decode('utf-8'))
                 entity_response = xml.etree.ElementTree.fromstring(xml_response)
                 logger.debug(xml_response)
                 locations = entity_response.find(f'.//{{{self.entity_ns}}}StorageLocation')
-                for adapter in locations:
-                    storage_locations.append(adapter.attrib['name'])
-                return storage_locations
+                if locations is not None:
+                    for adapter in locations:
+                        storage_locations.append(adapter.attrib['name'])
 
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.bitstream_location(bitstream)
+                return storage_locations
             else:
                 exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_location",
                                           request.content.decode('utf-8'))
@@ -183,7 +181,7 @@ class EntityAPI(AuthenticatedAPI):
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")
             raise RuntimeError("bitstream_content argument is not a Bitstream object")
-        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token}, stream=True) as request:
+        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}, stream=True) as request:
             if request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
                 return self.bitstream_content(bitstream, filename)
@@ -217,7 +215,7 @@ class EntityAPI(AuthenticatedAPI):
         :rtype: str
 
         """
-        headers = {HEADER_TOKEN: self.__token__(), 'Content-Type': 'application/xml;charset=UTF-8'}
+        headers = {HEADER_TOKEN: self.__token__(), 'Content-Type': 'application/xml;charset=UTF-8', 'X-STREAM-No-Retry': 'true'}
         download = self.session.get(f'{self.protocol}://{self.server}/api/entity/actions/exports/{pid}/content',
                                     stream=True, headers=headers)
         if download.status_code == requests.codes.ok:
@@ -300,11 +298,6 @@ class EntityAPI(AuthenticatedAPI):
 
         if request.status_code == requests.codes.accepted:
             return str(request.content.decode('utf-8'))
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.__export_opex_start__(entity, IncludeContent=include_content,
-                                              IncludeMetadata=include_metadata, IncludedGenerations=include_generation,
-                                              IncludeParentHierarchy=include_parent)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "__export_opex_start__",
                                       request.content.decode('utf-8'))
@@ -380,7 +373,7 @@ class EntityAPI(AuthenticatedAPI):
         :return: The filename
         :rtype: str
         """
-        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers,
                               stream=True) as request:
@@ -412,11 +405,9 @@ class EntityAPI(AuthenticatedAPI):
                               headers=headers) as request:
             if request.status_code == requests.codes.ok:
                 return True
+
             if request.status_code == requests.codes.not_found:
                 return False
-            elif request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.has_thumbnail(entity)
             else:
                 exception = HTTPException(entity.reference, request.status_code, request.url, "has_thumbnail",
                                           request.content.decode('utf-8'))
@@ -433,7 +424,7 @@ class EntityAPI(AuthenticatedAPI):
         :return: The filename
         :rtype: str
          """
-        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}', 'size': f'{size.value}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params,
                               headers=headers, stream=True) as request:
@@ -491,17 +482,11 @@ class EntityAPI(AuthenticatedAPI):
                     del_req = self.session.delete(
                         f'{self.protocol}://{self.server}/api/entity/{entity.path}/{entity.reference}/identifiers/{_aipid}',
                         headers=headers)
-                    if del_req.status_code == requests.codes.unauthorized:
-                        self.token = self.__token__()
-                        return self.delete_identifiers(entity, identifier_type, identifier_value)
                     if del_req.status_code == requests.codes.no_content:
                         pass
                     else:
                         return None
             return entity
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.delete_identifiers(entity, identifier_type, identifier_value)
         else:
             logger.error(request)
             raise RuntimeError(request.status_code, "delete_identifier failed")
@@ -545,9 +530,6 @@ class EntityAPI(AuthenticatedAPI):
                         external_id.identifier_id = identifier_id
                         result.add(external_id)
             return result
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.entity_identifiers(entity)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "identifiers_for_entity",
                                       request.content.decode('utf-8'))
@@ -581,9 +563,6 @@ class EntityAPI(AuthenticatedAPI):
                         identifier_value = child.text
                 result.add(tuple((identifier_type, identifier_value)))
             return result
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.identifiers_for_entity(entity)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "identifiers_for_entity",
                                       request.content.decode('utf-8'))
@@ -620,9 +599,6 @@ class EntityAPI(AuthenticatedAPI):
                     co = ContentObject(entity.attrib['ref'], entity.attrib['title'], None, None, None, None)
                     result.add(co)
             return result
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.identifier(identifier_type, identifier_value)
         else:
             exception = HTTPException(payload, request.status_code, request.url, "identifier",
                                       request.content.decode('utf-8'))
@@ -662,9 +638,6 @@ class EntityAPI(AuthenticatedAPI):
                 return aip_id.text
             else:
                 return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_identifier(entity, identifier_type, identifier_value)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "add_identifier",
                                       request.content.decode('utf-8'))
@@ -726,17 +699,11 @@ class EntityAPI(AuthenticatedAPI):
                             return aip_id.text
                         else:
                             return None
-                    if put_response.status_code == requests.codes.unauthorized:
-                        self.token = self.__token__()
-                        return self.update_identifiers(entity, identifier_type, identifier_value)
                     if put_response.status_code == requests.codes.no_content:
                         pass
                     else:
                         return None
             return entity
-        elif response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.update_identifiers(entity, identifier_type, identifier_value)
         else:
             logger.error(response)
             raise RuntimeError(response.status_code, "update_identifiers failed")
@@ -781,9 +748,6 @@ class EntityAPI(AuthenticatedAPI):
         request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/{end_point}', headers=headers)
         if request.status_code == requests.codes.no_content:
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.__delete_relationship(relationship)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "delete_relationships",
                                       request.content.decode('utf-8'))
@@ -866,9 +830,6 @@ class EntityAPI(AuthenticatedAPI):
                 url = next_url.text
 
             return PagedSet(results, has_more, int(total_hits.text), url)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.__relationships__(entity=entity, maximum=maximum, next_page=next_page)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "relationships",
                                       request.content.decode('utf-8'))
@@ -917,16 +878,13 @@ class EntityAPI(AuthenticatedAPI):
             relation = link_response.find(f'.//{{{self.xip_ns}}}Link')
             relation_type = relation.find(f'.//{{{self.xip_ns}}}Type')
             return relation_type.text
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_relation(from_entity, relationship_type, to_entity)
         else:
             exception = HTTPException(from_entity.reference, request.status_code, request.url, "add_relation",
                                       request.content.decode('utf-8'))
             logger.error(exception)
             raise exception
 
-    def delete_metadata(self, entity: EntityT, schema: str) -> EntityT:
+    def delete_metadata(self, entity: Entity, schema: str) -> EntityT:
         """
         Delete an existing descriptive XML document on an entity by its schema
         This call will delete all fragments with the same schema
@@ -943,9 +901,6 @@ class EntityAPI(AuthenticatedAPI):
                 request = self.session.delete(url, headers=headers)
                 if request.status_code == requests.codes.no_content:
                     pass
-                elif request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.delete_metadata(entity, schema)
                 else:
                     exception = HTTPException(entity.reference, request.status_code, request.url, "delete_metadata",
                                               request.content.decode('utf-8'))
@@ -972,10 +927,7 @@ class EntityAPI(AuthenticatedAPI):
 
         with open(csv_file, 'rb') as fd:
             with self.session.post(url, headers=headers, data=fd) as request:
-                if request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.add_group_metadata(csv_file)
-                elif request.status_code == requests.codes.accepted:
+                if request.status_code == requests.codes.accepted:
                     return str(request.content.decode('utf-8'))
                 else:
                     exception = HTTPException(None, request.status_code, request.url, "add_group_metadata",
@@ -1020,14 +972,12 @@ class EntityAPI(AuthenticatedAPI):
                 request = self.session.put(url, data=xml_request, headers=headers)
                 if request.status_code == requests.codes.ok:
                     pass
-                elif request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.update_metadata(entity, schema, data)
                 else:
                     exception = HTTPException(entity.reference, request.status_code, request.url, "update_metadata",
                                               request.content.decode('utf-8'))
                     logger.error(exception)
                     raise exception
+
         return self.entity(entity.entity_type, entity.reference)
 
     def add_metadata_as_fragment(self, entity: EntityT, schema: str, xml_fragment: str) -> EntityT:
@@ -1057,9 +1007,6 @@ class EntityAPI(AuthenticatedAPI):
                                     headers=headers)
         if request.status_code == requests.codes.ok:
             return self.entity(entity_type=entity.entity_type, reference=entity.reference)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_metadata(entity, schema, xml_fragment)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "add_metadata",
                                       request.content.decode('utf-8'))
@@ -1097,9 +1044,6 @@ class EntityAPI(AuthenticatedAPI):
                                     headers=headers)
         if request.status_code == requests.codes.ok:
             return self.entity(entity_type=entity.entity_type, reference=entity.reference)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_metadata(entity, schema, data)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "add_metadata",
                                       request.content.decode('utf-8'))
@@ -1161,9 +1105,6 @@ class EntityAPI(AuthenticatedAPI):
                     content_object.custom_type = response['CustomType']
                 return content_object
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.save(entity)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "save",
                                       request.content.decode('utf-8'))
@@ -1197,9 +1138,6 @@ class EntityAPI(AuthenticatedAPI):
             data=data, headers=headers)
         if request.status_code == requests.codes.accepted:
             return request.content.decode()
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.move_async(entity, dest_folder)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "move_async",
                                       request.content.decode('utf-8'))
@@ -1227,9 +1165,6 @@ class EntityAPI(AuthenticatedAPI):
                 return status.text
             else:
                 return "UNKNOWN"
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.get_async_progress(pid)
         else:
             exception = HTTPException(pid, request.status_code, request.url, "get_async_progress",
                                       request.content.decode('utf-8'))
@@ -1265,10 +1200,6 @@ class EntityAPI(AuthenticatedAPI):
                 else:
                     sleep(sleep_sec)
                     sleep_sec = sleep_sec + 1
-
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.move_sync(entity, dest_folder)
         else:
             exception = HTTPException(entity, request.status_code, request.url, "move_sync",
                                       request.content.decode('utf-8'))
@@ -1320,9 +1251,6 @@ class EntityAPI(AuthenticatedAPI):
                           entity['security_tag'],
                           entity['parent'],
                           entity['metadata'])
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.create_folder(title, description, security_tag, parent=parent)
         else:
             exception = HTTPException(title, request.status_code, request.url, "create_folder",
                                       request.content.decode('utf-8'))
@@ -1409,9 +1337,6 @@ class EntityAPI(AuthenticatedAPI):
                 else:
                     sleep(sleep_sec)
                     sleep_sec = sleep_sec + 1
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.security_tag_sync(entity, new_tag)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "security_tag_sync",
                                       request.content.decode('utf-8'))
@@ -1436,9 +1361,6 @@ class EntityAPI(AuthenticatedAPI):
                                    data=new_tag, headers=headers)
         if request.status_code == requests.codes.accepted:
             return request.content.decode("utf-8")
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.security_tag_async(entity, new_tag)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "security_tag_async",
                                       request.content.decode('utf-8'))
@@ -1460,9 +1382,6 @@ class EntityAPI(AuthenticatedAPI):
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             content = entity_response.find(f'.//{{{self.xip_ns}}}Content')
             return xml.etree.ElementTree.tostring(content[0], encoding='utf-8', method='xml').decode('utf-8')
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.metadata(uri)
         else:
             exception = HTTPException(uri, request.status_code, request.url, "metadata",
                                       request.content.decode('utf-8'))
@@ -1528,9 +1447,6 @@ class EntityAPI(AuthenticatedAPI):
             return Asset(entity['reference'], entity['title'], entity['description'],
                          entity['security_tag'], entity['parent'],
                          entity['metadata'])
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_physical_asset(title, description, parent, security_tag)
         else:
             exception = HTTPException(title, request.status_code, request.url, "add_physical_asset",
                                       request.content.decode('utf-8'))
@@ -1574,9 +1490,6 @@ class EntityAPI(AuthenticatedAPI):
             f"{self.protocol}://{self.server}/api/entity/actions/merges", data=xml_request, headers=headers)
         if request.status_code == requests.codes.accepted:
             return request.content.decode('utf-8')
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.merge_assets(assets, title, description)
         else:
             exception = HTTPException(
                 "",
@@ -1609,9 +1522,6 @@ class EntityAPI(AuthenticatedAPI):
             f"{self.protocol}://{self.server}/api/entity/actions/merges", data=payload, headers=headers)
         if request.status_code == requests.codes.accepted:
             return request.content.decode('utf-8')
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.merge_folder(folder)
         else:
             exception = HTTPException(
                 folder.reference,
@@ -1638,9 +1548,6 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             xml_response = str(request.content.decode('utf-8'))
             return xml_response
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.xml_asset(reference)
         elif request.status_code == requests.codes.not_found:
             exception = ReferenceNotFoundException(reference, request.status_code, request.url, "xml_asset")
             logger.error(exception)
@@ -1675,9 +1582,6 @@ class EntityAPI(AuthenticatedAPI):
             if 'CustomType' in entity:
                 asset.custom_type = entity['CustomType']
             return asset
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.asset(reference)
         elif request.status_code == requests.codes.not_found:
             exception = ReferenceNotFoundException(reference, request.status_code, request.url, "asset")
             logger.error(exception)
@@ -1709,9 +1613,6 @@ class EntityAPI(AuthenticatedAPI):
             if 'CustomType' in entity:
                 folder.custom_type = entity['CustomType']
             return folder
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.folder(reference)
         elif request.status_code == requests.codes.not_found:
             exception = ReferenceNotFoundException(reference, request.status_code, request.url, "folder")
             logger.error(exception)
@@ -1743,9 +1644,6 @@ class EntityAPI(AuthenticatedAPI):
             if 'CustomType' in entity:
                 content_object.custom_type = entity['CustomType']
             return content_object
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.content_object(reference)
         elif request.status_code == requests.codes.not_found:
             exception = ReferenceNotFoundException(reference, request.status_code, request.url, "content_object")
             logger.error(exception)
@@ -1784,9 +1682,6 @@ class EntityAPI(AuthenticatedAPI):
                 content_object.asset = representation.asset
                 results.append(content_object)
             return results
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.content_objects(representation)
         else:
             exception = HTTPException(representation.name, request.status_code, request.url, "content_objects",
                                       request.content.decode('utf-8'))
@@ -1860,9 +1755,6 @@ class EntityAPI(AuthenticatedAPI):
             generation.properties = property_set
             generation.gen_index = index
             return generation
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.generation(url)
         else:
             exception = HTTPException(url, request.status_code, request.url, "generation",
                                       request.content.decode('utf-8'))
@@ -1911,9 +1803,6 @@ class EntityAPI(AuthenticatedAPI):
 
             return PagedSet(results, has_more, int(total_hits.text), url)
 
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._integrity_checks(bitstream, maximum, next_page)
         else:
             exception = HTTPException(bitstream.filename, request.status_code, request.url, "_integrity_checks",
                                       request.content.decode('utf-8'))
@@ -1965,9 +1854,6 @@ class EntityAPI(AuthenticatedAPI):
 
             bitstream.bs_index = index
             return bitstream
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.bitstream(url)
         else:
             exception = HTTPException(url, request.status_code, request.url, "bitstream",
                                       request.content.decode('utf-8'))
@@ -2055,10 +1941,6 @@ class EntityAPI(AuthenticatedAPI):
 
         if request.status_code == requests.codes.ok:
             return str(request.content.decode('utf-8'))
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.replace_generation_async(content_object=content_object, file_name=file_name,
-                                                 fixity_algorithm=fixity_algorithm, fixity_value=fixity_value)
         else:
             exception = HTTPException(content_object.reference, request.status_code, request.url,
                                       "replace_generation_async", request.content.decode('utf-8'))
@@ -2091,9 +1973,6 @@ class EntityAPI(AuthenticatedAPI):
                     generation.representation_type = content_object.representation_type
                     result.append(generation)
             return result
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.generations(content_object)
         else:
             exception = HTTPException(content_object.reference, request.status_code, request.url,
                                       "generations", request.content.decode('utf-8'))
@@ -2145,9 +2024,6 @@ class EntityAPI(AuthenticatedAPI):
                 representation = Representation(asset, r.get('type'), r.get("name", None), r.text)
                 result.add(representation)
             return result
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.representations(asset)
         else:
             exception = HTTPException(asset.reference, request.status_code, request.url,
                                       "representations", request.content.decode('utf-8'))
@@ -2174,9 +2050,6 @@ class EntityAPI(AuthenticatedAPI):
             headers=headers)
         if request.status_code == requests.codes.no_content:
             return str(request.content.decode('utf-8'))
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.remove_thumbnail(entity)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url,
                                       "remove_thumbnail", request.content.decode('utf-8'))
@@ -2212,9 +2085,6 @@ class EntityAPI(AuthenticatedAPI):
                 data=fd, headers=headers, params=params)
             if request.status_code == requests.codes.accepted:
                 return str(request.content.decode('utf-8'))
-            elif request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.add_access_representation(entity, access_file, name)
             else:
                 exception = HTTPException(entity.reference, request.status_code, request.url,
                                           "add_access_representation", request.content.decode('utf-8'))
@@ -2246,9 +2116,6 @@ class EntityAPI(AuthenticatedAPI):
 
         if request.status_code == requests.codes.no_content:
             return str(request.content.decode('utf-8'))
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_thumbnail(entity, image_file)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url,
                                       "add_thumbnail", request.content.decode('utf-8'))
@@ -2272,9 +2139,6 @@ class EntityAPI(AuthenticatedAPI):
 
         if request.status_code == requests.codes.ok:
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._event_actions(entity, maximum=maximum)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url,
                                       "_event_actions", request.content.decode('utf-8'))
@@ -2377,9 +2241,6 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 url = next_url.text
             return PagedSet(result, has_more, int(total_hits.text), url)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.children(folder_reference, maximum=maximum, next_page=next_page)
         else:
             exception = HTTPException(folder_reference, request.status_code, request.url,
                                       "children", request.content.decode('utf-8'))
@@ -2436,9 +2297,6 @@ class EntityAPI(AuthenticatedAPI):
             response = requests.get(url, params={'start': 0, 'max': maximum}, headers=headers)
         else:
             response = requests.get(next_page, headers=headers)
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._entity_from_event_page(event_id, maximum, next_page)
         if response.status_code == 200:
             xml_response = str(response.content.decode('utf-8'))
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
@@ -2542,10 +2400,6 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 url = next_url.text
             return PagedSet(result_list, has_more, int(total_hits.text), url)
-
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._all_events_page(maximum, next_page, **kwargs)
         else:
             exception = HTTPException("", request.status_code, request.url,
                                       "_all_events_page", request.content.decode('utf-8'))
@@ -2618,9 +2472,6 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 url = next_url.text
             return PagedSet(result_list, has_more, int(total_hits.text), url)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._entity_events_page(entity)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url,
                                       "_all_events_page", request.content.decode('utf-8'))
@@ -2706,10 +2557,6 @@ class EntityAPI(AuthenticatedAPI):
             else:
                 url = next_url.text
             return PagedSet(result, has_more, int(total_hits.text), url)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._updated_entities_page(previous_days=previous_days, maximum=maximum,
-                                               next_page=next_page)
         else:
             exception = HTTPException(previous_days, request.status_code, request.url,
                                       "_updated_entities_page", request.content.decode('utf-8'))
@@ -2811,9 +2658,6 @@ class EntityAPI(AuthenticatedAPI):
                         sleep(2.0)
                 req = self.session.get(f"{self.protocol}://{self.server}/api/entity/progress/{progress}",
                                        headers=headers)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._delete_entity(entity, operator_comment, supervisor_comment, credentials_path)
         if request.status_code == requests.codes.unprocessable:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "no active workflow context for full deletion exists in the system")

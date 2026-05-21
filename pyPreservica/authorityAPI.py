@@ -60,9 +60,6 @@ class AuthorityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.delete(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/records/{reference}',
                                        headers=headers)
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.delete_record(reference)
         if response.status_code == requests.codes.no_content:
             return None
         else:
@@ -117,9 +114,6 @@ class AuthorityAPI(AuthenticatedAPI):
         response = self.session.post(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables/{table.reference}/records',
                                      headers=headers, json=body)
 
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_record(table, record)
         if response.status_code == requests.codes.created:
             return str(response.content.decode('utf-8'))
         else:
@@ -142,9 +136,6 @@ class AuthorityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/records/{reference}',
                                     headers=headers)
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.record(reference)
         if response.status_code == requests.codes.ok:
             json_response = str(response.content.decode('utf-8'))
             return json.loads(json_response)
@@ -168,9 +159,6 @@ class AuthorityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables/{table.reference}/records',
                                     headers=headers, params={"expand": "true"})
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.records(table)
         if response.status_code == requests.codes.ok:
             json_response = str(response.content.decode('utf-8'))
             return json.loads(json_response)['records']
@@ -204,9 +192,6 @@ class AuthorityAPI(AuthenticatedAPI):
 
         response = self.session.post(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables', data=json.dumps(table_data), headers=headers)
 
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_table(new_table)
         if response.status_code == requests.codes.created:
             json_response = str(response.content.decode('utf-8'))
             doc = json.loads(json_response)
@@ -233,9 +218,6 @@ class AuthorityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables/{reference}',
                                     headers=headers)
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.table(reference)
         if response.status_code == requests.codes.ok:
             json_response = str(response.content.decode('utf-8'))
             doc = json.loads(json_response)
@@ -262,9 +244,6 @@ class AuthorityAPI(AuthenticatedAPI):
         """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables', headers=headers)
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.tables()
         if response.status_code == requests.codes.ok:
             json_response = str(response.content.decode('utf-8'))
             doc = json.loads(json_response)

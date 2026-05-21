@@ -19,14 +19,12 @@ def tear_down():
 
 
 @pytest.fixture
-def setup_data():
-    print("\nSetting up resources...")
+def setup_data(request):
+    print(f"\nRunning test: {request.node.name}")
 
     setup()
 
     yield
-
-    print("\nTearing down resources...")
 
     tear_down()
 

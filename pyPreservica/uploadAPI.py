@@ -1278,9 +1278,6 @@ class UploadAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             json_response = str(request.content.decode('utf-8'))
             return json.loads(json_response)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.upload_credentials(location_id)
         else:
             exception = HTTPException(location_id, request.status_code, request.url, "upload_credentials",
                                       request.content.decode('utf-8'))
@@ -1344,9 +1341,6 @@ class UploadAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             json_response = str(request.content.decode('utf-8'))
             return json.loads(json_response)['locations']
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.upload_locations()
         else:
             exception = HTTPException("", request.status_code, request.url, "upload_locations",
                                       request.content.decode('utf-8'))

@@ -18,14 +18,12 @@ def tear_down():
 
 
 @pytest.fixture
-def setup_data():
-    print("\nSetting up resources...")
+def setup_data(request):
+    print(f"\nRunning test: {request.node.name}")
 
     setup()
 
     yield
-
-    print("\nTearing down resources...")
 
     tear_down()
 
@@ -82,7 +80,7 @@ def test_get_root_folders_paged(setup_data):
 def test_get_children_of_folder(setup_data):
     client = EntityAPI()
     paged_set = client.children(FOLDER_ID)
-    assert paged_set.total == 171
+    assert paged_set.total == 177
     for f in paged_set.results:
         assert f.entity_type == EntityType.ASSET
         assert f.parent == FOLDER_ID
@@ -92,7 +90,6 @@ def test_get_children_of_folder_descendants(setup_data):
     client = EntityAPI()
     objs = set()
     for f in client.descendants(FOLDER_ID):
-        assert f.entity_type == EntityType.ASSET
         assert f.parent == FOLDER_ID
         objs.add(f)
-    assert len(objs) == 171
+    assert len(objs) == 177

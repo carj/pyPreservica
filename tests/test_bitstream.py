@@ -1,4 +1,6 @@
+from io import BytesIO
 from pathlib import Path
+from typing import Union
 
 import pytest
 from pyPreservica import *
@@ -13,14 +15,12 @@ def tear_down():
 
 
 @pytest.fixture
-def setup_data():
-    print("\nSetting up resources...")
+def setup_data(request):
+    print(f"\nRunning test: {request.node.name}")
 
     setup()
 
     yield
-
-    print("\nTearing down resources...")
 
     tear_down()
 
@@ -105,3 +105,26 @@ def test_get_bitstream_locations(setup_data):
     for bs  in client.bitstreams_for_asset(asset):
         locations = client.bitstream_location(bs)
         assert "Primary Adapter" in locations
+
+
+
+def test_get_bs_for_asset(setup_data):
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    for bs in client.bitstreams_for_asset(asset):
+        assert bs.filename in ['LC-USZ62-51820.tiff', 'LC-USZ62-51820.jpg']
+        if bs.filename == 'LC-USZ62-51820.tiff':
+            assert bs.fixity['SHA1'] == 'a0ab288aa216ee1bc2cfc68250f91ceb78219bd7'
+        if bs.filename == 'LC-USZ62-51820.jpg':
+            assert bs.fixity['SHA1'] == 'ce5e5d410d57b17b69a4e7e0d4877c190a1a806f'
+
+
+def test_get_bs_bytes(setup_data):
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    for bs in client.bitstreams_for_asset(asset):
+        if bs.filename == 'LC-USZ62-51820.tiff':
+            assert bs.filename == 'LC-USZ62-51820.tiff'
+            b: Union[BytesIO, None] = client.bitstream_bytes(bs)
+            assert b is not None
+            assert b.getbuffer().nbytes == 1942466

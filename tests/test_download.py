@@ -9,7 +9,27 @@ ASSET_ID = "683f9db7-ff81-4859-9c03-f68cfa5d9c3d"
 CO_ID = "0f2997f7-728c-4e55-9f92-381ed1260d70"
 
 
-def test_can_download_bistream():
+
+def setup():
+    pass
+
+
+def tear_down():
+    pass
+
+
+@pytest.fixture
+def setup_data(request):
+    print(f"\nRunning test: {request.node.name}")
+
+    setup()
+
+    yield
+
+    tear_down()
+
+
+def test_can_download_bistream(setup_data):
     client = EntityAPI()
     asset = client.asset(ASSET_ID)
     representations = client.representations(asset)
@@ -39,7 +59,7 @@ def test_can_download_bistream():
     os.remove(bitstream.filename)
 
 
-def test_can_download_file():
+def test_can_download_file(setup_data):
     client = EntityAPI()
     asset = client.asset(ASSET_ID)
     filename = str(uuid.uuid4())
@@ -50,7 +70,7 @@ def test_can_download_file():
     os.remove(filename)
 
 
-def test_can_download_file2():
+def test_can_download_file2(setup_data):
     client = EntityAPI()
     asset = client.asset("799b467f-050d-415f-b8ec-7c74b343f628")
     filename = str(uuid.uuid4())
@@ -61,7 +81,7 @@ def test_can_download_file2():
     os.remove(filename)
 
 
-def test_can_download_file3():
+def test_can_download_file3(setup_data):
     client = EntityAPI()
     folder = client.folder("ebd977f6-bebd-4ecf-99be-e054989f9af4")
     filename = str(uuid.uuid4())
@@ -69,7 +89,7 @@ def test_can_download_file3():
         f = client.download(folder, filename)
 
 
-def test_can_get_small_thumbnail():
+def test_can_get_small_thumbnail(setup_data):
     client = EntityAPI()
     asset = client.asset("799b467f-050d-415f-b8ec-7c74b343f628")
     filename = str(uuid.uuid4()) + ".jpg"
@@ -80,7 +100,7 @@ def test_can_get_small_thumbnail():
     os.remove(filename)
 
 
-def test_can_get_med_thumbnail():
+def test_can_get_med_thumbnail(setup_data):
     client = EntityAPI()
     asset = client.asset("799b467f-050d-415f-b8ec-7c74b343f628")
     filename = str(uuid.uuid4()) + ".jpg"
@@ -91,7 +111,7 @@ def test_can_get_med_thumbnail():
     os.remove(filename)
 
 
-def test_can_get_large_thumbnail():
+def test_can_get_large_thumbnail(setup_data):
     client = EntityAPI()
     asset = client.asset("799b467f-050d-415f-b8ec-7c74b343f628")
     filename = str(uuid.uuid4()) + ".jpg"

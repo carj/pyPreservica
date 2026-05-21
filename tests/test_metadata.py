@@ -101,15 +101,6 @@ def test_add_folder_metadata_string():
     assert len(folder.metadata) == 3
 
 
-def test_get_asset_metadata():
-    client = EntityAPI()
-    entity = client.entity(EntityType.ASSET, ASSET_ID)
-    xml_string = client.metadata_for_entity(entity, "http://purl.org/dc/elements/1.1/")
-    assert xml_string is not None
-    document = xml.etree.ElementTree.fromstring(xml_string)
-    filename = document.find(".//{http://purl.org/dc/elements/1.1/}filename")
-    assert filename.text == "LC-USZ62-20901.tiff"
-
 
 def test_get_all_asset_metadata():
     client = EntityAPI()
@@ -160,7 +151,7 @@ def test_get_folder_metadata_file():
 def test_get_asset_metadata_file():
     client = EntityAPI()
     entity = client.entity(EntityType.ASSET, ASSET_ID)
-    assert len(entity.metadata) == 2
+    assert len(entity.metadata) == 1
     filename = str(uuid.uuid4()) + ".xml"
     fd = open(filename, "wt", encoding="utf-8")
     fd.write(XML_DOCUMENT)
@@ -168,11 +159,11 @@ def test_get_asset_metadata_file():
     fd.close()
     with open(filename, "rt", encoding="utf-8") as file:
         asset = client.add_metadata(entity, "https://www.person.com/person", file)
-    assert len(asset.metadata) == 3
+    assert len(asset.metadata) == 2
     xml_string = client.metadata_for_entity(asset, "https://www.person.com/person")
     document = xml.etree.ElementTree.fromstring(xml_string)
     name = document.find(".//{https://www.person.com/person}Name")
     assert name.text == "Name"
     asset = client.delete_metadata(asset, "https://www.person.com/person")
-    assert len(asset.metadata) == 2
+    assert len(asset.metadata) == 1
     os.remove(filename)

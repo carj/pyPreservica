@@ -9,6 +9,7 @@ licence:    Apache License 2.0
 
 """
 import csv
+import json
 import xml.etree.ElementTree
 from typing import List, Any, Union
 
@@ -27,7 +28,7 @@ class AdminAPI(AuthenticatedAPI):
         :type role_name: str
 
         """
-        if (self.major_version < 7) and (self.minor_version < 5):
+        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 5):
             raise RuntimeError(
                 "delete_system_role API call is only available with a Preservica v6.5.0 system or higher")
 
@@ -37,9 +38,6 @@ class AdminAPI(AuthenticatedAPI):
                                       headers=headers)
         if request.status_code == requests.codes.no_content:
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.delete_system_role(role_name)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "delete_system_role failed")
@@ -52,7 +50,7 @@ class AdminAPI(AuthenticatedAPI):
         :type tag_name: str
 
         """
-        if (self.major_version < 7) and (self.minor_version < 4):
+        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 4):
             raise RuntimeError(
                 "delete_security_tag API call is only available with a Preservica v6.4.0 system or higher")
 
@@ -62,9 +60,6 @@ class AdminAPI(AuthenticatedAPI):
                                       headers=headers)
         if request.status_code == requests.codes.no_content:
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.delete_security_tag(tag_name)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "delete_security_tag failed")
@@ -80,7 +75,7 @@ class AdminAPI(AuthenticatedAPI):
         :rtype: str
 
         """
-        if (self.major_version < 7) and (self.minor_version < 5):
+        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 5):
             raise RuntimeError("add_system_role API call is only available with a Preservica v6.5.0 system or higher")
 
         self._check_if_user_has_manager_role()
@@ -96,9 +91,6 @@ class AdminAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             return entity_response.text
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_system_role(role_name)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_system_role failed")
@@ -115,7 +107,7 @@ class AdminAPI(AuthenticatedAPI):
 
         """
 
-        if (self.major_version < 7) and (self.minor_version < 4):
+        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 4):
             raise RuntimeError("add_security_tag API call is only available with a Preservica v6.4.0 system or higher")
 
         self._check_if_user_has_manager_role()
@@ -132,9 +124,6 @@ class AdminAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             return entity_response.text
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_security_tag(tag_name)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_security_tag failed")
@@ -149,7 +138,7 @@ class AdminAPI(AuthenticatedAPI):
         """
         self._check_if_user_has_manager_role()
 
-        if (self.major_version < 7) and (self.minor_version < 5):
+        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 5):
             raise RuntimeError(
                 "system_roles API call is only available with a Preservica v6.5.0 system or higher")
 
@@ -164,12 +153,9 @@ class AdminAPI(AuthenticatedAPI):
             for role in roles:
                 security_roles.append(role.text)
             return security_roles
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.roles()
         else:
             logger.error(request.content.decode('utf-8'))
-            raise RuntimeError(request.status_code, "roles failed")
+            raise RuntimeError(request.status_code, "system_roles failed")
 
     def security_tags(self) -> list:
         """
@@ -191,9 +177,6 @@ class AdminAPI(AuthenticatedAPI):
             for tag in tags:
                 security_tags.append(tag.text)
             return security_tags
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.security_tags()
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "security_tags failed")
@@ -212,9 +195,6 @@ class AdminAPI(AuthenticatedAPI):
         request = self.session.delete(f'{self.protocol}://{self.server}/api/admin/users/{username}', headers=headers)
         if request.status_code == requests.codes.no_content:
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.delete_user(username)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "delete_user failed")
@@ -240,7 +220,7 @@ class AdminAPI(AuthenticatedAPI):
         self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
-        xml_object = xml.etree.ElementTree.Element('User ', {"xmlns": self.admin_ns})
+        xml_object = xml.etree.ElementTree.Element('User', {"xmlns": self.admin_ns})
         xml.etree.ElementTree.SubElement(xml_object, "FullName").text = full_name
         xml.etree.ElementTree.SubElement(xml_object, "Email").text = username
         if externally_authenticated:
@@ -256,9 +236,6 @@ class AdminAPI(AuthenticatedAPI):
                                     headers=headers, params=params)
         if request.status_code == requests.codes.created:
             return self.user_details(username)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_user(username, full_name, roles)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_user failed")
@@ -292,18 +269,30 @@ class AdminAPI(AuthenticatedAPI):
                                               headers=headers)
             if update_request.status_code == requests.codes.ok:
                 return self.user_details(username)
-            elif update_request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.change_user_display_name(username, new_display_name)
             else:
-                logger.error(request.content.decode('utf-8'))
-                raise RuntimeError(request.status_code, "change_user_display_name failed")
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.change_user_display_name(username, new_display_name)
+                logger.error(update_request.content.decode('utf-8'))
+                raise RuntimeError(update_request.status_code, "change_user_display_name failed")
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "change_user_display_name failed")
+
+
+    def current_user(self):
+        """
+        Returns details about the current authenticated user
+        :return: dictionary of user attributes
+        :rtype: dict
+        """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
+        request = self.session.get(f"{self.protocol}://{self.server}/api/user/details", headers=headers)
+        if request.status_code == requests.codes.ok:
+            json_response = str(request.content.decode('utf-8'))
+            logger.debug(json_response)
+            return json.loads(json_response)
+        else:
+            logger.error(request.content.decode('utf-8'))
+            raise RuntimeError(request.status_code, "current_user failed")
+
 
     def user_details(self, username: str) -> dict:
         """
@@ -335,15 +324,13 @@ class AdminAPI(AuthenticatedAPI):
             enable = entity_response.find(f'.//{{{self.admin_ns}}}Enabled')
             return_dict['Enabled'] = bool(enable.text == "true")
 
+
             roles = entity_response.findall(f'.//{{{self.admin_ns}}}Role')
             return_roles = []
             for role in roles:
                 return_roles.append(role.text)
             return_dict['Roles'] = return_roles
             return return_dict
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.user_details(username)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "user_details failed")
@@ -356,9 +343,6 @@ class AdminAPI(AuthenticatedAPI):
                                    data=data)
         if request.status_code == requests.codes.ok:
             return request.content.decode("utf-8")
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._account_status_(username, status, name)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, f"{name} failed")
@@ -422,9 +406,6 @@ class AdminAPI(AuthenticatedAPI):
             for user in users:
                 system_users.append(user.text)
             return system_users
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.all_users()
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "all_users failed")
@@ -465,9 +446,6 @@ class AdminAPI(AuthenticatedAPI):
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_xml_schema(name, description, originalName, xml_data)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_xml_schema failed")
@@ -515,9 +493,6 @@ class AdminAPI(AuthenticatedAPI):
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_xml_document(name, xml_data, document_type)
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_xml_document failed")
@@ -545,9 +520,6 @@ class AdminAPI(AuthenticatedAPI):
                     headers=headers)
                 if request.status_code == requests.codes.no_content:
                     return None
-                elif request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.delete_xml_document(uri)
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "delete_xml_document failed")
@@ -575,9 +547,6 @@ class AdminAPI(AuthenticatedAPI):
                                               headers=headers)
                 if request.status_code == requests.codes.no_content:
                     return None
-                elif request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.delete_xml_schema(uri)
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "delete_xml_schema failed")
@@ -604,9 +573,6 @@ class AdminAPI(AuthenticatedAPI):
                 if request.status_code == requests.codes.ok:
                     xml_response = str(request.content.decode('utf-8'))
                     return xml_response
-                elif request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.xml_schema(uri)
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "xml_schema failed")
@@ -632,9 +598,6 @@ class AdminAPI(AuthenticatedAPI):
                 if request.status_code == requests.codes.ok:
                     xml_response = str(request.content.decode('utf-8'))
                     return xml_response
-                elif request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.xml_document(uri)
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "xml_document failed")
@@ -668,9 +631,6 @@ class AdminAPI(AuthenticatedAPI):
                 document_dict['ApiId'] = api_id.text
                 results.append(document_dict)
             return results
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.xml_documents()
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "xml_documents failed")
@@ -707,9 +667,6 @@ class AdminAPI(AuthenticatedAPI):
                 schema_dict['ApiId'] = aip_id.text
                 results.append(schema_dict)
             return results
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.xml_schemas()
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "xml_schemas failed")
@@ -751,10 +708,6 @@ class AdminAPI(AuthenticatedAPI):
                 transform_dict['ApiId'] = aip_id.text
                 results.append(transform_dict)
             return results
-
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.xml_transforms()
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "xml_transforms failed")
@@ -781,9 +734,6 @@ class AdminAPI(AuthenticatedAPI):
                     headers=headers)
                 if request.status_code == requests.codes.ok:
                     return str(request.content.decode('utf-8'))
-                elif request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.xml_transform(input_uri, output_uri)
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "xml_transform failed")
@@ -815,9 +765,6 @@ class AdminAPI(AuthenticatedAPI):
                     headers=headers)
                 if request.status_code == requests.codes.no_content:
                     return None
-                elif request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.delete_xml_transform(input_uri, output_uri)
                 else:
                     logger.error(request.content.decode('utf-8'))
                     raise RuntimeError(request.status_code, "delete_xml_transform failed")
@@ -868,10 +815,6 @@ class AdminAPI(AuthenticatedAPI):
                                     data=xml_data)
         if request.status_code == requests.codes.created:
             return None
-
-        if request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_xml_transform(name, input_uri, output_uri, purpose, originalName, xml_data)
-
-        logger.error(request.content.decode('utf-8'))
-        raise RuntimeError(request.status_code, "add_xml_transform failed")
+        else:
+            logger.error(request.content.decode('utf-8'))
+            raise RuntimeError(request.status_code, "add_xml_transform failed")

@@ -131,9 +131,6 @@ class WebHooksAPI(AuthenticatedAPI):
         self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/subscriptions', headers=headers)
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.subscriptions()
         if response.status_code == requests.codes.ok:
             json_response = str(response.content.decode('utf-8'))
             doc = json.loads(json_response)
@@ -166,9 +163,6 @@ class WebHooksAPI(AuthenticatedAPI):
         response = self.session.delete(
             f'{self.protocol}://{self.server}{BASE_ENDPOINT}/subscriptions/{subscription_id}',
             headers=headers)
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.unsubscribe(subscription_id)
         if response.status_code == requests.codes.no_content:
             json_response = str(response.content.decode('utf-8'))
             logger.debug(json_response)
@@ -196,9 +190,6 @@ class WebHooksAPI(AuthenticatedAPI):
 
         response = self.session.post(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/subscriptions', headers=headers,
                                      data=json.dumps(json.loads(json_payload)))
-        if response.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.subscribe(url, triggerType, secret)
         if response.status_code == requests.codes.ok:
             json_response = str(response.content.decode('utf-8'))
             logger.debug(json_response)

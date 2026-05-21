@@ -162,9 +162,6 @@ class MetadataGroupsAPI(AuthenticatedAPI):
                             fd.write(response.content.decode("utf-8"))
                             fd.flush()
                             return f"{form_name}.csv"
-                    if response.status_code == requests.codes.unauthorized:
-                        self.token = self.__token__()
-                        return self.download_template(form_name)
                     else:
                         exception = HTTPException(None, response.status_code, response.url, "download_template",
                                                   response.content.decode('utf-8'))
@@ -201,10 +198,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         url = f'{self.protocol}://{self.server}/api/metadata/groups/{group_id}'
         with self.session.delete(url, headers=headers) as request:
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.delete_group(group_id)
-            elif request.status_code == requests.codes.no_content:
+            if request.status_code == requests.codes.no_content:
                 return None
             else:
                 exception = HTTPException(None, request.status_code, request.url, "delete_group",
@@ -240,10 +234,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         url = f'{self.protocol}://{self.server}/api/metadata/groups/{group_id}'
         with self.session.put(url, headers=headers, json=doc) as request:
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.add_fields(group_id, new_fields)
-            elif request.status_code == requests.codes.created:
+            if request.status_code == requests.codes.created:
                 return json.loads(str(request.content.decode('utf-8')))
             else:
                 exception = HTTPException(None, request.status_code, request.url, "add_fields",
@@ -283,10 +274,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
 
         if isinstance(json_form, dict):
             with self.session.put(url, headers=headers, json=json_form) as request:
-                if request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.add_form(json_form)
-                elif request.status_code == requests.codes.ok:
+                if request.status_code == requests.codes.ok:
                     return json.loads(str(request.content.decode('utf-8')))
                 else:
                     exception = HTTPException(None, request.status_code, request.url, "add_form_json",
@@ -296,10 +284,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
 
         elif isinstance(json_form, str):
             with self.session.put(url, headers=headers, data=json_form) as request:
-                if request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.add_form(json_form)
-                elif request.status_code == requests.codes.ok:
+                if request.status_code == requests.codes.ok:
                     return json.loads(str(request.content.decode('utf-8')))
                 else:
                     exception = HTTPException(None, request.status_code, request.url, "add_form_json",
@@ -325,10 +310,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
 
         if isinstance(json_form, dict):
             with self.session.post(url, headers=headers, json=json_form) as request:
-                if request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.add_form(json_form)
-                elif request.status_code == requests.codes.created:
+                if request.status_code == requests.codes.created:
                     return json.loads(str(request.content.decode('utf-8')))
                 else:
                     exception = HTTPException(None, request.status_code, request.url, "add_form_json",
@@ -338,10 +320,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
 
         elif isinstance(json_form, str):
             with self.session.post(url, headers=headers, data=json_form) as request:
-                if request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.add_form(json_form)
-                elif request.status_code == requests.codes.created:
+                if request.status_code == requests.codes.created:
                     return json.loads(str(request.content.decode('utf-8')))
                 else:
                     exception = HTTPException(None, request.status_code, request.url, "add_form_json",
@@ -364,10 +343,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
     #     payload: dict = {"default": True, "useAsDefault": True}
     #
     #     with self.session.get(url, headers=headers, json=json.dumps(payload)) as request:
-    #         if request.status_code == requests.codes.unauthorized:
-    #             self.token = self.__token__()
-    #             return self.set_default_form(form_id)
-    #         elif request.status_code == requests.codes.ok:
+    #         if request.status_code == requests.codes.ok:
     #             return json.loads(str(request.content.decode('utf-8')))
     #         else:
     #             exception = HTTPException(None, request.status_code, request.url, "set_default_form",
@@ -394,10 +370,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
 
         if isinstance(json_object, dict):
             with self.session.post(url, headers=headers, json=json_object) as request:
-                if request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.add_group_json(json_object)
-                elif request.status_code == requests.codes.created:
+                if request.status_code == requests.codes.created:
                     return json.loads(str(request.content.decode('utf-8')))
                 else:
                     exception = HTTPException(None, request.status_code, request.url, "add_group_json",
@@ -407,10 +380,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
 
         elif isinstance(json_object, str):
             with self.session.post(url, headers=headers, data=json_object) as request:
-                if request.status_code == requests.codes.unauthorized:
-                    self.token = self.__token__()
-                    return self.add_group_json(json_object)
-                elif request.status_code == requests.codes.created:
+                if request.status_code == requests.codes.created:
                     return json.loads(str(request.content.decode('utf-8')))
                 else:
                     exception = HTTPException(None, request.status_code, request.url, "add_group_json",
@@ -434,10 +404,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         url = f'{self.protocol}://{self.server}/api/metadata/groups/{group_id}'
         with self.session.get(url, headers=headers) as request:
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.group_json(group_id)
-            elif request.status_code == requests.codes.ok:
+            if request.status_code == requests.codes.ok:
                 return json.loads(str(request.content.decode('utf-8')))
             else:
                 exception = HTTPException(None, request.status_code, request.url, "group_json",
@@ -471,10 +438,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         url = f'{self.protocol}://{self.server}/api/metadata/groups'
         with self.session.get(url, headers=headers) as request:
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.groups_json()
-            elif request.status_code == requests.codes.ok:
+            if request.status_code == requests.codes.ok:
                 return json.loads(str(request.content.decode('utf-8')))['groups']
             else:
                 exception = HTTPException(None, request.status_code, request.url, "groups_json",
@@ -500,10 +464,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         if schema_uri is not None:
             params = {'schemaUri': schema_uri}
         with self.session.get(url, headers=headers, params=params) as request:
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.forms()
-            elif request.status_code == requests.codes.ok:
+            if request.status_code == requests.codes.ok:
                 return json.loads(str(request.content.decode('utf-8')))['metadataForms']
             else:
                 exception = HTTPException(None, request.status_code, request.url, "forms_json",
@@ -519,10 +480,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         url = f'{self.protocol}://{self.server}/api/metadata/forms/{form_id}'
         with self.session.delete(url, headers=headers) as request:
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.delete_form(form_id)
-            elif request.status_code == requests.codes.no_content:
+            if request.status_code == requests.codes.no_content:
                 return None
             else:
                 exception = HTTPException(None, request.status_code, request.url, "delete_form",
@@ -546,10 +504,7 @@ class MetadataGroupsAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         url = f'{self.protocol}://{self.server}/api/metadata/forms/{form_id}'
         with self.session.get(url, headers=headers) as request:
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.form(form_id)
-            elif request.status_code == requests.codes.ok:
+            if request.status_code == requests.codes.ok:
                 return json.loads(str(request.content.decode('utf-8')))
             else:
                 exception = HTTPException(None, request.status_code, request.url, "form_json",

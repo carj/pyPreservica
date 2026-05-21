@@ -122,9 +122,6 @@ class RetentionAPI(AuthenticatedAPI):
             assignable = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy/{{{self.rm_ns}}}Assignable')
             rp.assignable = strtobool(assignable.text)
             return rp
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.policy(reference)
         else:
             logger.error(f"policy failed with error code {request.status_code}")
             raise RuntimeError(request.status_code, "policy failed")
@@ -149,9 +146,6 @@ class RetentionAPI(AuthenticatedAPI):
             headers=headers, data=data)
         if request.status_code == requests.codes.ok:
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.assignable_policy(reference, status)
         else:
             logger.error(f"assignable_policy failed with error code {request.status_code}")
             raise RuntimeError(request.status_code, "assignable_policy failed")
@@ -246,9 +240,6 @@ class RetentionAPI(AuthenticatedAPI):
                                    headers=headers)
         if request.status_code == requests.codes.ok:
             return self.policy(reference)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.update_policy(reference, **kwargs)
         else:
             logger.error(str(request.content.decode('utf-8')))
             raise RuntimeError(request.status_code, "update_policy failed " + str(request.content.decode('utf-8')))
@@ -345,9 +336,6 @@ class RetentionAPI(AuthenticatedAPI):
             retention_policy = entity_response.find(f'.//{{{self.rm_ns}}}RetentionPolicy')
             ref = retention_policy.find(f'.//{{{self.rm_ns}}}Ref').text
             return self.policy(ref)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.create_policy(**kwargs)
         else:
             logger.error(f'create_policy failed {request.status_code}')
             logger.error(str(request.content.decode('utf-8')))
@@ -366,9 +354,6 @@ class RetentionAPI(AuthenticatedAPI):
                                       headers=headers)
         if request.status_code == requests.codes.no_content:
             return None
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.delete_policy(reference)
         else:
             logger.error(f'delete_policy failed {request.status_code}')
             raise RuntimeError(request.status_code, "delete_policy failed")
@@ -449,9 +434,6 @@ class RetentionAPI(AuthenticatedAPI):
             else:
                 url = next_url.text
             return PagedSet(result, has_more, total_results, url)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self._policies_set(maximum, next_page)
         else:
             raise RuntimeError(request.status_code, "policies failed")
 
@@ -495,9 +477,6 @@ class RetentionAPI(AuthenticatedAPI):
             assert entity_ref == entity.reference
             assert policy_ref == policy.reference
             return RetentionAssignment(entity_ref, policy_ref, api_id, start_date)
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.add_assignments(entity, policy)
         else:
             logger.debug(f"add_assignments failed {request.status_code}")
             logger.error(str(request.content.decode('utf-8')))
@@ -523,9 +502,6 @@ class RetentionAPI(AuthenticatedAPI):
             f'-assignments/{retention_assignment.api_id}', headers=headers)
         if request.status_code == requests.codes.no_content:
             return retention_assignment.entity_reference
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.remove_assignments(retention_assignment)
         else:
             raise RuntimeError(request.status_code, "remove_assignments failed")
 
@@ -562,8 +538,5 @@ class RetentionAPI(AuthenticatedAPI):
                 api_id = assignment.find(f'.//{{{self.rm_ns}}}ApiId').text
                 ra = RetentionAssignment(entity_ref, policy, api_id, start_date, expired)
                 yield ra
-        elif request.status_code == requests.codes.unauthorized:
-            self.token = self.__token__()
-            return self.assignments(entity)
         else:
             raise RuntimeError(request.status_code, "assignments failed")
