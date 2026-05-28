@@ -44,13 +44,14 @@ class ContentAPI(AuthenticatedAPI):
     """
 
 
-    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
-                 protocol: str = "https", request_hook: Callable = None, credentials_path: str = 'credentials.properties'):
+    def __init__(self, username: str|None = None, password: str|None = None, tenant: str|None = None, server: str|None = None,
+                 use_shared_secret: bool = False, two_fa_secret_key: str|None = None,
+                 protocol: str = "https", request_hook: Callable|None = None, credentials_path: str = 'credentials.properties'):
 
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
                          protocol, request_hook, credentials_path)
-        self.callback = None
+
+        self.callback: Callable|None = None
 
     class SearchResult:
         def __init__(self, metadata, refs, hits, results_list, next_start):
@@ -60,7 +61,7 @@ class ContentAPI(AuthenticatedAPI):
             self.results_list = results_list
             self.next_start = next_start
 
-    def search_callback(self, fn):
+    def search_callback(self, fn: Callable):
         self.callback = fn
 
     def user_security_tags(self, with_permissions: bool = False):
@@ -74,7 +75,7 @@ class ContentAPI(AuthenticatedAPI):
         return self.security_tags_base(with_permissions=with_permissions)
 
 
-    def full_text(self, reference: str):
+    def full_text(self, reference: str) -> str|None:
         """
         Return the full text index value for asset.
         The reference must be for an Asset.
@@ -128,7 +129,7 @@ class ContentAPI(AuthenticatedAPI):
             raise RuntimeError(request.status_code, f"object_details failed with error code: {request.status_code}")
 
 
-    def download_bytes(self, reference):
+    def download_bytes(self, reference) -> BytesIO:
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:IO|{reference}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers, stream=True) as req:
@@ -149,7 +150,7 @@ class ContentAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, f"download failed with error code: {req.status_code}")
 
 
-    def download(self, reference, filename):
+    def download(self, reference, filename) -> str:
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:IO|{reference}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers,
@@ -159,7 +160,6 @@ class ContentAPI(AuthenticatedAPI):
                     for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
                         file.write(chunk)
                         file.flush()
-                file.close()
                 return filename
             elif req.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
@@ -171,7 +171,7 @@ class ContentAPI(AuthenticatedAPI):
                 logger.error(f"download failed with error code: {req.status_code}")
                 raise RuntimeError(req.status_code, f"download failed with error code: {req.status_code}")
 
-    def thumbnail_bytes(self, entity_type, reference: str, size: Thumbnail = Thumbnail.LARGE) -> Union[BytesIO, None]:
+    def thumbnail_bytes(self, entity_type, reference: str, size: Thumbnail = Thumbnail.LARGE) -> BytesIO:
         headers = {HEADER_TOKEN: self.token, 'accept': 'image/png', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params, headers=headers, stream=True) as req:
@@ -192,7 +192,7 @@ class ContentAPI(AuthenticatedAPI):
                 logger.error(f"thumbnail failed with error code: {req.status_code}")
                 raise RuntimeError(req.status_code, f"thumbnail failed with error code: {req.status_code}")
 
-    def thumbnail(self, entity_type, reference, filename, size=Thumbnail.LARGE):
+    def thumbnail(self, entity_type, reference, filename, size=Thumbnail.LARGE) -> str:
         headers = {HEADER_TOKEN: self.token, 'accept': 'image/png', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params, headers=headers,  stream=True) as req:
@@ -213,7 +213,7 @@ class ContentAPI(AuthenticatedAPI):
                 logger.error(f"thumbnail failed with error code: {req.status_code}")
                 raise RuntimeError(req.status_code, f"thumbnail failed with error code: {req.status_code}")
 
-    def indexed_fields(self):
+    def indexed_fields(self) -> dict:
         headers = {HEADER_TOKEN: self.token}
         results = self.session.get(f'{self.protocol}://{self.server}/api/content/indexed-fields', headers=headers)
         if results.status_code == requests.codes.ok:
@@ -227,7 +227,7 @@ class ContentAPI(AuthenticatedAPI):
             raise RuntimeError(results.status_code, f"indexed_fields failed with error code: {results.status_code}")
 
     def simple_search_csv(self, query: str = "%", page_size: int = 50, csv_file="search.csv",
-                          list_indexes: list = None):
+                          list_indexes: list|None = None):
         if list_indexes is None or len(list_indexes) == 0:
             metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type",
                                "xip.parent_ref", "xip.security_descriptor"]
@@ -240,7 +240,7 @@ class ContentAPI(AuthenticatedAPI):
             writer.writeheader()
             writer.writerows(self.simple_search_list(query, page_size, metadata_fields))
 
-    def simple_search_list(self, query: str = "%", page_size: int = 50, list_indexes: list = None) -> Generator:
+    def simple_search_list(self, query: str = "%", page_size: int = 50, list_indexes: list|None = None) -> Generator:
 
         search_result = self._simple_search(query, 0, page_size, list_indexes)
         for e in search_result.results_list:
@@ -252,7 +252,7 @@ class ContentAPI(AuthenticatedAPI):
                 yield e
             found = found + len(search_result.results_list)
 
-    def _simple_search(self, query: str = "%", start_index: int = 0, page_size: int = 10, list_indexes: list = None):
+    def _simple_search(self, query: str = "%", start_index: int = 0, page_size: int = 10, list_indexes: list|None = None) -> SearchResult:
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
         query_term = ('{ "q":  "%s" }' % query)
@@ -289,8 +289,8 @@ class ContentAPI(AuthenticatedAPI):
             raise RuntimeError(results.status_code, f"simple_search failed with error code: {results.status_code}")
 
     def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", page_size: int = 50,
-                                filter_values: dict = None,
-                                sort_values: dict = None):
+                                filter_values: dict|None = None,
+                                sort_values: dict|None = None):
         if filter_values is None:
             filter_values = {}
         if "xip.reference" not in filter_values:
@@ -304,7 +304,7 @@ class ContentAPI(AuthenticatedAPI):
             writer.writeheader()
             writer.writerows(self.search_index_filter_list(query, page_size, filter_values, sort_values))
 
-    def search_fields(self, query: str = "%",  fields: list[Field]=None,  page_size: int = 25) -> Generator:
+    def search_fields(self, query: str = "%",  fields: list[Field]|None=None,  page_size: int = 25) -> Generator:
         """
         Run a search query with multiple fields
 
@@ -327,7 +327,7 @@ class ContentAPI(AuthenticatedAPI):
                 yield e
             found = found + len(search_result.results_list)
 
-    def _search_fields(self, query: str = "%", fields: list[Field]=None, start_index: int = 0, page_size: int = 25):
+    def _search_fields(self, query: str = "%", fields: list[Field]|None=None, start_index: int = 0, page_size: int = 25) -> SearchResult:
 
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
@@ -405,8 +405,8 @@ class ContentAPI(AuthenticatedAPI):
             logger.error(f"search failed with error code: {results.status_code}")
             raise RuntimeError(results.status_code, f"search_index_filter failed")
 
-    def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict = None,
-                                 sort_values: dict = None) -> Generator:
+    def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict|None = None,
+                                 sort_values: dict|None = None) -> Generator:
         """
         Run a search query with optional filters
 
@@ -426,7 +426,7 @@ class ContentAPI(AuthenticatedAPI):
                 yield e
             found = found + len(search_result.results_list)
 
-    def search_index_filter_hits(self, query: str = "%", filter_values: dict = None) -> int:
+    def search_index_filter_hits(self, query: str = "%", filter_values: dict|None = None) -> int:
         """
         Run a search query with filters and return the number of hits only
 
@@ -467,7 +467,7 @@ class ContentAPI(AuthenticatedAPI):
             raise RuntimeError(results.status_code, f"_search_index_filter_hits failed")
 
     def _search_index_filter(self, query: str = "%", start_index: int = 0, page_size: int = 25,
-                             filter_values: dict = None, sort_values: dict = None):
+                             filter_values: dict|None = None, sort_values: dict|None = None) -> SearchResult:
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
 

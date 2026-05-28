@@ -11,7 +11,7 @@ licence:    Apache License 2.0
 
 import uuid
 import datetime
-from typing import Callable, Generator, List
+from typing import Callable, Generator
 from xml.etree import ElementTree
 
 from pyPreservica.common import *
@@ -51,7 +51,7 @@ class WorkflowContext:
         The workflow context is the pre-defined workflow which is ready to run
     """
 
-    def __init__(self, workflow_id, workflow_name: str):
+    def __init__(self, workflow_id: str, workflow_name: str):
         self.workflow_id = workflow_id
         self.workflow_name = workflow_name
 
@@ -99,12 +99,13 @@ class ProcessAPI(AuthenticatedAPI):
 
     """
 
-    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
-                 protocol: str = "https", request_hook: Callable = None, credentials_path: str = 'credentials.properties'):
+    def __init__(self, username: str|None = None, password: str|None = None, tenant: str|None = None, server: str|None = None,
+                 use_shared_secret: bool = False, two_fa_secret_key: str|None = None,
+                 protocol: str = "https", request_hook: Callable|None = None, credentials_path: str = 'credentials.properties'):
 
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
                          protocol, request_hook, credentials_path)
+
         self.base_url = "api/process"
 
 
@@ -184,9 +185,9 @@ class WorkflowAPI(AuthenticatedAPI):
                        'Failed']
     workflow_types = ['Ingest', 'Access', 'Transformation', 'DataManagement']
 
-    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
-                 protocol: str = "https", request_hook: Callable = None, credentials_path: str = 'credentials.properties'):
+    def __init__(self, username: str|None = None, password: str|None = None, tenant: str|None = None, server: str|None = None,
+                 use_shared_secret: bool = False, two_fa_secret_key: str|None = None,
+                 protocol: str = "https", request_hook: Callable|None = None, credentials_path: str = 'credentials.properties'):
 
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
                          protocol, request_hook, credentials_path)
@@ -213,10 +214,13 @@ class WorkflowAPI(AuthenticatedAPI):
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             contexts = entity_response.findall(f".//{{{NS_WORKFLOW}}}WorkflowContext")
             for context in contexts:
-                wrkfl_id = context.find(f".//{{{NS_WORKFLOW}}}Id").text
-                name = context.find(f".//{{{NS_WORKFLOW}}}Name").text
-                workflow_context = WorkflowContext(wrkfl_id, name)
-                workflow_contexts.append(workflow_context)
+                workflow_element_id = context.find(f".//{{{NS_WORKFLOW}}}Id")
+                workflow_id = workflow_element_id.text if workflow_element_id is not None else None
+                workflow_element_name = context.find(f".//{{{NS_WORKFLOW}}}Name")
+                name = workflow_element_name.text if workflow_element_name is not None else None
+                if workflow_id is not None and name is not None:
+                    workflow_context = WorkflowContext(workflow_id, name)
+                    workflow_contexts.append(workflow_context)
             return workflow_contexts
         else:
             logger.error(request.content)

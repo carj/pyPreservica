@@ -12,11 +12,67 @@ from http.server import BaseHTTPRequestHandler
 from typing import Generator
 from urllib.parse import urlparse, parse_qs
 import hmac
+
+from pyPreservica import EntityAPI
 from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
 
 BASE_ENDPOINT = '/api/webhook'
+
+
+class LambdaURLHandler:
+    
+    def __init__(self, event, secret_key: str, client: EntityAPI):
+        self.event = event
+        self.secret_key = secret_key
+        self.client = client
+
+    def process_event(self) -> Generator[Entity, None, None]:
+        if 'Preservica-Signature' in self.event['headers']:
+            verify_body = f"preservica-webhook-auth{self.event['body']}"
+            signature = hmac.new(key=bytes(self.secret_key, 'latin-1'), msg=bytes(verify_body, 'latin-1'),
+                                 digestmod=hashlib.sha256).hexdigest()
+
+
+            if signature == self.event['headers']['Preservica-Signature']:
+                doc = json.loads(self.event['body'])
+                for reference in list(doc['events']):
+                    entity_ref = reference['entityRef']
+                    entity_type = reference['entityType']
+                    entity = self.client.entity(entity_ref, entity_type)
+                    yield entity
+
+    def is_challenge(self) -> bool:
+        if 'queryStringParameters' in self.event:
+            if self.event['queryStringParameters'] is not None:
+                if 'challengeCode' in self.event['queryStringParameters']:
+                    message = self.event['queryStringParameters']['challengeCode']
+                    return True if message else False
+        return False
+
+    def verify_challenge(self):
+        if 'queryStringParameters' in self.event:
+            if self.event['queryStringParameters'] is not None:
+                if 'challengeCode' in self.event['queryStringParameters']:
+                    message = self.event['queryStringParameters']['challengeCode']
+                    signature = hmac.new(key=bytes(self.secret_key, 'latin-1'), msg=bytes(message, 'latin-1'),
+                                         digestmod=hashlib.sha256).hexdigest()
+                    return {
+                        "statusCode": 200,
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "body": json.dumps({
+                            "challengeCode": f"{message}", "challengeResponse": f"{signature}"})
+                    }
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json"
+            }
+        }
+
 
 class FlaskWebhookHandler:
 
@@ -128,7 +184,7 @@ class WebHooksAPI(AuthenticatedAPI):
 
         :return: list of web hooks
         """
-        self._check_if_user_has_manager_role()
+        self._check_if_user_has_config_manager_role()
         headers = {HEADER_TOKEN: self.token}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/subscriptions', headers=headers)
         if response.status_code == requests.codes.ok:
@@ -146,7 +202,7 @@ class WebHooksAPI(AuthenticatedAPI):
         Unsubscribe from all webhooks.
         :return:
         """
-        self._check_if_user_has_manager_role()
+        self._check_if_user_has_config_manager_role()
         subscriptions = self.subscriptions()
         for sub in subscriptions:
             self.unsubscribe(sub['id'])
@@ -158,7 +214,7 @@ class WebHooksAPI(AuthenticatedAPI):
         :param subscription_id:
         :return:
         """
-        self._check_if_user_has_manager_role()
+        self._check_if_user_has_config_manager_role()
         headers = {HEADER_TOKEN: self.token}
         response = self.session.delete(
             f'{self.protocol}://{self.server}{BASE_ENDPOINT}/subscriptions/{subscription_id}',
@@ -182,7 +238,7 @@ class WebHooksAPI(AuthenticatedAPI):
         :param secret:
         :return: json_response
         """
-        self._check_if_user_has_manager_role()
+        self._check_if_user_has_config_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Accept': 'application/json', 'Content-Type': 'application/json'}
 
         json_payload = f'{{"url": "{url}", "triggerType": "{triggerType.value}", "secret": "{secret}",  ' \

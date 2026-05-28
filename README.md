@@ -18,14 +18,6 @@ Wiki with example scripts https://github.com/carj/pyPreservica/wiki
 
 ## Quick Start
 
-Set your credentials as environment variables:
-
-```console
-$ export PRESERVICA_USERNAME="user@example.com"
-$ export PRESERVICA_PASSWORD="password"
-$ export PRESERVICA_TENANT="PREVIEW"
-$ export PRESERVICA_SERVER="preview.preservica.com"
-```
 
 Fetch an asset and browse its parent folder:
 

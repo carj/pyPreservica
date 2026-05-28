@@ -8,6 +8,7 @@ dist/
 
 .venv1/
 .github/
+.claude/
 
 credentials.properties
 

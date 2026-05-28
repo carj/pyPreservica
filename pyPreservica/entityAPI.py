@@ -30,13 +30,11 @@ class EntityAPI(AuthenticatedAPI):
             https://us.preservica.com/api/entity/documentation.html
 
             The EntityAPI allows users to interact with the Preservica repository
-
-
     """
 
-    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
-                 protocol: str = "https", request_hook: Callable = None, credentials_path: str = 'credentials.properties'):
+    def __init__(self, username: str|None = None, password: str|None = None, tenant: str|None = None, server: str|None = None,
+                 use_shared_secret: bool = False, two_fa_secret_key: str|None = None,
+                 protocol: str = "https", request_hook: Callable|None = None, credentials_path: str = 'credentials.properties'):
 
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
                          protocol, request_hook, credentials_path)
@@ -85,7 +83,7 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def bitstream_bytes(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> Union[BytesIO, None]:
+    def bitstream_bytes(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> BytesIO:
         """
         Download a file represented as a Bitstream to a byteIO array
 
@@ -116,7 +114,7 @@ class EntityAPI(AuthenticatedAPI):
                     return file_bytes
                 else:
                     logger.error("Downloaded file size did not match the Preservica held value")
-                    return None
+                    raise RuntimeError("Downloaded file size did not match the Preservica held value")
             else:
                 exception = HTTPException(bitstream.filename, response.status_code, response.url, "bitstream_bytes",
                                           response.content.decode('utf-8'))
@@ -159,7 +157,7 @@ class EntityAPI(AuthenticatedAPI):
 
 
 
-    def bitstream_content(self, bitstream: Bitstream, filename: str, chunk_size: int = CHUNK_SIZE) -> Union[int, None]:
+    def bitstream_content(self, bitstream: Bitstream, filename: str, chunk_size: int = CHUNK_SIZE) -> int:
         """
         Download a file represented as a Bitstream to a local filename
 
@@ -196,7 +194,7 @@ class EntityAPI(AuthenticatedAPI):
                 else:
                     logger.error("Download file size did not match the Preservica held value")
                     os.remove(filename)
-                    return None
+                    raise RuntimeError("Downloaded file size did not match the Preservica held value")
             else:
                 exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_content",
                                           request.content.decode('utf-8'))
@@ -445,9 +443,11 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def delete_identifiers(self, entity: Entity, identifier_type: str = None, identifier_value: str = None):
+    def delete_identifiers(self, entity: Entity, identifier_type: str|None = None, identifier_value: str|None = None) -> Entity:
         """
          Delete identifiers on an Entity object
+
+         Setting identifier_type and identifier_value to None acts a wildcard deleting all identifiers on the entity
 
         :param Entity entity: The entity the identifiers are deleted from
         :param str identifier_type: The identifier type
@@ -456,7 +456,7 @@ class EntityAPI(AuthenticatedAPI):
         :rtype: Entity
         """
 
-        if (self.major_version < 7) and (self.minor_version < 1):
+        if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 1):
             raise RuntimeError("delete_identifiers API call is not available when connected to a v6.0 System")
 
         headers = {HEADER_TOKEN: self.token}
@@ -485,13 +485,13 @@ class EntityAPI(AuthenticatedAPI):
                     if del_req.status_code == requests.codes.no_content:
                         pass
                     else:
-                        return None
+                        raise RuntimeError(del_req.status_code, "delete_identifier failed")
             return entity
         else:
             logger.error(request)
             raise RuntimeError(request.status_code, "delete_identifier failed")
 
-    def entity_identifiers(self, entity: Entity,  external_identifier_type = None) -> set[ExternIdentifier]:
+    def entity_identifiers(self, entity: Entity,  external_identifier_type: str|None = None) -> set[ExternIdentifier]:
         """
          Get all external identifiers on an entity
 
@@ -531,7 +531,7 @@ class EntityAPI(AuthenticatedAPI):
                         result.add(external_id)
             return result
         else:
-            exception = HTTPException(entity.reference, request.status_code, request.url, "identifiers_for_entity",
+            exception = HTTPException(entity.reference, request.status_code, request.url, "entity_identifiers",
                                       request.content.decode('utf-8'))
             logger.error(exception)
             raise exception
@@ -644,7 +644,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def update_identifiers(self, entity: Entity, identifier_type: str = None, identifier_value: str = None):
+    def update_identifiers(self, entity: Entity, identifier_type: str|None = None, identifier_value: str|None = None):
         """
              Update external identifiers based on Entity and Type
 
@@ -708,7 +708,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(response)
             raise RuntimeError(response.status_code, "update_identifiers failed")
 
-    def delete_relationships(self, entity: Entity, relationship_type: str = None):
+    def delete_relationships(self, entity: Entity, relationship_type: str|None = None):
         """
         Delete a relationship between two entities by its internal id
 
@@ -724,8 +724,8 @@ class EntityAPI(AuthenticatedAPI):
         :type  relationship_type: str
         """
 
-        if (self.major_version < 7) and (self.minor_version < 4) and (self.patch_version < 1):
-            raise RuntimeError("add_relation API call is only available with a Preservica v6.3.1 system or higher")
+        if (self.major_version < 6) or ( (self.major_version < 7) and (self.minor_version < 4) ):
+            raise RuntimeError("delete_relationships API call is only available with a Preservica v6.3.1 system or higher")
 
         for relationship in self.relationships(entity=entity):
             if relationship.direction == RelationshipDirection.FROM:
@@ -743,7 +743,7 @@ class EntityAPI(AuthenticatedAPI):
             :return:
         """
         headers = {HEADER_TOKEN: self.token}
-        entity = self.entity(relationship.entity_type, relationship.this_ref)
+        entity: Entity = self.entity(relationship.entity_type, relationship.this_ref)
         end_point = f"{entity.path}/{entity.reference}/links/{relationship.api_id}"
         request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/{end_point}', headers=headers)
         if request.status_code == requests.codes.no_content:
@@ -777,7 +777,7 @@ class EntityAPI(AuthenticatedAPI):
             for e in paged_set.results:
                 yield e
 
-    def __relationships__(self, entity: Entity, maximum: int = 50, next_page: str = None) -> PagedSet:
+    def __relationships__(self, entity: Entity, maximum: int = 50, next_page: str|None = None) -> PagedSet:
         """
             List the relationship links between entities
 
@@ -853,7 +853,7 @@ class EntityAPI(AuthenticatedAPI):
             :rtype:  str
         """
 
-        if (self.major_version < 7) and (self.minor_version < 4) and (self.patch_version < 1):
+        if (self.major_version < 6) or (self.major_version < 7) and (self.minor_version < 4):
             raise RuntimeError("add_relation API call is only available with a Preservica v6.3.1 system or higher")
 
         assert from_entity.entity_type is not EntityType.CONTENT_OBJECT
@@ -1008,7 +1008,7 @@ class EntityAPI(AuthenticatedAPI):
         if request.status_code == requests.codes.ok:
             return self.entity(entity_type=entity.entity_type, reference=entity.reference)
         else:
-            exception = HTTPException(entity.reference, request.status_code, request.url, "add_metadata",
+            exception = HTTPException(entity.reference, request.status_code, request.url, "add_metadata_as_fragment",
                                       request.content.decode('utf-8'))
             logger.error(exception)
             raise exception
@@ -2145,7 +2145,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def all_descendants(self, folder: Union[Folder, Entity] = None) -> Generator[Entity, None, None]:
+    def all_descendants(self, folder: Union[Folder, str, Entity, None] = None) -> Generator[Entity, None, None]:
         """
         Return all child entities recursively of a folder or repository down to the assets using a lazy iterator.
         The paging is done internally using a default page
@@ -2161,7 +2161,7 @@ class EntityAPI(AuthenticatedAPI):
             if entity.entity_type == EntityType.FOLDER:
                 yield from self.all_descendants(folder=entity)
 
-    def descendants(self, folder: Union[str, Folder] = None) -> Generator[Entity, None, None]:
+    def descendants(self, folder: Union[Folder, str, Entity, None] = None) -> Generator[Entity, None, None]:
 
         """
         Return the immediate child entities of a folder using a lazy iterator. The paging is done internally using a default page
@@ -2184,7 +2184,7 @@ class EntityAPI(AuthenticatedAPI):
 
 
 
-    def children(self, folder: Union[str, Folder] = None, maximum: int = 100, next_page: str = None) -> PagedSet:
+    def children(self, folder: Union[str, Folder, None] = None, maximum: int = 100, next_page: str = None) -> PagedSet:
 
         """
         Return the child entities of a folder one page at a time. The caller is responsible for

@@ -482,9 +482,18 @@ def csv_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename
                 yield name
 
 
-def generic_asset_package(preservation_files_dict=None, access_files_dict=None, export_folder=None, parent_folder=None,
+def generic_asset_package(preservation_files_dict: dict|None=None, access_files_dict: dict|None=None, export_folder=None, parent_folder=None,
                           compress=True,
                           **kwargs):
+    """
+    This function creates packages with an arbitrary number of representations
+
+    The preservation representations are a dict object, the key is the name and the value is a list of content objects
+
+
+    """
+
+
     # some basic validation
     if export_folder is None:
         export_folder = tempfile.gettempdir()
@@ -707,7 +716,7 @@ def generic_asset_package(preservation_files_dict=None, access_files_dict=None, 
         return top_level_folder + ".zip"
 
 
-def multi_asset_package(asset_file_list=None, export_folder=None, parent_folder=None, compress=True, **kwargs):
+def multi_asset_package(asset_file_list:list|None=None, export_folder=None, parent_folder=None, compress=True, **kwargs):
     """
     Create a package containing multiple assets, all the assets are ingested into the same parent folder provided
     by the parent_folder argument.
@@ -854,7 +863,7 @@ def multi_asset_package(asset_file_list=None, export_folder=None, parent_folder=
         return top_level_folder + ".zip"
 
 
-def complex_asset_package(preservation_files_list=None, access_files_list=None, export_folder=None, parent_folder=None,
+def complex_asset_package(preservation_files_list: list|None=None, access_files_list: list|None=None, export_folder=None, parent_folder=None,
                           compress=True,
                           **kwargs):
     """
@@ -1121,7 +1130,7 @@ def complex_asset_package(preservation_files_list=None, access_files_list=None, 
         return top_level_folder + ".zip"
 
 
-def simple_asset_package(preservation_file=None, access_file=None, export_folder=None, parent_folder=None,
+def simple_asset_package(preservation_file: str|None=None, access_file: str|None=None, export_folder:str|None=None, parent_folder=None,
                          compress=True, **kwargs):
     """
             Create a Preservica package containing a single Asset from a single preservation file
@@ -1266,7 +1275,7 @@ class UploadAPI(AuthenticatedAPI):
 
             self.upload_zip_package(path_to_zip_package=package, folder=parent_folder, callback=callback)
 
-    def upload_credentials(self, location_id: str):
+    def upload_credentials(self, location_id: str) -> dict:
         """
         Retrieves temporary upload credentials (Amazon STS, or Azure SAS) for this location.
 
@@ -1330,7 +1339,7 @@ class UploadAPI(AuthenticatedAPI):
 
 
 
-    def upload_locations(self):
+    def upload_locations(self) -> dict:
         """
         Upload locations are configured on the Sources page as 'SIP Upload'.
         :return: dict
@@ -1347,7 +1356,7 @@ class UploadAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def upload_buckets(self):
+    def upload_buckets(self) -> dict:
         """
         Get a list of available upload buckets
 
@@ -1467,7 +1476,7 @@ class UploadAPI(AuthenticatedAPI):
                         logger.info(f"Reached Max Upload Limit")
                         break
 
-    def upload_zip_to_Source(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False,
+    def upload_zip_to_Source(self, path_to_zip_package: str, container_name, folder=None, delete_after_upload=False,
                              show_progress=False):
 
         """
@@ -1498,7 +1507,7 @@ class UploadAPI(AuthenticatedAPI):
                                                      delete_after_upload=delete_after_upload,
                                                      show_progress=show_progress)
 
-    def upload_zip_package_to_Azure(self, path_to_zip_package, container_name, folder=None, delete_after_upload=False,
+    def upload_zip_package_to_Azure(self, path_to_zip_package: str, container_name: str, folder=None, delete_after_upload=False,
                                     show_progress=False):
 
         """
@@ -1555,7 +1564,7 @@ class UploadAPI(AuthenticatedAPI):
 
                 return properties
 
-    def upload_zip_package_to_S3(self, path_to_zip_package, bucket_name, folder=None, callback=None,
+    def upload_zip_package_to_S3(self, path_to_zip_package: str, bucket_name: str, folder=None, callback=None,
                                  delete_after_upload=False):
 
         """

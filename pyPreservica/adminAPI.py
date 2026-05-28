@@ -9,9 +9,8 @@ licence:    Apache License 2.0
 
 """
 import csv
-import json
 import xml.etree.ElementTree
-from typing import List, Any, Union
+from typing import List, Any
 
 from pyPreservica.common import *
 
@@ -28,7 +27,7 @@ class AdminAPI(AuthenticatedAPI):
         :type role_name: str
 
         """
-        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 5):
+        if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 5):
             raise RuntimeError(
                 "delete_system_role API call is only available with a Preservica v6.5.0 system or higher")
 
@@ -50,7 +49,7 @@ class AdminAPI(AuthenticatedAPI):
         :type tag_name: str
 
         """
-        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 4):
+        if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 4):
             raise RuntimeError(
                 "delete_security_tag API call is only available with a Preservica v6.4.0 system or higher")
 
@@ -66,7 +65,7 @@ class AdminAPI(AuthenticatedAPI):
 
     def add_system_role(self, role_name) -> str:
         """
-        Create a new user roles
+        Create a new user role
 
         :param role_name: The new role
         :type role_name: str
@@ -75,11 +74,16 @@ class AdminAPI(AuthenticatedAPI):
         :rtype: str
 
         """
-        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 5):
+        self._check_if_user_has_user_manager_role()
+
+        if not role_name:
+            raise RuntimeError("Invalid Role Name (Empty)")
+
+        if (self.major_version < 6) or ( (self.major_version == 6) and (self.minor_version < 5) ):
             raise RuntimeError("add_system_role API call is only available with a Preservica v6.5.0 system or higher")
 
-        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
 
         xml_tag = xml.etree.ElementTree.Element('Role', {"xmlns": self.admin_ns})
         xml_tag.text = str(role_name).strip()
@@ -90,6 +94,8 @@ class AdminAPI(AuthenticatedAPI):
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            if not entity_response.text:
+                raise RuntimeError("add_system_role returned an empty role name")
             return entity_response.text
         else:
             logger.error(request.content.decode('utf-8'))
@@ -107,10 +113,14 @@ class AdminAPI(AuthenticatedAPI):
 
         """
 
-        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 4):
+        self._check_if_user_has_user_manager_role()
+
+        if not tag_name:
+            raise RuntimeError("Invalid Tag Name (Empty)")
+
+        if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 4):
             raise RuntimeError("add_security_tag API call is only available with a Preservica v6.4.0 system or higher")
 
-        self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         xml_tag = xml.etree.ElementTree.Element('Tag', {"xmlns": self.admin_ns})
@@ -123,12 +133,14 @@ class AdminAPI(AuthenticatedAPI):
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            if not entity_response.text:
+                raise RuntimeError("add_security_tag returned an empty tag name")
             return entity_response.text
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "add_security_tag failed")
 
-    def system_roles(self) -> list:
+    def system_roles(self) -> list[str]:
         """
         List all the user access roles in the system
 
@@ -136,11 +148,12 @@ class AdminAPI(AuthenticatedAPI):
         :rtype: list
 
         """
-        self._check_if_user_has_manager_role()
 
-        if (self.major_version < 7) or (self.major_version == 7 and self.minor_version < 5):
+        if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 5):
             raise RuntimeError(
                 "system_roles API call is only available with a Preservica v6.5.0 system or higher")
+
+        self._check_if_user_has_manager_role()
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f'{self.protocol}://{self.server}/api/admin/security/roles', headers=headers)
@@ -149,15 +162,12 @@ class AdminAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             roles = entity_response.findall(f'.//{{{self.admin_ns}}}Role')
-            security_roles = []
-            for role in roles:
-                security_roles.append(role.text)
-            return security_roles
+            return [role.text for role in roles if role.text is not None]
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "system_roles failed")
 
-    def security_tags(self) -> list:
+    def security_tags(self) -> list[str]:
         """
         List all the security tags in the system
 
@@ -173,10 +183,7 @@ class AdminAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             tags = entity_response.findall(f'.//{{{self.admin_ns}}}Tag')
-            security_tags = []
-            for tag in tags:
-                security_tags.append(tag.text)
-            return security_tags
+            return [tag.text for tag in tags if tag.text is not None]
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "security_tags failed")
@@ -199,7 +206,7 @@ class AdminAPI(AuthenticatedAPI):
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "delete_user failed")
 
-    def add_user(self, username: str, full_name: str, roles: list, externally_authenticated: bool = False):
+    def add_user(self, username: str, full_name: str, roles: list[str], externally_authenticated: bool = False) -> dict:
         """
         Add a new user
 
@@ -217,7 +224,8 @@ class AdminAPI(AuthenticatedAPI):
         :return: dictionary of user attributes
         :rtype: dict
         """
-        self._check_if_user_has_manager_role()
+        self._check_if_user_has_user_manager_role()
+
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         xml_object = xml.etree.ElementTree.Element('User', {"xmlns": self.admin_ns})
@@ -253,7 +261,8 @@ class AdminAPI(AuthenticatedAPI):
          :return: dictionary of user attributes
          :rtype: dict
          """
-        self._check_if_user_has_manager_role()
+        self._check_if_user_has_user_manager_role()
+        
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/admin/users/{username}", headers=headers)
         if request.status_code == requests.codes.ok:
@@ -313,8 +322,8 @@ class AdminAPI(AuthenticatedAPI):
             xml_response = str(request.content.decode('utf-8'))
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
-            username = entity_response.find(f'.//{{{self.admin_ns}}}UserName')
-            return_dict['UserName'] = username.text
+            user_name = entity_response.find(f'.//{{{self.admin_ns}}}UserName')
+            return_dict['UserName'] = user_name.text
             fullname = entity_response.find(f'.//{{{self.admin_ns}}}FullName')
             return_dict['FullName'] = fullname.text
             email = entity_response.find(f'.//{{{self.admin_ns}}}Email')
@@ -323,13 +332,8 @@ class AdminAPI(AuthenticatedAPI):
             return_dict['Tenant'] = tenant.text
             enable = entity_response.find(f'.//{{{self.admin_ns}}}Enabled')
             return_dict['Enabled'] = bool(enable.text == "true")
-
-
             roles = entity_response.findall(f'.//{{{self.admin_ns}}}Role')
-            return_roles = []
-            for role in roles:
-                return_roles.append(role.text)
-            return_dict['Roles'] = return_roles
+            return_dict['Roles'] = [role.text for role in roles if role.text is not None]
             return return_dict
         else:
             logger.error(request.content.decode('utf-8'))
@@ -386,7 +390,7 @@ class AdminAPI(AuthenticatedAPI):
                 user_details = self.user_details(username)
                 writer.writerow(user_details)
 
-    def all_users(self) -> list:
+    def all_users(self) -> list[str]:
         """
         Return a list of all users in the system
 
@@ -402,10 +406,7 @@ class AdminAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             users = entity_response.findall(f'.//{{{self.admin_ns}}}User')
-            system_users = []
-            for user in users:
-                system_users.append(user.text)
-            return system_users
+            return [user.text for user in users if user.text is not None]
         else:
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "all_users failed")
@@ -430,7 +431,7 @@ class AdminAPI(AuthenticatedAPI):
         :rtype: None
         """
 
-        self._check_if_user_has_manager_role()
+        self._check_if_user_has_config_manager_role()
 
         params = {"name": name, "description": description, "originalName": originalName}
 
@@ -477,7 +478,7 @@ class AdminAPI(AuthenticatedAPI):
 
         """
 
-        self._check_if_user_has_manager_role()
+        self._check_if_user_has_config_manager_role()
 
         params = {"name": name, "type": document_type}
 
@@ -552,7 +553,7 @@ class AdminAPI(AuthenticatedAPI):
                     raise RuntimeError(request.status_code, "delete_xml_schema failed")
         return None
 
-    def xml_schema(self, uri: str) -> Union[str, None]:
+    def xml_schema(self, uri: str) -> str | None:
         """
          Fetch the metadata schema XSD document as a string by its URI
 
@@ -578,7 +579,7 @@ class AdminAPI(AuthenticatedAPI):
                     raise RuntimeError(request.status_code, "xml_schema failed")
         return None
 
-    def xml_document(self, uri: str) -> Union[str, None]:
+    def xml_document(self, uri: str) -> str | None:
         """
         fetch the metadata XML document as a string by its URI
 
@@ -712,7 +713,7 @@ class AdminAPI(AuthenticatedAPI):
             logger.error(request.content.decode('utf-8'))
             raise RuntimeError(request.status_code, "xml_transforms failed")
 
-    def xml_transform(self, input_uri: str, output_uri: str) -> Union[str, None]:
+    def xml_transform(self, input_uri: str, output_uri: str) -> str | None:
         """
         fetch the XML transform as a string by its URIs
 
@@ -798,7 +799,7 @@ class AdminAPI(AuthenticatedAPI):
 
         """
 
-        self._check_if_user_has_manager_role()
+        self._check_if_user_has_config_manager_role()
 
         params = {"name": name, "from": input_uri, "to": output_uri, "purpose": purpose.lower(),
                   "originalName": originalName}

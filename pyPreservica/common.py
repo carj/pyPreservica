@@ -23,7 +23,6 @@ import xml.etree.ElementTree
 from enum import Enum
 from pathlib import Path
 import pyotp
-from pip._internal.network import session
 from requests import Session
 from urllib3.util import Retry
 import requests
@@ -649,7 +648,7 @@ def sanitize(filename) -> str:
         if filename == "":
             filename = "__"
         if len(ext) > 254:
-            ext = ext[254:]
+            ext = ext[:254]
         maxl = 255 - len(ext)
         filename = filename[:maxl]
         filename = filename + ext
@@ -666,16 +665,48 @@ class AuthenticatedAPI:
         Authenticated calls include a "Preservica-Access-Token" header in the request
     """
 
-    def _check_if_user_has_manager_role(self):
+
+    def _check_if_user_has_user_manager_role(self):
         """
-        Check if the current user has a least a manager role
+        Check if the current user has at least a User Manager role
+        ROLE_SDB_ADMIN_USER
+        ROLE_SDB_MANAGER_USER
+        ROLE_SDB_USER_MANAGER_USER
         :return: None
 
         Throws RuntimeError if the user does not have required roles
         """
+
+        if set(self.roles).isdisjoint({'ROLE_SDB_ADMIN_USER', 'ROLE_SDB_MANAGER_USER', 'ROLE_SDB_USER_MANAGER_USER'}):
+            logger.error("The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER or ROLE_SDB_USER_MANAGER_USER")
+            raise RuntimeError("The API requires the user to have at least the ROLE_SDB_MANAGER_USER or ROLE_SDB_USER_MANAGER_USER")
+
+    def _check_if_user_has_config_manager_role(self):
+        """
+        Check if the current user has at least a Config Manager  role
+        ROLE_SDB_ADMIN_USER
+        ROLE_SDB_MANAGER_USER
+        ROLE_SDB_CONFIG_MANAGER_USER
+        :return: None
+
+        Throws RuntimeError if the user does not have required roles
+        """
+
+        if set(self.roles).isdisjoint({'ROLE_SDB_ADMIN_USER', 'ROLE_SDB_MANAGER_USER', 'ROLE_SDB_CONFIG_MANAGER_USER'}):
+            logger.error("The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER or ROLE_SDB_CONFIG_MANAGER_USER")
+            raise RuntimeError("The API requires the user to have at least the ROLE_SDB_MANAGER_USER or ROLE_SDB_CONFIG_MANAGER_USER")
+
+    def _check_if_user_has_manager_role(self):
+        """
+        Check if the current user has at least a manager role
+        :return: None
+
+        Throws RuntimeError if the user does not have required roles
+        """
+
         if ('ROLE_SDB_MANAGER_USER' not in self.roles) and ('ROLE_SDB_ADMIN_USER' not in self.roles):
-            logger.error(f"The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
-            raise RuntimeError(f"The API requires the user to have at least the ROLE_SDB_MANAGER_USER")
+            logger.error("The AdminAPI requires the user to have ROLE_SDB_MANAGER_USER")
+            raise RuntimeError("The API requires the user to have at least the ROLE_SDB_MANAGER_USER")
 
     def _find_user_roles_(self) -> list[str]:
         """
@@ -701,7 +732,7 @@ class AuthenticatedAPI:
              :rtype:  dict
          """
 
-        if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 3) or (self.major_version == 6 and self.minor_version == 3 and self.patch_version < 1):
+        if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 3) or (self.major_version == 6 and self.minor_version == 3 and self.patch_version < 2):
             raise RuntimeError("security_tags API call is only available with a Preservica v6.3.1 system or higher")
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -816,7 +847,7 @@ class AuthenticatedAPI:
             version_numbers = version.split(".")
             self.major_version = int(version_numbers[0])
             self.minor_version = int(version_numbers[1])
-            self.patch_version = int(version_numbers[2])
+            self.patch_version = int(version_numbers[2]) if len(version_numbers) > 2 else 0
 
             return version
         else:
@@ -827,7 +858,7 @@ class AuthenticatedAPI:
 
 
     def __str__(self):
-        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 8.0 Compatible) " \
+        return f"pyPreservica version: {pyPreservica.__version__}  (Preservica 9.x Compatible) " \
                f"Connected to: {self.server} Preservica version: {self.version} as {self.username} " \
                f"in tenancy {self.tenant}"
 
@@ -844,10 +875,19 @@ class AuthenticatedAPI:
         if response.status_code != requests.codes.unauthorized:
             return None
         if response.request.headers.get('X-STREAM-No-Retry'):
-            return  None # streaming methods handle their own retry
+            return None # streaming methods handle their own retry
 
-        self.token = self.__token__()
-        response.request.headers[HEADER_TOKEN] = self.token
+        with self._token_lock:
+            # If another thread already refreshed the token since this
+            # request was made, skip the fetch and just retry with the new one
+            if response.request.headers.get(HEADER_TOKEN) != self.token:
+                response.request.headers[HEADER_TOKEN] = self.token
+                return self.session.send(response.request)
+
+            self.token = self.__token__()
+            response.request.headers[HEADER_TOKEN] = self.token
+
+
         return self.session.send(response.request)
 
 
@@ -863,24 +903,12 @@ class AuthenticatedAPI:
 
     def manager_token(self, username: str, password: str) -> str:
 
-        # stop the retry on 401
-        if self._handle_401 in self.session.hooks['response']:
-            self.session.hooks['response'].remove(self._handle_401)
-
         data = {'username': username, 'password': password, 'tenant': self.tenant}
-        response = self.session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
+        response = self.auth_session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
         if response.status_code == requests.codes.ok:
-
-            if self._handle_401 not in self.session.hooks['response']:
-                self.session.hooks['response'].append(self._handle_401)
-
             return response.json()['token']
         else:
-
-            if self._handle_401 not in self.session.hooks['response']:
-                self.session.hooks['response'].append(self._handle_401)
-
-            msg = "Could not generate valid manager approval password"
+            msg = "Could not generate valid manager approval token"
             logger.error(msg)
             logger.error(response.status_code)
             logger.error(str(response.content))
@@ -891,27 +919,16 @@ class AuthenticatedAPI:
             Generate am API token to use to authenticate calls
             :return: API Token
         """
-
-        # stop the retry on 401
-        if self._handle_401 in self.session.hooks['response']:
-            self.session.hooks['response'].remove(self._handle_401)
-
-
         logger.debug("Token Expired Requesting New Token")
-        if self.shared_secret is False:
+        if not self.shared_secret:
             if self.tenant is None:
                 data = {'username': self.username, 'password': self.password, 'includeUserDetails': 'true'}
             else:
                 data = {'username': self.username, 'password': self.password, 'tenant': self.tenant}
-            response = self.session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
+            response = self.auth_session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
             if response.status_code == requests.codes.ok:
                 if self.tenant is None:
                     self.tenant = response.json()['tenant']
-
-                # Auth is successful so add 401 event back in.
-                if self._handle_401 not in self.session.hooks['response']:
-                    self.session.hooks['response'].append(self._handle_401)
-
                 return response.json()['token']
             else:
                 if 'message' in response.json():
@@ -927,15 +944,10 @@ class AuthenticatedAPI:
                                     'tenant': self.tenant, 'twoFactorToken': totp.now()}
 
                             header = {'Content-Type': 'application/x-www-form-urlencoded'}
-                            response_2fa = self.session.post(
+                            response_2fa = self.auth_session.post(
                                 f'{self.protocol}://{self.server}/api/accesstoken/complete-2fa',
                                 data=data, headers=header)
                             if response_2fa.status_code == requests.codes.ok:
-
-                                # Auth is successful so add 401 event back in.
-                                if self._handle_401 not in self.session.hooks['response']:
-                                    self.session.hooks['response'].append(self._handle_401)
-
                                 return response_2fa.json()['token']
                             else:
                                 msg = "Failed to create a 2FA authentication token. Check your credentials are correct"
@@ -953,47 +965,40 @@ class AuthenticatedAPI:
                         logger.error(str(response.content))
                         raise RuntimeError(response.status_code, msg)
                 msg = "Failed to create a password based authentication token. Check your credentials are correct"
-                if self._handle_401 not in self.session.hooks['response']:
-                    self.session.hooks['response'].append(self._handle_401)
                 logger.error(msg)
                 logger.error(str(response.content))
                 raise RuntimeError(response.status_code, msg)
 
-        if self.shared_secret is True:
+        if self.shared_secret:
             endpoint = "api/accesstoken/acquire-external"
             timestamp = int(time.time())
             to_hash = f"preservica-external-auth{timestamp}{self.username}{self.password}"
             sha1 = hashlib.sha1()
             sha1.update(to_hash.encode(encoding='utf-8'))
             data = {"username": self.username, "tenant": self.tenant, "timestamp": timestamp, "hash": sha1.hexdigest()}
-            response = self.session.post(f'{self.protocol}://{self.server}/{endpoint}', data=data)
+            response = self.auth_session.post(f'{self.protocol}://{self.server}/{endpoint}', data=data)
             if response.status_code == requests.codes.ok:
-
-                # Auth is successful so add 401 event back in.
-                if self._handle_401 not in self.session.hooks['response']:
-                    self.session.hooks['response'].append(self._handle_401)
-
                 return response.json()['token']
             else:
                 msg = "Failed to create a shared secret authentication token. Check your credentials are correct"
-                if self._handle_401 not in self.session.hooks['response']:
-                    self.session.hooks['response'].append(self._handle_401)
-
                 logger.error(msg)
                 raise RuntimeError(response.status_code, msg)
-        return ""
 
 
-    def config(self):
-        return self.config
+        raise RuntimeError("Unable to generate authentication token")
 
-    def __init__(self, username: str = None, password: str = None, tenant: str = None, server: str = None,
-                 use_shared_secret: bool = False, two_fa_secret_key: str = None,
+    def __init__(self, username: str|None = None, password: str|None = None, tenant: str|None = None, server: str|None = None,
+                 use_shared_secret: bool = False, two_fa_secret_key: str|None = None,
                  protocol: str = "https", request_hook=None, credentials_path: str = 'credentials.properties'):
 
         self.config = configparser.ConfigParser(interpolation=configparser.Interpolation())
         self.config.read(os.path.relpath(credentials_path), encoding='utf-8')
         self.session: Session = requests.Session()
+
+        # session only used for acquiring auth tokens - does not retry on auth failures
+        self.auth_session: Session = requests.Session()
+
+        self._token_lock = threading.Lock()
 
         # Handle auth errors by requesting new token
         self.session.hooks['response'].append(self._handle_401)
@@ -1013,8 +1018,10 @@ class AuthenticatedAPI:
         self.two_fa_secret_key = two_fa_secret_key
 
         self.session.mount(f'{self.protocol}://', HTTPAdapter(max_retries=retries))
-
         self.session.request = functools.partial(self.session.request, timeout=TIME_OUT)
+
+        self.auth_session.mount(f'{self.protocol}://', HTTPAdapter(max_retries=retries))
+        self.auth_session.request = functools.partial(self.auth_session.request, timeout=TIME_OUT)
 
         if not two_fa_secret_key:
             two_fa_secret_key = os.environ.get('PRESERVICA_2FA_TOKEN')
@@ -1085,13 +1092,15 @@ class AuthenticatedAPI:
 
         self.session.headers.update({'User-Agent': f'pyPreservica SDK/({pyPreservica.__version__}) '
                                                    f' ({platform.platform()}/{os.name}/{sys.platform})'})
+        self.auth_session.headers.update({'User-Agent': f'pyPreservica SDK/({pyPreservica.__version__}) '
+                                                   f' ({platform.platform()}/{os.name}/{sys.platform})'})
 
         logger.debug(self.xip_ns)
         logger.debug(self.entity_ns)
 
 def parse_date_to_iso(date):
     try:
-        date = datetime.fromisoformat(date.replace('Z','+0000'))
+        date = datetime.fromisoformat(date.replace('Z','+00:00'))
         if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
             date = date.replace(tzinfo=dateutil.tz.UTC)
         date = date.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
