@@ -28,19 +28,18 @@ class LambdaURLHandler:
         self.secret_key = secret_key
         self.client = client
 
+
     def process_event(self) -> Generator[Entity, None, None]:
-        if 'Preservica-Signature' in self.event['headers']:
+        if 'preservica-signature' in self.event['headers']:
             verify_body = f"preservica-webhook-auth{self.event['body']}"
             signature = hmac.new(key=bytes(self.secret_key, 'latin-1'), msg=bytes(verify_body, 'latin-1'),
                                  digestmod=hashlib.sha256).hexdigest()
-
-
-            if signature == self.event['headers']['Preservica-Signature']:
+            if signature == self.event['headers']['preservica-signature']:
                 doc = json.loads(self.event['body'])
                 for reference in list(doc['events']):
                     entity_ref = reference['entityRef']
                     entity_type = reference['entityType']
-                    entity = self.client.entity(entity_ref, entity_type)
+                    entity = self.client.entity(EntityType(entity_type), entity_ref)
                     yield entity
 
     def is_challenge(self) -> bool:

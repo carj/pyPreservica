@@ -210,7 +210,7 @@ AWS Lambda function which will carry out the appropriate action.
 AWS Lambda supports multiple languages such as Java, Go, PowerShell, Node.js, C#, Python, and Ruby code,
 so you can build your applications in the language of your choice.
 
-A basic AWS Lambda function for Preservica web hooks in Python would look something like:
+A basic AWS Lambda function using API Gateway for Preservica web hooks in Python would look something like:
 
 .. code-block:: python
 
@@ -258,3 +258,35 @@ Where we are fetching the shared key from the environment variables.
 
 For a description of how to automate the process of creating simple webhook services
 see https://jcarr.org.uk/2026/01/24/webhook-deployment/
+
+AWS also provides a simplified Lambda URL function which can be accessed directly from a URL without using the API Gateway.
+
+A function URL is a dedicated HTTP(S) endpoint for your Lambda function.
+When you create a function URL, Lambda automatically generates a unique URL endpoint for you.
+
+To use the simplified Function URL include the LambdaURLHandler class as follows.
+The pyPreservica layer required to import pyPreservica is available from
+https://github.com/carj/pyPreservica/releases/tag/pyPreservica_4_0_0
+
+.. code-block:: python
+
+    import json
+    import os
+    from pyPreservica import *
+
+    def lambda_handler(event, context):
+
+        handler = LambdaURLHandler(event, os.environ.get('WEBHOOK_SECRET'), EntityAPI())
+
+        if handler.is_challenge():
+            return handler.verify_challenge()
+
+        for e in handler.process_event():
+            print(e)
+
+        return {
+                "statusCode": 200,
+                "headers": {
+                    "Content-Type": "application/json"
+                }
+            }
