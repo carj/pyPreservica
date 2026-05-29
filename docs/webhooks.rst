@@ -264,6 +264,8 @@ AWS also provides a simplified Lambda URL function which can be accessed directl
 A function URL is a dedicated HTTP(S) endpoint for your Lambda function.
 When you create a function URL, Lambda automatically generates a unique URL endpoint for you.
 
+.. image:: images/lambda-url.jpg
+
 To use the simplified Function URL include the LambdaURLHandler class as follows.
 The pyPreservica layer required to import pyPreservica is available from
 https://github.com/carj/pyPreservica/releases/tag/pyPreservica_4_0_0
