@@ -23,38 +23,37 @@ BASE_ENDPOINT = '/api/webhook'
 
 class LambdaURLHandler:
     
-    def __init__(self, event, secret_key: str, client: EntityAPI):
-        self.event = event
+    def __init__(self, secret_key: str, client: EntityAPI):
         self.secret_key = secret_key
         self.client = client
 
 
-    def process_event(self) -> Generator[Entity, None, None]:
-        if 'preservica-signature' in self.event['headers']:
-            verify_body = f"preservica-webhook-auth{self.event['body']}"
+    def process_event(self, event) -> Generator[Entity, None, None]:
+        if 'preservica-signature' in event['headers']:
+            verify_body = f"preservica-webhook-auth{event['body']}"
             signature = hmac.new(key=bytes(self.secret_key, 'latin-1'), msg=bytes(verify_body, 'latin-1'),
                                  digestmod=hashlib.sha256).hexdigest()
-            if signature == self.event['headers']['preservica-signature']:
-                doc = json.loads(self.event['body'])
+            if signature == event['headers']['preservica-signature']:
+                doc = json.loads(event['body'])
                 for reference in list(doc['events']):
                     entity_ref = reference['entityRef']
                     entity_type = reference['entityType']
                     entity = self.client.entity(EntityType(entity_type), entity_ref)
                     yield entity
 
-    def is_challenge(self) -> bool:
-        if 'queryStringParameters' in self.event:
-            if self.event['queryStringParameters'] is not None:
-                if 'challengeCode' in self.event['queryStringParameters']:
-                    message = self.event['queryStringParameters']['challengeCode']
+    def is_challenge(self, event) -> bool:
+        if 'queryStringParameters' in event:
+            if event['queryStringParameters'] is not None:
+                if 'challengeCode' in event['queryStringParameters']:
+                    message = event['queryStringParameters']['challengeCode']
                     return True if message else False
         return False
 
-    def verify_challenge(self):
-        if 'queryStringParameters' in self.event:
-            if self.event['queryStringParameters'] is not None:
-                if 'challengeCode' in self.event['queryStringParameters']:
-                    message = self.event['queryStringParameters']['challengeCode']
+    def verify_challenge(self, event):
+        if 'queryStringParameters' in event:
+            if event['queryStringParameters'] is not None:
+                if 'challengeCode' in event['queryStringParameters']:
+                    message = event['queryStringParameters']['challengeCode']
                     signature = hmac.new(key=bytes(self.secret_key, 'latin-1'), msg=bytes(message, 'latin-1'),
                                          digestmod=hashlib.sha256).hexdigest()
                     return {

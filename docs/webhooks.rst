@@ -267,8 +267,11 @@ When you create a function URL, Lambda automatically generates a unique URL endp
 .. image:: images/lambda-url.jpg
 
 To use the simplified Function URL include the LambdaURLHandler class as follows.
+
 The pyPreservica layer required to import pyPreservica is available from
 https://github.com/carj/pyPreservica/releases/tag/pyPreservica_4_0_0
+
+For AWS west-1 regions the lambda layer is published with ARN:  arn:aws:lambda:eu-west-1:884422621110:layer:pyPreservica4-0-0:5
 
 .. code-block:: python
 
@@ -276,15 +279,16 @@ https://github.com/carj/pyPreservica/releases/tag/pyPreservica_4_0_0
     import os
     from pyPreservica import *
 
+    client: EntityAPI = EntityAPI()
+    handler = LambdaURLHandler(os.environ.get('WEBHOOK_SECRET'), client)
+
     def lambda_handler(event, context):
 
-        handler = LambdaURLHandler(event, os.environ.get('WEBHOOK_SECRET'), EntityAPI())
+        if handler.is_challenge(event):
+            return handler.verify_challenge(event)
 
-        if handler.is_challenge():
-            return handler.verify_challenge()
-
-        for e in handler.process_event():
-            print(e)
+        for e in handler.process_event(event):
+            print(e.reference, e.title)
 
         return {
                 "statusCode": 200,
@@ -292,3 +296,8 @@ https://github.com/carj/pyPreservica/releases/tag/pyPreservica_4_0_0
                     "Content-Type": "application/json"
                 }
             }
+
+
+Code outside the handler such as the creation of the SDK EntityAPI class runs during the initialization
+phase (cold start), not on every invocation.
+Lambda reuses the execution environment for subsequent calls, so that code only runs again if a new environment is spun up.
