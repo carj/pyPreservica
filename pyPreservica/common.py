@@ -69,9 +69,23 @@ class FileHash:
         self.algorithm = algorithm
 
     def get_algorithm(self):
+        """
+        Return the hashlib algorithm callable used by this instance.
+
+        :returns: The hashlib algorithm callable (e.g. ``hashlib.sha1``).
+        :rtype: callable
+        """
         return self.algorithm
 
     def __call__(self, file):
+        """
+        Compute and return the hex digest of the given file using the configured algorithm.
+
+        :param file: Path to the file to hash.
+        :type file: str or os.PathLike
+        :returns: Lowercase hexadecimal digest string of the file contents.
+        :rtype: str
+        """
         hash_algorithm = self.algorithm()
         with open(file, 'rb') as f:
             buf = f.read(HASH_BLOCK_SIZE)
@@ -83,9 +97,13 @@ class FileHash:
 
 def identifiers_to_dict(identifiers: set) -> dict:
     """
-        Convert a set of tuples to a dict
-        :param identifiers:
-        :return:
+    Convert a set of ``(type, value)`` identifier tuples into a dict.
+
+    :param identifiers: A set of two-element tuples where the first element is
+        the identifier type/key and the second is the identifier value.
+    :type identifiers: set[tuple[str, str]]
+    :returns: A dictionary mapping each identifier type to its value.
+    :rtype: dict
     """
     result = {}
     for identifier_tuple in identifiers:
@@ -158,8 +176,20 @@ def _make_stored_zipfile(base_name, base_dir, owner, group, verbose=0, dry_run=0
 
 class PagedSet:
     """
-    Class to represent a page of results
-    The results object contains the list of objects of interest
+    Represent a single page of results returned by a paginated API call.
+
+    Holds the result collection for the current page together with pagination
+    metadata (total count, whether further pages exist, and the URL for the
+    next page).
+
+    :param results: The collection of result objects for this page.
+    :param has_more: Whether additional pages are available after this one.
+    :type has_more: bool
+    :param total: Total number of results across all pages.
+    :type total: int
+    :param next_page: URL string for retrieving the next page of results,
+        or ``None`` when there are no further pages.
+    :type next_page: str or None
     """
 
     def __init__(self, results, has_more: bool, total: int, next_page: str):
@@ -172,34 +202,123 @@ class PagedSet:
         return self.results.__str__()
 
     def get_results(self):
+        """
+        Return the collection of result objects for the current page.
+
+        :returns: The result objects for this page (typically a list).
+        :rtype: list
+        """
         return self.results
 
     def get_total(self):
+        """
+        Return the total number of results across all pages.
+
+        :returns: Total result count reported by the server.
+        :rtype: int
+        """
         return self.total
 
     def has_more_pages(self):
+        """
+        Return whether additional pages of results are available.
+
+        :returns: ``True`` if a subsequent page can be fetched, ``False`` otherwise.
+        :rtype: bool
+        """
         return self.has_more
 
 
 class Sha1FixityCallBack:
+    """
+    Fixity callback that computes a SHA-1 digest for a file.
+
+    Instances are callable and conform to the fixity callback protocol
+    expected by upload methods in the SDK.
+    """
+
     def __call__(self, filename, full_path):
+        """
+        Compute the SHA-1 fixity value for a file.
+
+        :param filename: The logical filename (basename) of the file being processed.
+        :type filename: str
+        :param full_path: Absolute or relative path to the file on disk.
+        :type full_path: str or os.PathLike
+        :returns: A two-element tuple of the algorithm name and the hex digest.
+        :rtype: tuple[str, str]
+        """
         sha = FileHash(hashlib.sha1)
         return "SHA1", sha(full_path)
 
 
 class Sha256FixityCallBack:
+    """
+    Fixity callback that computes a SHA-256 digest for a file.
+
+    Instances are callable and conform to the fixity callback protocol
+    expected by upload methods in the SDK.
+    """
+
     def __call__(self, filename, full_path):
+        """
+        Compute the SHA-256 fixity value for a file.
+
+        :param filename: The logical filename (basename) of the file being processed.
+        :type filename: str
+        :param full_path: Absolute or relative path to the file on disk.
+        :type full_path: str or os.PathLike
+        :returns: A two-element tuple of the algorithm name and the hex digest.
+        :rtype: tuple[str, str]
+        """
         sha = FileHash(hashlib.sha256)
         return "SHA256", sha(full_path)
 
 
 class Sha512FixityCallBack:
+    """
+    Fixity callback that computes a SHA-512 digest for a file.
+
+    Instances are callable and conform to the fixity callback protocol
+    expected by upload methods in the SDK.
+    """
+
     def __call__(self, filename, full_path):
+        """
+        Compute the SHA-512 fixity value for a file.
+
+        :param filename: The logical filename (basename) of the file being processed.
+        :type filename: str
+        :param full_path: Absolute or relative path to the file on disk.
+        :type full_path: str or os.PathLike
+        :returns: A two-element tuple of the algorithm name and the hex digest.
+        :rtype: tuple[str, str]
+        """
         sha = FileHash(hashlib.sha512)
         return "SHA512", sha(full_path)
 
 
 class ReportProgressConsoleCallback:
+    """
+    Progress-bar callback for monitoring ingest or workflow progress reported as
+    ``"current:total"`` strings.
+
+    Prints a text-based progress bar to stdout that updates in place on a single
+    terminal line.  Thread-safe; multiple threads may call this instance
+    concurrently.
+
+    :param prefix: Label displayed to the left of the bar.
+    :type prefix: str
+    :param suffix: Label displayed to the right of the bar.
+    :type suffix: str
+    :param length: Total character width of the bar fill area.
+    :type length: int
+    :param fill: Character used to fill the completed portion of the bar.
+    :type fill: str
+    :param printEnd: Control character written after the bar (``"\\r"`` keeps the
+        cursor on the same line).
+    :type printEnd: str
+    """
 
     def __init__(self, prefix='Progress:', suffix='', length=100, fill='█', printEnd="\r"):
         self.prefix = prefix
@@ -211,6 +330,18 @@ class ReportProgressConsoleCallback:
         self.print_progress_bar(0)
 
     def __call__(self, value):
+        """
+        Update the progress bar from a ``"current:total"`` progress string.
+
+        This method is invoked by the SDK whenever a progress update is
+        available.  When the completion percentage reaches 100 the bar is
+        finalised and the cursor advances to a new line.
+
+        :param value: A colon-separated string of the form ``"<current>:<total>"``
+            where both parts are integers representing completed and total units
+            of work respectively.
+        :type value: str
+        """
         with self._lock:
             values = value.split(":")
             self.total = int(values[1])
@@ -226,6 +357,15 @@ class ReportProgressConsoleCallback:
                 sys.stdout.flush()
 
     def print_progress_bar(self, percentage):
+        """
+        Render the progress bar at the given completion percentage.
+
+        Writes a single-line bar to stdout using carriage-return to overwrite
+        the previous output.
+
+        :param percentage: Completion percentage in the range ``0.0`` – ``100.0``.
+        :type percentage: float
+        """
         filled_length = int(self.length * (percentage / 100.0))
         bar_sym = self.fill * filled_length + '-' * (self.length - filled_length)
         sys.stdout.write(
@@ -234,6 +374,28 @@ class ReportProgressConsoleCallback:
 
 
 class UploadProgressConsoleCallback:
+    """
+    Progress-bar callback for monitoring direct file upload progress (e.g. to S3 or Azure).
+
+    Tracks bytes transferred and renders a text-based progress bar with a
+    transfer-rate display to stdout.  Thread-safe; the underlying boto3 and
+    Azure SDK callbacks may invoke this from a background thread.
+
+    :param filename: Path to the file being uploaded; used to obtain the total
+        file size.
+    :type filename: str
+    :param prefix: Label displayed to the left of the bar.
+    :type prefix: str
+    :param suffix: Label displayed to the right of the bar.
+    :type suffix: str
+    :param length: Total character width of the bar fill area.
+    :type length: int
+    :param fill: Character used to fill the completed portion of the bar.
+    :type fill: str
+    :param printEnd: Control character written after the bar (``"\\r"`` keeps the
+        cursor on the same line).
+    :type printEnd: str
+    """
 
     def __init__(self, filename: str, prefix='Progress:', suffix='', length=100, fill='█', printEnd="\r"):
         self.prefix = prefix
@@ -249,6 +411,16 @@ class UploadProgressConsoleCallback:
         self.print_progress_bar(0, 0)
 
     def __call__(self, bytes_amount):
+        """
+        Accumulate transferred bytes and redraw the progress bar.
+
+        Called by the underlying cloud-storage transfer library each time a
+        chunk of data has been sent.  When all bytes have been transferred the
+        bar is finalised and the cursor advances to a new line.
+
+        :param bytes_amount: Number of bytes transferred in this chunk.
+        :type bytes_amount: int
+        """
         with self._lock:
             seconds = time.time() - self.start
             if seconds == 0:
@@ -263,6 +435,17 @@ class UploadProgressConsoleCallback:
                 sys.stdout.flush()
 
     def print_progress_bar(self, percentage, rate):
+        """
+        Render the progress bar at the given completion percentage and transfer rate.
+
+        Writes a single-line bar including the current Mb/s transfer rate to
+        stdout using carriage-return to overwrite the previous output.
+
+        :param percentage: Completion percentage in the range ``0.0`` – ``100.0``.
+        :type percentage: float
+        :param rate: Current transfer rate in megabytes per second.
+        :type rate: float
+        """
         filled_length = int(self.length * (percentage / 100.0))
         bar_sym = self.fill * filled_length + '-' * (self.length - filled_length)
         sys.stdout.write(
@@ -272,7 +455,14 @@ class UploadProgressConsoleCallback:
 
 class UploadProgressCallback:
     """
-    Default implementation of a callback class to show upload progress of a file
+    Default implementation of a callback class to show upload progress of a file.
+
+    Prints a minimal ``filename  bytes_sent / total_bytes  (percentage%)`` line
+    to stdout that updates in place.  Thread-safe.
+
+    :param filename: Path to the file being uploaded; used to obtain the total
+        file size and display as a label.
+    :type filename: str
     """
 
     def __init__(self, filename: str):
@@ -282,6 +472,12 @@ class UploadProgressCallback:
         self._lock = threading.Lock()
 
     def __call__(self, bytes_amount):
+        """
+        Accumulate transferred bytes and print updated progress to stdout.
+
+        :param bytes_amount: Number of bytes transferred in this chunk.
+        :type bytes_amount: int
+        """
         with self._lock:
             self._seen_so_far += bytes_amount
             percentage = (self._seen_so_far / self._size) * 100
@@ -290,6 +486,12 @@ class UploadProgressCallback:
 
 
 class RelationshipDirection(Enum):
+    """
+    Enumeration of the two possible directions for an entity relationship.
+
+    ``FROM`` indicates that the current entity is the subject of the
+    relationship; ``TO`` indicates that it is the object.
+    """
     FROM = "From"
     TO = "To"
 
@@ -338,6 +540,37 @@ class ReferenceNotFoundException(Exception):
 
 
 class Relationship:
+    """
+    Represent a directional relationship between two Preservica entities.
+
+    Relationships are typed using Dublin Core Metadata Initiative (DCMI) term
+    URIs (provided as class-level constants) and have an explicit direction
+    indicating which entity is the subject (``FROM``) and which is the object
+    (``TO``).
+
+    Class-level constants expose the supported DCMI relationship type URIs,
+    e.g. ``Relationship.DCMI_hasPart``.
+
+    :param relationship_id: Unique identifier of this relationship record.
+    :type relationship_id: str
+    :param relationship_type: URI describing the nature of the relationship
+        (typically one of the ``DCMI_*`` class constants).
+    :type relationship_type: str
+    :param direction: Whether the current entity is the ``FROM`` or ``TO``
+        participant.
+    :type direction: RelationshipDirection
+    :param other_ref: UUID of the other entity involved in the relationship.
+    :type other_ref: str
+    :param title: Human-readable title of the other entity.
+    :type title: str
+    :param entity_type: Entity type of the other entity.
+    :type entity_type: EntityType
+    :param this_ref: UUID of the entity on which this relationship was
+        retrieved.
+    :type this_ref: str
+    :param api_id: Internal API identifier for this relationship.
+    :type api_id: str
+    """
     DCMI_hasFormat = "http://purl.org/dc/terms/hasFormat"
     DCMI_isFormatOf = "http://purl.org/dc/terms/isFormatOf"
     DCMI_hasPart = "http://purl.org/dc/terms/hasPart"
@@ -393,15 +626,41 @@ class IntegrityCheck:
         return self.__str__()
 
     def get_adapter(self):
+        """
+        Return the storage adapter identifier on which the integrity check was performed.
+
+        :returns: Storage adapter name or identifier string.
+        :rtype: str
+        """
         return self.adapter
 
     def get_success(self):
+        """
+        Return whether the integrity check passed.
+
+        :returns: ``True`` if the check succeeded, ``False`` if it failed.
+        :rtype: bool
+        """
         return self.success
 
 
 class Bitstream:
     """
-        Class to represent the Bitstream Object or digital file in the Preservica data model
+    Represent a Bitstream (digital file) in the Preservica data model.
+
+    A Bitstream is the lowest-level object in Preservica's entity hierarchy and
+    corresponds to an actual binary file stored within a Generation of a Content
+    Object.
+
+    :param filename: Original filename of the digital file.
+    :type filename: str
+    :param length: File size in bytes.
+    :type length: int
+    :param fixity: Mapping of fixity algorithm names to their digest values,
+        e.g. ``{"SHA1": "abc123..."}``.
+    :type fixity: dict
+    :param content_url: URL for downloading the bitstream content from Preservica.
+    :type content_url: str
     """
 
     def __init__(self, filename: str, length: int, fixity: dict, content_url: str):
@@ -426,7 +685,17 @@ class Bitstream:
 
 class ExternIdentifier:
     """
-        Class to represent the External Identifier Object in the Preservica data model
+    Represent an External Identifier attached to a Preservica entity.
+
+    External identifiers allow third-party system references (e.g. accession
+    numbers, catalogue identifiers) to be stored alongside an entity and used
+    for cross-system look-ups.
+
+    :param identifier_type: The type/namespace of the identifier
+        (e.g. ``"code"`` or ``"ISBN"``).
+    :type identifier_type: str
+    :param identifier_value: The actual identifier value.
+    :type identifier_value: str
     """
 
     def __init__(self, identifier_type: str, identifier_value: str):
@@ -446,7 +715,27 @@ class ExternIdentifier:
 
 class Generation:
     """
-         Class to represent the Generation Object in the Preservica data model
+    Represent a Generation of a Content Object in the Preservica data model.
+
+    A Generation groups one or more Bitstreams that were created at a specific
+    point in the preservation lifecycle.  A Content Object may have several
+    Generations; at most one will be marked as both original and active.
+
+    :param original: Whether this Generation contains the original, unprocessed
+        bitstreams as ingested.
+    :type original: bool
+    :param active: Whether this is the currently active Generation used for
+        access and preservation actions.
+    :type active: bool
+    :param format_group: Preservica format group classification for the
+        Generation (e.g. ``"Image"``).
+    :type format_group: str
+    :param effective_date: ISO 8601 date string indicating when this Generation
+        became effective.
+    :type effective_date: str
+    :param bitstreams: List of :class:`Bitstream` objects belonging to this
+        Generation.
+    :type bitstreams: list
     """
 
     def __init__(self, original: bool, active: bool, format_group: str, effective_date: str, bitstreams: list):
@@ -505,9 +794,24 @@ class Entity:
         return self.__str__()
 
     def has_metadata(self) -> bool:
+        """
+        Return whether this entity has any descriptive metadata fragments attached.
+
+        :returns: ``True`` if at least one metadata fragment exists, ``False`` otherwise.
+        :rtype: bool
+        """
         return bool(self.metadata)
 
     def metadata_namespaces(self) -> list:
+        """
+        Return the list of XML namespace URIs for all descriptive metadata fragments.
+
+        The internal ``metadata`` dict maps fragment URLs to their schema
+        namespace URIs; this method returns only the namespace values.
+
+        :returns: List of XML namespace URI strings for each attached metadata fragment.
+        :rtype: list[str]
+        """
         return list(self.metadata.values())
 
 
@@ -576,20 +880,55 @@ class Representation:
 
 
 def only_assets(entity: Entity):
+    """
+    Return ``True`` if the given entity is an Asset (Information Object).
+
+    Intended for use as a filter predicate with paginated result sets.
+
+    :param entity: The entity to test.
+    :type entity: Entity
+    :returns: ``True`` when ``entity.entity_type`` is ``EntityType.ASSET``.
+    :rtype: bool
+    """
     return bool(entity.entity_type is EntityType.ASSET)
 
 
 def only_folders(entity: Entity):
+    """
+    Return ``True`` if the given entity is a Folder (Structural Object).
+
+    Intended for use as a filter predicate with paginated result sets.
+
+    :param entity: The entity to test.
+    :type entity: Entity
+    :returns: ``True`` when ``entity.entity_type`` is ``EntityType.FOLDER``.
+    :rtype: bool
+    """
     return bool(entity.entity_type is EntityType.FOLDER)
 
 
 def content_api_identifier_to_type(ref: str):
+    """
+    Parse a Content API compound reference string into an ``(EntityType, UUID)`` tuple.
+
+    Content API references are prefixed with ``"sdb:"`` and contain a
+    pipe-separated entity type code and UUID, e.g.
+    ``"sdb:IO|550e8400-e29b-41d4-a716-446655440000"``.
+
+    :param ref: The compound reference string from the Content API.
+    :type ref: str
+    :returns: A two-element tuple of ``(EntityType, reference_uuid)``.
+    :rtype: tuple[EntityType, str]
+    """
     ref = ref.replace('sdb:', '')
     parts = ref.split("|")
     return tuple((EntityType(parts[0]), parts[1]))
 
 
 class Thumbnail(Enum):
+    """
+    Enumeration of the available thumbnail size variants in Preservica.
+    """
     SMALL = "small"
     MEDIUM = "medium"
     LARGE = "large"
@@ -892,6 +1231,13 @@ class AuthenticatedAPI:
 
 
     def save_config(self):
+        """
+        Persist the current credentials to a ``credentials.properties`` file in the working directory.
+
+        Writes ``username``, ``password``, ``tenant``, and ``server`` to the
+        ``[credentials]`` section.  If a two-factor secret key is configured it
+        is also written as ``twoFactorToken``.
+        """
         config = configparser.RawConfigParser(interpolation=None)
         config['credentials'] = {'username': self.username, 'password': self.password, 'tenant': self.tenant,
                                  'server': self.server}
@@ -902,7 +1248,20 @@ class AuthenticatedAPI:
             config.write(configfile)
 
     def manager_token(self, username: str, password: str) -> str:
+        """
+        Obtain a separate approval token for a manager-level user.
 
+        Used internally for operations that require a second user's approval
+        (e.g. certain retention or admin actions).
+
+        :param username: The approving manager's username.
+        :type username: str
+        :param password: The approving manager's password.
+        :type password: str
+        :returns: A valid Preservica access token for the manager account.
+        :rtype: str
+        :raises RuntimeError: If authentication fails for the supplied credentials.
+        """
         data = {'username': username, 'password': password, 'tenant': self.tenant}
         response = self.auth_session.post(f'{self.protocol}://{self.server}/api/accesstoken/login', data=data)
         if response.status_code == requests.codes.ok:
@@ -1099,6 +1458,21 @@ class AuthenticatedAPI:
         logger.debug(self.entity_ns)
 
 def parse_date_to_iso(date):
+    """
+    Parse a date string and return it normalised as an ISO 8601 timestamp with timezone.
+
+    Attempts ``datetime.fromisoformat`` first (fast path for standard ISO
+    strings including ``Z`` suffix); falls back to ``dateutil.parser.parse``
+    for other formats.  If no timezone information is present the date is
+    assumed to be UTC.
+
+    :param date: Date/time string in any format recognised by ``fromisoformat``
+        or ``dateutil.parser.parse``.
+    :type date: str
+    :returns: ISO 8601 string in the form ``YYYY-MM-DDTHH:MM:SS.ffffff+HHMM``.
+    :rtype: str
+    :raises ValueError: If the string cannot be parsed as a date/time value.
+    """
     try:
         date = datetime.fromisoformat(date.replace('Z','+00:00'))
         if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:

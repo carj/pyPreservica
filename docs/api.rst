@@ -8,6 +8,7 @@ Entity API
 
 This part of the documentation covers all the interfaces of pyPreservica :class:`EntityAPI <EntityAPI>` object.
 
+.. py:currentmodule:: pyPreservica
 
 .. autoclass:: EntityAPI
      :members:
@@ -277,7 +278,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 Retention Management API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-https://eu.preservica.com/api/entity/documentation.html#/%2Fretention-policies
+https://demo.preservica.com/api/entity/documentation.html#/%2Fretention-policies
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: RetentionPolicy
@@ -294,7 +295,7 @@ Workflow API
 .. note::
     The Workflow API is available for Enterprise Preservica users
 
-https://eu.preservica.com/api/admin/documentation.html
+https://demo.preservica.com/api/admin/documentation.html
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: WorkflowContext
@@ -313,7 +314,7 @@ Administration and Management  API
 .. note::
     The Administration and Management API needs to be enabled by the help desk.
 
-https://eu.preservica.com/sdb/rest/workflow/documentation.html
+https://demo.preservica.com/api/admin/documentation.html
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: AdminAPI
@@ -323,7 +324,7 @@ https://eu.preservica.com/sdb/rest/workflow/documentation.html
 Process Monitor  API
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-https://us.preservica.com/api/processmonitor/documentation.html
+https://demo.preservica.com/api/processmonitor/documentation.html
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: MonitorStatus
@@ -340,7 +341,7 @@ https://us.preservica.com/api/processmonitor/documentation.html
 WebHook  API
 ^^^^^^^^^^^^^^^^^^^
 
-https://us.preservica.com/api/webhook/documentation.html
+https://demo.preservica.com/api/webhook/documentation.html
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: TriggerType
@@ -354,7 +355,7 @@ https://us.preservica.com/api/webhook/documentation.html
 Authority Records API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-https://eu.preservica.com/api/reference-metadata/documentation.html
+https://demo.preservica.com/api/reference-metadata/documentation.html
 
 This API is used for managing the Authority records within Preservica.
 
@@ -370,7 +371,7 @@ This API is used for managing the Authority records within Preservica.
 Metadata Groups API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-https://us.preservica.com/api/metadata/documentation.html#/%2Fgroups
+https://demo.preservica.com/api/metadata/documentation.html#/%2Fgroups
 
 The Metadata Groups API is designed allows the creation of custom metadata within NGI (New Generation Interface).
 
@@ -395,7 +396,7 @@ The Metadata Groups API is designed allows the creation of custom metadata withi
 Settings API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-https://eu.preservica.com/api/settings/documentation.html
+https://demo.preservica.com/api/settings/documentation.html
 
 API for retrieving information about configuration settings.
 

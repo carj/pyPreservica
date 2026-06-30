@@ -22,6 +22,21 @@ BASE_ENDPOINT = '/api/reference-metadata'
 
 class Table:
     def __init__(self, name: str, security_tag: str, displayField: str=None, metadataConnections: list=[]):
+        """
+        Initialise an authority Table with its name, security tag, and optional display settings.
+
+        :param name: Human-readable name for the authority table.
+        :type name: str
+        :param security_tag: Security descriptor (access control tag) applied to the table
+            (e.g. ``"open"``).
+        :type security_tag: str
+        :param displayField: The field name used as the human-readable label when records from
+            this table are displayed in the UI.  ``None`` means no display field is set.
+        :type displayField: str or None
+        :param metadataConnections: List of metadata connection definitions that link this table
+            to metadata schemas in Preservica.
+        :type metadataConnections: list
+        """
         self.reference = None
         self.name = name
         self.description = None
@@ -31,6 +46,13 @@ class Table:
         self.fields = None
 
     def __str__(self):
+        """
+        Return a human-readable string representation of this Table.
+
+        :returns: Multi-line string containing the table reference, name, security tag, and
+            optionally description, display field, metadata connections, and fields.
+        :rtype: str
+        """
         table_str: str = f"Ref:\t\t\t{self.reference}\n" \
                f"Name:\t\t\t{self.name}\n" \
                f"Security Tag:\t{self.security_tag}\n"
@@ -51,12 +73,14 @@ class AuthorityAPI(AuthenticatedAPI):
 
     def delete_record(self, reference: str):
         """
-          Delete a record from a table by its reference
+        Delete a record from a table by its reference.
 
-          :param reference:    The reference of the record to delete
-          :type: reference:    str
-
-          """
+        :param reference: The unique reference of the record to delete.
+        :type reference: str
+        :returns: None
+        :rtype: None
+        :raises HTTPException: If the Preservica API returns an unexpected HTTP error status.
+        """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.delete(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/records/{reference}',
                                        headers=headers)
@@ -70,18 +94,23 @@ class AuthorityAPI(AuthenticatedAPI):
 
     def add_records(self, table: Table, csv_file, encoding=None):
         """
-         Add new records to an existing table from a CSV document
+        Add new records to an existing authority table from a CSV document.
 
-         :param table:    The Table to add the record to
-         :type: table:    Table
+        Each row in the CSV becomes one record.  If the CSV does not already contain an
+        ``id`` or ``ID`` column, the reader's line number is used as the record ID.
 
-         :param csv_file:    The path to the CSV document
-         :type: csv_file:    str
-
-         :param encoding:    The encoding used to open the csv document
-         :type: encoding:    str
-
-         """
+        :param table: The authority table to which records will be added.
+        :type table: Table
+        :param csv_file: Path to the CSV file whose rows will be imported as records.
+        :type csv_file: str
+        :param encoding: Character encoding used to open the CSV file (e.g. ``"utf-8"``).
+            Defaults to the platform default when ``None``.
+        :type encoding: str or None
+        :returns: None
+        :rtype: None
+        :raises HTTPException: If any individual ``add_record`` call returns an unexpected
+            HTTP error status.
+        """
         with open(csv_file, newline='', encoding=encoding) as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
@@ -93,18 +122,19 @@ class AuthorityAPI(AuthenticatedAPI):
 
     def add_record(self, table: Table, record: dict):
         """
-         Add a new record to an existing table
+        Add a single new record to an existing authority table.
 
-         :param table:    The Table to add the record to
-         :type: table:    Table
+        Dictionary keys become field names (lowercased) and dictionary values become the
+        corresponding field values in the new record.
 
-         :param record:    The record as a dictionary
-         :type: record:    dict
-
-         :return: A single record
-         :rtype: dict
-
-         """
+        :param table: The authority table to which the record will be added.
+        :type table: Table
+        :param record: A mapping of field name to field value for the new record.
+        :type record: dict
+        :returns: The raw JSON response body for the created record.
+        :rtype: str
+        :raises HTTPException: If the Preservica API returns an unexpected HTTP error status.
+        """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
 
         body = {"securityDescriptor": "open", "fieldValues": []}
@@ -124,15 +154,14 @@ class AuthorityAPI(AuthenticatedAPI):
 
     def record(self, reference: str) -> dict:
         """
-         Return a record by its reference
+        Return a single record by its unique reference.
 
-         :param reference:    The reference of the record
-         :type: reference:    str
-
-         :return: A single record
-         :rtype: dict
-
-         """
+        :param reference: The unique reference of the record to retrieve.
+        :type reference: str
+        :returns: The record as a JSON dictionary.
+        :rtype: dict
+        :raises HTTPException: If the Preservica API returns an unexpected HTTP error status.
+        """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/records/{reference}',
                                     headers=headers)
@@ -147,15 +176,15 @@ class AuthorityAPI(AuthenticatedAPI):
 
     def records(self, table: Table) -> List[dict]:
         """
-         Return all records from a table
+        Return all records from an authority table.
 
-         :param table:    The authority table to return the records from
-         :type: table:    Table
-
-         :return: List of records
-         :rtype: list[dict]
-
-         """
+        :param table: The authority table whose records should be retrieved.
+        :type table: Table
+        :returns: A list of records, each represented as a JSON dictionary with field values
+            expanded.
+        :rtype: list[dict]
+        :raises HTTPException: If the Preservica API returns an unexpected HTTP error status.
+        """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables/{table.reference}/records',
                                     headers=headers, params={"expand": "true"})
@@ -170,12 +199,18 @@ class AuthorityAPI(AuthenticatedAPI):
 
     def add_table(self, new_table: Table):
         """
-         Add a new authority table
+        Create a new authority (reference metadata) table in Preservica.
 
-         :return: An authority table
-         :rtype: Table
-
-         """
+        :param new_table: The Table object describing the table to create.  Set
+            ``new_table.description``, ``new_table.displayField``,
+            ``new_table.metadataConnections``, and ``new_table.fields`` before calling this
+            method if those optional attributes are required.
+        :type new_table: Table
+        :returns: The newly created authority table, fetched fresh from the API so that the
+            ``reference`` attribute is populated.
+        :rtype: Table
+        :raises HTTPException: If the Preservica API returns an unexpected HTTP error status.
+        """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8', 'Content-Type': 'application/json'}
 
         table_data = {"name": new_table.name}
@@ -206,14 +241,13 @@ class AuthorityAPI(AuthenticatedAPI):
 
     def table(self, reference: str) -> Table:
         """
-        fetch an authority table by its reference
+        Fetch an authority table by its unique reference.
 
-        :param reference:    The reference for the authority table
-        :type: reference:    str
-
-        :return: An authority table of interest
+        :param reference: The unique reference identifier for the authority table.
+        :type reference: str
+        :returns: The authority table with all available attributes populated.
         :rtype: Table
-
+        :raises HTTPException: If the Preservica API returns an unexpected HTTP error status.
         """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables/{reference}',
@@ -236,11 +270,11 @@ class AuthorityAPI(AuthenticatedAPI):
 
     def tables(self) -> Set[Table]:
         """
-        List reference metadata tables
+        Return all reference metadata (authority) tables in the tenancy.
 
-        :return: Set of authority tables
-        :rtype: set(Table)
-
+        :returns: A set of all authority tables.
+        :rtype: set[Table]
+        :raises HTTPException: If the Preservica API returns an unexpected HTTP error status.
         """
         headers = {HEADER_TOKEN: self.token, 'accept': 'application/json;charset=UTF-8'}
         response = self.session.get(f'{self.protocol}://{self.server}{BASE_ENDPOINT}/tables', headers=headers)

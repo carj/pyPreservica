@@ -124,34 +124,38 @@ class ProcessAPI(AuthenticatedAPI):
 
     def deactivate_process(self, process_id: str) -> bool:
         """
-            Deactivate an ingest process.
+        Deactivate an ingest process so that it no longer triggers ingests.
 
-            :param process_id: The id of the process
-            :type process_id:  str
-            :return:
-            :rtype:
-
+        :param process_id: The API id of the process to deactivate.
+        :type process_id: str
+        :returns: ``False`` reflecting the new active state of the process.
+        :rtype: bool
+        :raises RuntimeError: If the API call fails.
         """
         return self.__set_status__(process_id, 'false')
 
     def reactivate_process(self, process_id: str) -> bool:
         """
-            Reactivate an ingest process.
+        Reactivate a previously deactivated ingest process.
 
-            :param process_id: The id of the process
-            :type process_id:  str
-            :return:
-            :rtype:
-
+        :param process_id: The API id of the process to reactivate.
+        :type process_id: str
+        :returns: ``True`` reflecting the new active state of the process.
+        :rtype: bool
+        :raises RuntimeError: If the API call fails.
         """
         return self.__set_status__(process_id, 'true')
 
     def ingest_process(self, ingest_types=None) -> list:
         """
-        Return all the ingest processes.
+        Return all configured ingest processes, optionally filtered by type.
 
-        :return: list of Processes
-        :rtype:  list
+        :param ingest_types: Optional type or list of types used to filter the results
+            (e.g. ``"S3"``, ``"SFTP"``).  Pass ``None`` to return all processes.
+        :type ingest_types: str or list or None
+        :returns: List of :class:`Process` objects representing the configured ingest
+            processes.
+        :rtype: list[Process]
         """
         headers = {HEADER_TOKEN: self.token}
         params = {}
@@ -195,14 +199,15 @@ class WorkflowAPI(AuthenticatedAPI):
 
     def get_workflow_contexts_by_type(self, workflow_type: str) -> list[WorkflowContext]:
         """
-        Return a list of Workflow Contexts which have the same Workflow type
+        Return a list of Workflow Contexts that share the same workflow type.
 
-        :param workflow_type: The Workflow type  Ingest, Access, Transformation or DataManagement
+        :param workflow_type: The workflow type to filter by. Must be one of
+            ``"Ingest"``, ``"Access"``, ``"Transformation"``, or ``"DataManagement"``.
         :type workflow_type: str
-
-        :return: List of Workflow Contexts
-        :rtype: list
-
+        :returns: List of :class:`WorkflowContext` objects whose type matches
+            ``workflow_type``.
+        :rtype: list[WorkflowContext]
+        :raises RuntimeError: If the API call fails.
         """
 
         headers = {HEADER_TOKEN: self.token}
@@ -228,14 +233,14 @@ class WorkflowAPI(AuthenticatedAPI):
 
     def get_workflow_contexts(self, definition: str) -> list[WorkflowContext]:
         """
-        Return a list of Workflow Contexts which have the same Workflow Definition
+        Return a list of Workflow Contexts that share the same Workflow Definition.
 
-        :param definition: The Workflow Definition ID
+        :param definition: The Workflow Definition text ID used to filter contexts.
         :type definition: str
-
-        :return: List of Workflow Contexts
-        :rtype: list
-
+        :returns: List of :class:`WorkflowContext` objects associated with the given
+            workflow definition.
+        :rtype: list[WorkflowContext]
+        :raises RuntimeError: If the API call fails.
         """
 
         headers = {HEADER_TOKEN: self.token}
@@ -258,18 +263,17 @@ class WorkflowAPI(AuthenticatedAPI):
 
     def start_workflow_instance(self, workflow_context: WorkflowContext, **kwargs):
         """
-        Start a workflow context
+        Start a new workflow instance from the given workflow context.
 
-        Returns a Correlation Id which is used to monitor the workflow progress
+        Any extra keyword arguments are forwarded to the workflow as ``Key``/``Value``
+        parameter pairs in the XML start request (e.g. ``parameter_key=parameter_value``).
 
-        :param workflow_context: The workflow context to start
+        :param workflow_context: The workflow context to start.
         :type workflow_context: WorkflowContext
-
-        :param kwargs:      Key/Values to pass to the workflow instance
-
-        :return: correlation_id
+        :param kwargs: Arbitrary keyword arguments forwarded as workflow parameters.
+        :returns: A UUID correlation id that can be used to monitor the workflow progress.
         :rtype: str
-
+        :raises RuntimeError: If the server does not return HTTP 201 Created.
         """
 
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -299,11 +303,14 @@ class WorkflowAPI(AuthenticatedAPI):
 
     def terminate_workflow_instance(self, instance_ids):
         """
-        Terminate a workflow by its instance id
+        Terminate one or more running workflow instances by their instance ids.
 
-        :param instance_ids: The Workflow instance
-        :type instance_ids: int or a list of int
-
+        :param instance_ids: A single workflow instance id or a list of instance ids to
+            terminate.
+        :type instance_ids: int or list[int]
+        :returns: None
+        :rtype: None
+        :raises RuntimeError: If the server does not return HTTP 202 Accepted.
         """
 
         if isinstance(instance_ids, list):
@@ -324,14 +331,16 @@ class WorkflowAPI(AuthenticatedAPI):
 
     def workflow_instance(self, instance_id: int) -> WorkflowInstance:
         """
-        Return a workflow instance by its Id
+        Retrieve a single workflow instance by its numeric id.
 
-        :param instance_id: The Workflow instance
+        The returned :class:`WorkflowInstance` is populated with state, timing, context,
+        and archival process information retrieved from the server.
+
+        :param instance_id: The numeric id of the workflow instance to retrieve.
         :type instance_id: int
-
-        :return: workflow_instance
+        :returns: A fully populated :class:`WorkflowInstance` object.
         :rtype: WorkflowInstance
-
+        :raises RuntimeError: If the server returns a non-200 response.
         """
 
         headers = {HEADER_TOKEN: self.token}
@@ -376,11 +385,31 @@ class WorkflowAPI(AuthenticatedAPI):
 
     def workflow_instances(self, workflow_state: str, workflow_type: str, **kwargs) -> Generator[WorkflowInstance, None, None]:
         """
-        Return a list of Workflow instances
+        Return a generator of workflow instances filtered by state and type.
 
-        :param workflow_state: The Workflow state Aborted, Active, Completed, Finished_Mixed_Outcome, Pending, Suspended, Unknown, or Failed
-        :param workflow_type: The Workflow type Ingest, Access, Transformation or DataManagement
+        Results are fetched from the server in pages of 100 and yielded lazily.
+        Optional keyword arguments allow further filtering by context, creator, or date
+        range.
 
+        :param workflow_state: The workflow state to filter by. Must be one of
+            ``"Aborted"``, ``"Active"``, ``"Completed"``, ``"Finished_Mixed_Outcome"``,
+            ``"Pending"``, ``"Suspended"``, ``"Unknown"``, or ``"Failed"``.
+        :type workflow_state: str
+        :param workflow_type: The workflow type to filter by. Must be one of
+            ``"Ingest"``, ``"Access"``, ``"Transformation"``, or ``"DataManagement"``.
+        :type workflow_type: str
+        :param contextId: Optional workflow context id to filter results.
+        :type contextId: str
+        :param creator: Optional username of the workflow creator to filter results.
+        :type creator: str
+        :param from_date: Optional start date for filtering by workflow start time.
+        :type from_date: datetime.date or datetime.datetime or str
+        :param to_date: Optional end date for filtering by workflow start time.
+        :type to_date: datetime.date or datetime.datetime or str
+        :returns: Generator that lazily yields :class:`WorkflowInstance` objects.
+        :rtype: Generator[WorkflowInstance, None, None]
+        :raises RuntimeError: If an invalid state or type is supplied, or if the API
+            call fails.
         """
 
         start_value = int(0)

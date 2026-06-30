@@ -26,6 +26,12 @@ class RetentionAssignment:
         self.expired = expired
 
     def __str__(self):
+        """
+        Return a human-readable string representation of the retention assignment.
+
+        :returns: A formatted string showing the entity reference and the policy reference.
+        :rtype: str
+        """
         return f"Entity Reference:\t\t\t{self.entity_reference}\n" \
                f"Policy Reference:\t\t\t{self.policy_reference}\n"
 
@@ -47,6 +53,12 @@ class RetentionPolicy:
         self.period_unit = ""
 
     def __str__(self):
+        """
+        Return a human-readable string representation of the retention policy.
+
+        :returns: A formatted string showing the reference, name, and description.
+        :rtype: str
+        """
         return f"Ref:\t\t\t{self.reference}\n" \
                f"Name:\t\t\t{self.name}\n" \
                f"Description:\t{self.description}\n"
@@ -59,6 +71,34 @@ class RetentionAPI(AuthenticatedAPI):
 
     def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False,
                  two_fa_secret_key: str = None, protocol: str = "https", request_hook: Callable = None, credentials_path: str = 'credentials.properties'):
+        """
+        Initialise the RetentionAPI client and authenticate against the Preservica server.
+
+        Credentials may be supplied directly as arguments or loaded from environment variables
+        (``PRESERVICA_USERNAME``, ``PRESERVICA_PASSWORD``, ``PRESERVICA_TENANT``,
+        ``PRESERVICA_SERVER``) or a ``credentials.properties`` file.
+
+        :param username: Preservica account username.
+        :type username: str
+        :param password: Preservica account password.
+        :type password: str
+        :param tenant: Preservica tenant name.
+        :type tenant: str
+        :param server: Hostname of the Preservica server (e.g. ``us.preservica.com``).
+        :type server: str
+        :param use_shared_secret: Use a shared-secret token instead of username/password.
+        :type use_shared_secret: bool
+        :param two_fa_secret_key: TOTP secret key for two-factor authentication.
+        :type two_fa_secret_key: str
+        :param protocol: HTTP protocol to use, either ``"https"`` (default) or ``"http"``.
+        :type protocol: str
+        :param request_hook: Optional callable invoked as a requests event hook on each response.
+        :type request_hook: Callable
+        :param credentials_path: Path to a ``credentials.properties`` file used as a fallback
+            when credentials are not provided as arguments or environment variables.
+        :type credentials_path: str
+        :raises RuntimeError: If the connected Preservica system is older than v6.2.
+        """
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
                          protocol, request_hook, credentials_path)
 
@@ -136,8 +176,9 @@ class RetentionAPI(AuthenticatedAPI):
         :param status:     The assignable status
         :type status: bool
 
-
-        :return:
+        :returns: No return value.
+        :rtype: None
+        :raises RuntimeError: If the API request fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'text/plain;charset=UTF-8'}
         data = str(status)
@@ -152,20 +193,28 @@ class RetentionAPI(AuthenticatedAPI):
 
     def update_policy(self, reference: str, **kwargs):
         """
-        Update an existing policy
+        Update an existing retention policy and return the updated policy.
 
-        Arguments are kwargs map
+        All keyword arguments listed below are required.
 
-        Name
-        Description
-        SecurityTag
-        StartDateField
-        Period
-        PeriodUnit
-        ExpiryAction
-        ExpiryActionParameters
-        Restriction
-        Assignable
+        :param reference: The unique reference (UUID) of the policy to update.
+        :type reference: str
+        :param kwargs: Policy field values. The following keys are all required:
+
+            * ``Name`` (str) -- Display name of the policy.
+            * ``Description`` (str) -- Human-readable description.
+            * ``SecurityTag`` (str) -- Security tag applied to the policy.
+            * ``StartDateField`` (str) -- Metadata field used as the retention start date.
+            * ``Period`` (str) -- Numeric retention period value.
+            * ``PeriodUnit`` (str) -- Unit of the retention period (e.g. ``"years"``).
+            * ``ExpiryAction`` (str) -- Action taken when the retention period expires.
+            * ``ExpiryActionParameters`` (str) -- Parameters for the expiry action.
+            * ``Restriction`` (str) -- Restriction applied during the retention period.
+            * ``Assignable`` (bool) -- Whether the policy may be assigned to new assets.
+
+        :returns: The updated retention policy fetched from the server.
+        :rtype: RetentionPolicy
+        :raises RuntimeError: If any required kwarg is missing or if the API request fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
@@ -246,20 +295,26 @@ class RetentionAPI(AuthenticatedAPI):
 
     def create_policy(self, **kwargs):
         """
-        Create a new policy
+        Create a new retention policy and return it.
 
-        Arguments are kwargs map
+        All keyword arguments listed below are required.
 
-        Name
-        Description
-        SecurityTag
-        StartDateField
-        Period
-        PeriodUnit
-        ExpiryAction
-        ExpiryActionParameters
-        Restriction
-        Assignable
+        :param kwargs: Policy field values. The following keys are all required:
+
+            * ``Name`` (str) -- Display name of the policy.
+            * ``Description`` (str) -- Human-readable description.
+            * ``SecurityTag`` (str) -- Security tag applied to the policy.
+            * ``StartDateField`` (str) -- Metadata field used as the retention start date.
+            * ``Period`` (str) -- Numeric retention period value.
+            * ``PeriodUnit`` (str) -- Unit of the retention period (e.g. ``"years"``).
+            * ``ExpiryAction`` (str) -- Action taken when the retention period expires.
+            * ``ExpiryActionParameters`` (str) -- Parameters for the expiry action.
+            * ``Restriction`` (str) -- Restriction applied during the retention period.
+            * ``Assignable`` (bool) -- Whether the policy may be assigned to new assets.
+
+        :returns: The newly created retention policy fetched from the server.
+        :rtype: RetentionPolicy
+        :raises RuntimeError: If any required kwarg is missing or if the API request fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
@@ -348,6 +403,9 @@ class RetentionAPI(AuthenticatedAPI):
         :param reference: The policy reference
         :type reference: str
 
+        :returns: No return value.
+        :rtype: None
+        :raises RuntimeError: If the API request fails.
         """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/retention-policies/{reference}',

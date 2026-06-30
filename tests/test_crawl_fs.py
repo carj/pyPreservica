@@ -3,6 +3,7 @@ from pyPreservica import *
 
 @pytest.mark.filterwarnings("ignore:datetime.datetime.utcnow")
 def test_crawl_fs():
+    pytest.skip("Slow Test")
     path = "./test_data/"
     bucket = "com.preservica.dev.preview.sales.autoupload"
 

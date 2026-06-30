@@ -493,13 +493,19 @@ class EntityAPI(AuthenticatedAPI):
 
     def entity_identifiers(self, entity: Entity,  external_identifier_type: str|None = None) -> set[ExternIdentifier]:
         """
-         Get all external identifiers on an entity
+        Get all external identifiers on an entity.
 
-         Returns the set of external identifiers on the entity
+        Returns the set of external identifiers on the entity. When ``external_identifier_type``
+        is supplied, only identifiers whose type matches are returned.
 
-         :param entity: The Entity (Asset or Folder)
-         :param external_identifier_type: Optional identifier type to filter the results
-         :type  entity: Entity
+        :param entity: The Entity (Asset or Folder) to retrieve identifiers for.
+        :type entity: Entity
+        :param external_identifier_type: Optional identifier type used to filter the results.
+            Pass ``None`` (the default) to return all identifiers.
+        :type external_identifier_type: str or None
+        :returns: Set of :class:`ExternIdentifier` objects belonging to the entity.
+        :rtype: set[ExternIdentifier]
+        :raises HTTPException: If the API call fails.
         """
         headers = {HEADER_TOKEN: self.token}
         request = self.session.get(
@@ -607,13 +613,18 @@ class EntityAPI(AuthenticatedAPI):
 
     def add_identifier(self, entity: Entity, identifier_type: str, identifier_value: str):
         """
-         Add a new external identifier to an Entity object
+        Add a new external identifier to an Entity object.
 
-        :param Entity entity: The entity the identifier is added to
-        :param str identifier_type: The identifier type
-        :param str identifier_value: The identifier value
-        :return: An internal id for this external identifier
-        :rtype: str
+        :param entity: The entity the identifier is added to.
+        :type entity: Entity
+        :param identifier_type: The identifier type label (e.g. ``"ISBN"``, ``"DOI"``).
+        :type identifier_type: str
+        :param identifier_value: The identifier value.
+        :type identifier_value: str
+        :returns: The internal API id assigned to the newly created identifier, or ``None`` if the response
+            did not include one.
+        :rtype: str or None
+        :raises RuntimeError: If the connected Preservica system is older than v6.1.
         """
 
         if self.major_version < 7 and self.minor_version < 1:
@@ -1259,13 +1270,17 @@ class EntityAPI(AuthenticatedAPI):
 
     def all_metadata(self, entity: Entity) -> Generator[Tuple[str, str], None, None]:
         """
-        Retrieve all metadata fragments on an entity
+        Retrieve all metadata fragments on an entity.
 
-        Returns XML documents in a tuple
+        Yields each descriptive XML document attached to the entity as a two-element tuple
+        whose first element is the schema URI and whose second element is the XML document
+        text.
 
-        :param Entity entity:       The entity with the metadata
-        :return: A list of Tuples, the first value is the schmea and the second is the metadata
-        :rtype: Generator[Tuple[str, str]]
+        :param entity: The entity whose metadata fragments should be retrieved.
+        :type entity: Entity
+        :returns: Generator that yields ``(schema_uri, xml_document)`` tuples, one per
+            metadata fragment attached to the entity.
+        :rtype: Generator[Tuple[str, str], None, None]
         """
 
         for uri, schema in entity.metadata.items():
@@ -1273,12 +1288,18 @@ class EntityAPI(AuthenticatedAPI):
 
     def metadata_for_entity(self, entity: Entity, schema: str) -> Union[str, None]:
         """
-       Fetch the first metadata document which matches the schema URI from an entity
+        Fetch the first metadata document which matches the schema URI from an entity.
 
-        :param Entity entity: The entity containing the metadata
-        :param str schema: The metadata schema URI
-        :return: The first XML document on the entity matching the schema URI
-        :rtype: str
+        If the entity object does not have its metadata map populated (e.g. it was obtained
+        from a lightweight search result) the full entity is fetched from the server first.
+
+        :param entity: The entity containing the metadata.
+        :type entity: Entity
+        :param schema: The metadata schema URI to match against.
+        :type schema: str
+        :returns: The first XML document on the entity whose schema URI matches, as a string,
+            or ``None`` if no matching document is found.
+        :rtype: str or None
         """
 
         # if the entity is a lightweight enum version request the full object
@@ -1292,14 +1313,26 @@ class EntityAPI(AuthenticatedAPI):
 
     def metadata_tag_for_entity(self, entity: Entity, schema: str, tag: str, isXpath: bool = False) -> Union[str, None]:
         """
-        Retrieve the first value of the tag from a metadata template given by schema
+        Retrieve the text value of a single XML element from a metadata document on an entity.
 
-        Returns XML document as a string
+        Looks up the metadata document identified by ``schema`` on ``entity`` and returns the
+        text content of the first element matched by ``tag``.  By default ``tag`` is treated as
+        a local element name (matched with a wildcard namespace); set ``isXpath`` to ``True`` to
+        supply a fully qualified XPath expression instead.
 
-        :param isXpath:      True if the tag name is a fully qualified xpath expression
-        :param entity:       The entity with the metadata
-        :param schema:       The schema URI
-        :param tag:          The tag name
+        :param entity: The entity that holds the metadata document.
+        :type entity: Entity
+        :param schema: The schema URI identifying which metadata document to look up.
+        :type schema: str
+        :param tag: The element local name to find, or a fully qualified XPath expression when
+            ``isXpath`` is ``True``.
+        :type tag: str
+        :param isXpath: When ``True``, ``tag`` is treated as a fully qualified XPath expression
+            rather than a plain element name. Defaults to ``False``.
+        :type isXpath: bool
+        :returns: The text content of the matched element, or ``None`` if the metadata document
+            or the element cannot be found.
+        :rtype: str or None
         """
 
         xml_doc = self.metadata_for_entity(entity, schema)
@@ -1369,11 +1402,18 @@ class EntityAPI(AuthenticatedAPI):
 
     def metadata(self, uri: str) -> str:
         """
-        Fetch the metadata document by its identifier, this is the key from the entity metadata map
+        Fetch the metadata document by its identifier URI.
 
-        :param str uri: The metadata identifier
-        :return: An XML document as a string
+        The URI is the key from the entity's ``metadata`` dict (e.g. obtained from
+        ``entity.metadata``).  The method strips the outer XIP ``MetadataContainer`` wrapper
+        and returns only the inner content element as an XML string.
+
+        :param uri: The full URL of the metadata fragment, as stored in the entity's metadata
+            map.
+        :type uri: str
+        :returns: The inner content of the metadata document serialised as an XML string.
         :rtype: str
+        :raises HTTPException: If the server returns a non-200 response.
         """
         request = self.session.get(uri, headers={HEADER_TOKEN: self.token})
         if request.status_code == requests.codes.ok:
@@ -1536,12 +1576,18 @@ class EntityAPI(AuthenticatedAPI):
 
     def xml_asset(self, reference: str) -> str:
         """
-         Retrieve an Asset by its reference
+        Retrieve the full XML representation of an Asset by its reference UUID.
 
-         Returns an XML document of the full Asset
+        Calls the entity API with ``expand=structure`` so that the returned XML includes
+        the complete asset structure (representations, content objects, generations, etc.).
 
-         :param reference:            The unique identifier of the entity
-         """
+        :param reference: The unique identifier (UUID) of the asset.
+        :type reference: str
+        :returns: The raw XML response body describing the asset and its structure.
+        :rtype: str
+        :raises ReferenceNotFoundException: If no asset with the given reference exists.
+        :raises HTTPException: If the server returns any other non-200 response.
+        """
         headers = {HEADER_TOKEN: self.token}
         params = {"expand": "structure"}
         request = self.session.get(f'{self.protocol}://{self.server}/api/entity/{IO_PATH}/{reference}', params=params, headers=headers)

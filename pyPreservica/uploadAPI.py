@@ -238,8 +238,29 @@ def cvs_to_cmis_xslt(csv_file, xml_namespace, root_element, title="Metadata Titl
 def csv_to_cmis_xslt(csv_file, xml_namespace, root_element, title="Metadata Title", export_folder=None,
                      additional_namespaces=None):
     """
-            Create a custom CMIS transform to display metadata within UA.
+    Create a custom CMIS XSLT transform to display metadata within Universal Access (UA).
 
+    Reads the column headers from the first row of ``csv_file`` and generates an XSL
+    stylesheet that maps the XML elements produced by :func:`csv_to_xml` to the Tessella
+    CMIS metadata display format used by Preservica Universal Access.
+
+    :param csv_file: Path to the CSV file whose headers define the metadata fields.
+    :type csv_file: str
+    :param xml_namespace: The XML namespace URI used in the metadata documents.
+    :type xml_namespace: str
+    :param root_element: The root element name used in the metadata documents.
+    :type root_element: str
+    :param title: Human-readable title shown in UA for this metadata group.
+        Defaults to ``"Metadata Title"``.
+    :type title: str
+    :param export_folder: Directory where the generated ``.xslt`` file is written.
+        If ``None``, the file is written to the current working directory.
+    :type export_folder: str or None
+    :param additional_namespaces: Mapping of namespace prefix to URI for any extra
+        namespaces referenced in the CSV headers (e.g. ``{"dc": "http://..."}``.
+    :type additional_namespaces: dict or None
+    :returns: Path to the generated XSLT file.
+    :rtype: str
     """
     headers = set()
     with open(csv_file, encoding='utf-8-sig', newline='') as csvfile:
@@ -316,8 +337,26 @@ def cvs_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additi
 
 def csv_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additional_namespaces=None):
     """
-        Create a XSD definition based on the csv file
+    Create an XSD schema definition derived from the column headers of a CSV file.
 
+    Reads the column headers from the first row of ``csv_file`` and generates an XML
+    Schema Definition (``.xsd``) file that validates the XML documents produced by
+    :func:`csv_to_xml`.
+
+    :param csv_file: Path to the CSV file whose headers define the element names.
+    :type csv_file: str
+    :param xml_namespace: The target namespace URI for the generated schema.
+    :type xml_namespace: str
+    :param root_element: The root element name that the schema will validate.
+    :type root_element: str
+    :param export_folder: Directory where the generated ``.xsd`` file is written.
+        If ``None``, the file is written to the current working directory.
+    :type export_folder: str or None
+    :param additional_namespaces: Mapping of namespace prefix to URI for any extra
+        namespaces referenced in the CSV headers.
+    :type additional_namespaces: dict or None
+    :returns: Path to the generated XSD file.
+    :rtype: str
     """
     headers = set()
     with open(csv_file, encoding='utf-8-sig', newline='') as csvfile:
@@ -375,8 +414,29 @@ def csv_to_xsd(csv_file, xml_namespace, root_element, export_folder=None, additi
 def csv_to_search_xml(csv_file, xml_namespace, root_element, title="Metadata Title", export_folder=None,
                       additional_namespaces=None):
     """
-        Create a custom Preservica search index based on the columns in a csv file
+    Create a custom Preservica search index configuration derived from a CSV file.
 
+    Reads the column headers from the first row of ``csv_file`` and generates a Preservica
+    custom search index XML file (``*-index.xml``) that registers each column as a
+    searchable ``STRING_DEFAULT`` field.
+
+    :param csv_file: Path to the CSV file whose headers define the indexed fields.
+    :type csv_file: str
+    :param xml_namespace: The XML namespace URI of the metadata documents to be indexed.
+    :type xml_namespace: str
+    :param root_element: The root element name used in the metadata documents.
+    :type root_element: str
+    :param title: Human-readable name for the search schema group. Defaults to
+        ``"Metadata Title"``.
+    :type title: str
+    :param export_folder: Directory where the generated index XML file is written.
+        If ``None``, the file is written to the current working directory.
+    :type export_folder: str or None
+    :param additional_namespaces: Mapping of namespace prefix to URI for any extra
+        namespaces referenced in the CSV headers.
+    :type additional_namespaces: dict or None
+    :returns: Path to the generated search index XML file.
+    :rtype: str
     """
     headers = set()
     with open(csv_file, encoding='utf-8-sig', newline='') as csvfile:
@@ -433,15 +493,30 @@ def cvs_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename
 def csv_to_xml(csv_file, xml_namespace, root_element, file_name_column="filename", export_folder=None,
                additional_namespaces=None):
     """
-        Export the rows of a CSV file as XML metadata documents which can be added to Preservica assets
+    Export the rows of a CSV file as individual XML metadata documents for Preservica assets.
 
-        :param str csv_file: Path to the csv file
-        :param str xml_namespace: The XML namespace for the created XML documents
-        :param str root_element: The root element for the XML documents
-        :param str file_name_column: The CSV column which should be used to name the xml files
-        :param str export_folder: The path to the export folder
-        :param dict additional_namespaces: A map of prefix, uris to use as additional namespaces
+    Each data row in ``csv_file`` is converted to an XML document whose root element is
+    ``root_element`` and whose child elements correspond to the CSV column headers.  One
+    XML file is written per data row; the file is named after the value in the column
+    identified by ``file_name_column``.
 
+    :param csv_file: Path to the CSV file to process.
+    :type csv_file: str
+    :param xml_namespace: The XML namespace URI applied to the generated documents.
+    :type xml_namespace: str
+    :param root_element: The root element name for each generated XML document.
+    :type root_element: str
+    :param file_name_column: The CSV column header whose value is used to name each
+        output XML file.  Defaults to ``"filename"``.
+    :type file_name_column: str
+    :param export_folder: Directory where the generated XML files are written.
+        If ``None``, files are written to the current working directory.
+    :type export_folder: str or None
+    :param additional_namespaces: Mapping of namespace prefix to URI for any extra
+        namespaces to declare on the root element.
+    :type additional_namespaces: dict or None
+    :returns: Generator that yields the path to each written XML file.
+    :rtype: Generator[str, None, None]
     """
     headers = list()
     link_column_id = 0
@@ -486,11 +561,54 @@ def generic_asset_package(preservation_files_dict: dict|None=None, access_files_
                           compress=True,
                           **kwargs):
     """
-    This function creates packages with an arbitrary number of representations
+    Create a Preservica ingest package containing an asset with an arbitrary number of representations.
 
-    The preservation representations are a dict object, the key is the name and the value is a list of content objects
+    Both ``preservation_files_dict`` and ``access_files_dict`` map representation names to
+    lists of file paths.  Each key becomes a named representation; each file path in the
+    associated list becomes a separate content object within that representation.
 
+    :param preservation_files_dict: Mapping of preservation representation name to a list
+        of file paths.  Pass ``None`` to omit preservation representations.
+    :type preservation_files_dict: dict[str, list[str]] or None
+    :param access_files_dict: Mapping of access representation name to a list of file
+        paths.  Pass ``None`` to omit access representations.
+    :type access_files_dict: dict[str, list[str]] or None
+    :param export_folder: Directory where the package ZIP file is written.  Defaults to
+        the system temporary directory when ``None``.
+    :type export_folder: str or None
+    :param parent_folder: The Preservica folder (or its UUID string) under which the asset
+        will be ingested.  Required.
+    :type parent_folder: Folder or str
+    :param compress: Whether to compress the package ZIP file.  Defaults to ``True``.
+    :type compress: bool
+    :param kwargs: Optional keyword arguments:
 
+        - ``Title`` *(str)* – Asset title.
+        - ``Description`` *(str)* – Asset description.
+        - ``SecurityTag`` *(str)* – Asset security tag (default ``"open"``).
+        - ``CustomType`` *(str)* – Asset custom type.
+        - ``Preservation_Content_Title`` *(str or dict)* – Content object title for
+          preservation representations.
+        - ``Preservation_Content_Description`` *(str or dict)* – Content object description
+          for preservation representations.
+        - ``Access_Content_Title`` *(str or dict)* – Content object title for access
+          representations.
+        - ``Access_Content_Description`` *(str or dict)* – Content object description for
+          access representations.
+        - ``Preservation_Generation_Label`` *(str)* – Generation label for preservation
+          representations.
+        - ``Access_Generation_Label`` *(str)* – Generation label for access representations.
+        - ``Preservation_files_fixity_callback`` *(callable)* – Fixity callback for
+          preservation files.
+        - ``Access_files_fixity_callback`` *(callable)* – Fixity callback for access files.
+        - ``IO_Identifier_callback`` *(callable)* – Callback to supply the asset UUID.
+        - ``Identifiers`` *(dict)* – Mapping of identifier type to identifier value.
+        - ``Asset_Metadata`` *(dict)* – Mapping of schema URI to metadata file path or
+          XML string.
+    :returns: Path to the generated package ZIP file.
+    :rtype: str
+    :raises RuntimeError: If ``export_folder`` does not exist or ``parent_folder`` is
+        ``None``.
     """
 
 
@@ -718,15 +836,33 @@ def generic_asset_package(preservation_files_dict: dict|None=None, access_files_
 
 def multi_asset_package(asset_file_list:list|None=None, export_folder=None, parent_folder=None, compress=True, **kwargs):
     """
-    Create a package containing multiple assets, all the assets are ingested into the same parent folder provided
-    by the parent_folder argument.
+    Create a single ingest package containing multiple assets, one per file.
 
-    :param asset_file_list: List of files. One asset per file
-    :param export_folder:   Location where the package is written to
-    :param parent_folder:   The folder the assets will be ingested into
-    :param compress:        Bool, compress the package
-    :param kwargs:
-    :return:
+    Each file in ``asset_file_list`` becomes a separate asset (Information Object) with a
+    single preservation representation.  All assets share the same ``parent_folder``.
+
+    :param asset_file_list: List of file paths; one asset is created per file.
+    :type asset_file_list: list[str] or None
+    :param export_folder: Directory where the package ZIP file is written.  Defaults to
+        the system temporary directory when ``None``.
+    :type export_folder: str or None
+    :param parent_folder: The Preservica folder (or its UUID string) under which all
+        assets will be ingested.  Required.
+    :type parent_folder: Folder or str
+    :param compress: Whether to compress the package ZIP file.  Defaults to ``True``.
+    :type compress: bool
+    :param kwargs: Optional keyword arguments:
+
+        - ``SecurityTag`` *(str)* – Security tag applied to all assets (default ``"open"``).
+        - ``CustomType`` *(str)* – Custom type applied to all assets.
+        - ``Preservation_files_fixity_callback`` *(callable)* – Fixity callback used when
+          computing checksums for the content files.
+        - ``Identifiers`` *(dict)* – Mapping of file path to a dict of identifier type/value
+          pairs that should be attached to the corresponding asset.
+    :returns: Path to the generated package ZIP file.
+    :rtype: str
+    :raises RuntimeError: If ``export_folder`` does not exist or ``parent_folder`` is
+        ``None``.
     """
 
     # some basic validation
@@ -1196,19 +1332,34 @@ class UploadAPI(AuthenticatedAPI):
 
     def ingest_web_video(self, url=None, parent_folder=None, **kwargs):
         """
-            Ingest a web video such as YouTube etc based on the URL
+        Download a web video (e.g. YouTube) and ingest it into Preservica as an asset.
 
-            :param str url: URL to the YouTube video
-            :param Folder parent_folder: The folder to ingest the video into
-            :param str Title: Optional asset title
-            :param str Description: Optional asset description
-            :param str SecurityTag: Optional asset security tag
-            :param dict Identifiers: Optional asset 3rd party identifiers
-            :param dict Asset_Metadata: Optional asset additional descriptive metadata
-            :param callback callback: Optional upload progress callback
-            :raises RuntimeError:
+        Requires the optional ``youtube_dl`` package (``pip install --upgrade youtube-dl``).
+        The video is downloaded to the current working directory as ``<video_id>.mp4``,
+        wrapped in a simple preservation package, and then uploaded via
+        :meth:`upload_zip_package`.
 
-
+        :param url: URL of the web video to download and ingest.
+        :type url: str or None
+        :param parent_folder: The Preservica folder into which the video asset is ingested.
+        :type parent_folder: Folder or str or None
+        :param Title: Optional title for the asset.  Defaults to the video title from
+            the metadata.
+        :type Title: str
+        :param Description: Optional description for the asset.  Defaults to the video
+            description from the metadata.
+        :type Description: str
+        :param SecurityTag: Optional security tag for the asset.  Defaults to ``"open"``.
+        :type SecurityTag: str
+        :param Identifiers: Optional mapping of identifier type to value; the video id is
+            automatically added under the key ``"Video-ID"``.
+        :type Identifiers: dict
+        :param Asset_Metadata: Optional mapping of schema URI to metadata document for the
+            asset.
+        :type Asset_Metadata: dict
+        :param callback: Optional upload progress callback.
+        :type callback: callable or None
+        :raises RuntimeError: If the ``youtube_dl`` package is not installed.
         """
         try:
             import youtube_dl
@@ -1277,9 +1428,17 @@ class UploadAPI(AuthenticatedAPI):
 
     def upload_credentials(self, location_id: str) -> dict:
         """
-        Retrieves temporary upload credentials (Amazon STS, or Azure SAS) for this location.
+        Retrieve temporary upload credentials for a specific upload location.
 
-        :return: dict
+        For AWS deployments, the credentials are Amazon STS temporary credentials
+        (``key``, ``secret``, ``sessionToken``, ``endpoint``).  For Azure deployments
+        they are Azure SAS credentials (``key``, ``sessionToken``).
+
+        :param location_id: The API id of the upload location (from :meth:`upload_locations`).
+        :type location_id: str
+        :returns: Dictionary of credential fields appropriate for the deployment type.
+        :rtype: dict
+        :raises HTTPException: If the server returns a non-200 response.
         """
         headers = {HEADER_TOKEN: self.token}
         endpoint = f"/upload/{location_id}/upload-credentials"
@@ -1295,8 +1454,18 @@ class UploadAPI(AuthenticatedAPI):
 
     def clean_upload_bucket(self, bucket_name: str,  older_than_days: int = 90):
         """
-        Clean up objects in an upload bucket which are older than older_than_days.
+        Delete objects in an upload bucket that are older than a given number of days.
 
+        Supports both AWS S3 buckets and Azure Blob Storage containers.  The appropriate
+        cloud credentials are obtained automatically via :meth:`upload_credentials`.
+
+        :param bucket_name: The name of the S3 bucket or Azure container to clean.
+        :type bucket_name: str
+        :param older_than_days: Objects whose last-modified timestamp is more than this
+            many days in the past are deleted.  Defaults to ``90``.
+        :type older_than_days: int
+        :returns: None
+        :rtype: None
         """
         from azure.storage.blob import ContainerClient
 
@@ -1341,8 +1510,15 @@ class UploadAPI(AuthenticatedAPI):
 
     def upload_locations(self) -> dict:
         """
-        Upload locations are configured on the Sources page as 'SIP Upload'.
-        :return: dict
+        Return all configured upload locations for this Preservica system.
+
+        Upload locations are configured on the Preservica Sources page as *SIP Upload*
+        entries and represent S3 buckets or Azure containers connected to ingest workflows.
+
+        :returns: List of upload location dictionaries, each containing at least
+            ``containerName``, ``type`` (``"AWS"`` or ``"Azure"``), and ``apiId``.
+        :rtype: list[dict]
+        :raises HTTPException: If the server returns a non-200 response.
         """
         headers = {HEADER_TOKEN: self.token}
         endpoint = "/api/location/upload"
@@ -1358,9 +1534,14 @@ class UploadAPI(AuthenticatedAPI):
 
     def upload_buckets(self) -> dict:
         """
-        Get a list of available upload buckets
+        Get a list of available upload buckets.
 
-        :return: dict of bucket names and regions
+        Alias for :meth:`upload_locations`; returns all upload locations configured
+        on the Preservica system (both S3 buckets and Azure containers).
+
+        :returns: List of upload location dictionaries (see :meth:`upload_locations`).
+        :rtype: list[dict]
+        :raises HTTPException: If the server returns a non-200 response.
         """
         return self.upload_locations()
 
@@ -1480,15 +1661,28 @@ class UploadAPI(AuthenticatedAPI):
                              show_progress=False):
 
         """
-             Uploads a zip file package to either an Azure container or S3 bucket
-             depending on the Preservica system deployment
+        Upload a ZIP package to an upload source (Azure container or S3 bucket).
 
-             :param str path_to_zip_package: Path to the package
-             :param str container_name: container connected to the ingest workflow
-             :param Folder folder: The folder to ingest the package into
-             :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
-             :param bool show_progress:  Show upload progress bar
+        Automatically dispatches to :meth:`upload_zip_package_to_S3` or
+        :meth:`upload_zip_package_to_Azure` based on the deployment type reported by
+        :meth:`upload_locations`.
 
+        :param path_to_zip_package: Local path to the ZIP package file.
+        :type path_to_zip_package: str
+        :param container_name: Name of the S3 bucket or Azure container connected to an
+            ingest workflow.
+        :type container_name: str
+        :param folder: Optional Preservica folder (or UUID string) that the ingested
+            package should be placed into.
+        :type folder: Folder or str or None
+        :param delete_after_upload: When ``True``, the local ZIP file is deleted after a
+            successful upload.  Defaults to ``False``.
+        :type delete_after_upload: bool
+        :param show_progress: When ``True``, an upload progress bar is displayed on the
+            console.  Defaults to ``False``.
+        :type show_progress: bool
+        :returns: None
+        :rtype: None
         """
 
         locations = self.upload_locations()
@@ -1622,25 +1816,33 @@ class UploadAPI(AuthenticatedAPI):
 
     def upload_zip_package(self, path_to_zip_package, folder=None, callback=None, delete_after_upload=False):
         """
-        Uploads a zip file package directly to Preservica and starts an ingest workflow
+        Upload a ZIP package directly to Preservica via the built-in S3 endpoint and start an ingest workflow.
 
-        :param str path_to_zip_package: Path to the package
-        :param Folder folder: The folder to ingest the package into
-        :param Callable callback: Optional callback to allow the callee to monitor the upload progress
-        :param bool delete_after_upload: Delete the local copy of the package after the upload has completed
+        Uses auto-refreshing Preservica token credentials so that long-running uploads
+        do not fail due to token expiry.  Multipart chunk sizes are automatically adjusted
+        based on the package size.
 
-        :return: preservica-progress-token to allow the workflow progress to be monitored
+        :param path_to_zip_package: Local path to the ZIP package file.
+        :type path_to_zip_package: str
+        :param folder: Optional Preservica folder (or UUID string) that the ingested
+            package should be placed into.
+        :type folder: Folder or str or None
+        :param callback: Optional progress callback invoked during the upload.  Must be
+            compatible with the boto3 ``Callback`` interface (i.e. a callable that accepts
+            the number of bytes transferred).
+        :type callback: callable or None
+        :param delete_after_upload: When ``True``, the local ZIP file is deleted after a
+            successful upload.  Defaults to ``False``.
+        :type delete_after_upload: bool
+        :returns: The ``preservica-progress-token`` header value returned by the server,
+            which can be used to monitor the ingest workflow progress.
         :rtype: str
-
-
-        :raises RuntimeError:
-
-
+        :raises NoCredentialsError: If AWS credentials cannot be resolved.
+        :raises ClientError: If the S3 upload fails.
         """
         bucket = f'{self.tenant.lower()}.package.upload'
         endpoint = f'{self.protocol}://{self.server}/api/s3/buckets'
         self.token = self.__token__()
-
 
         retries= {
             'max_attempts': 5,

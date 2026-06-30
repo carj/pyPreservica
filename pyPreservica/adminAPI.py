@@ -21,11 +21,13 @@ class AdminAPI(AuthenticatedAPI):
 
     def delete_system_role(self, role_name):
         """
-        Delete a system role
+        Delete an existing system role from the Preservica tenancy.
 
-        :param role_name: The role to delete
+        :param role_name: The name of the role to delete.
         :type role_name: str
-
+        :returns: None
+        :rtype: None
+        :raises RuntimeError: If the Preservica server is below v6.5.0, or if the delete request fails.
         """
         if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 5):
             raise RuntimeError(
@@ -43,11 +45,13 @@ class AdminAPI(AuthenticatedAPI):
 
     def delete_security_tag(self, tag_name):
         """
-        Delete a security tag
+        Delete an existing security tag from the Preservica tenancy.
 
-        :param tag_name: The security tag to delete
+        :param tag_name: The name of the security tag to delete.
         :type tag_name: str
-
+        :returns: None
+        :rtype: None
+        :raises RuntimeError: If the Preservica server is below v6.4.0, or if the delete request fails.
         """
         if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 4):
             raise RuntimeError(
@@ -65,14 +69,14 @@ class AdminAPI(AuthenticatedAPI):
 
     def add_system_role(self, role_name) -> str:
         """
-        Create a new user role
+        Create a new user access role in the Preservica tenancy.
 
-        :param role_name: The new role
+        :param role_name: The name of the new role to create.
         :type role_name: str
-
-        :return: The new role
+        :returns: The name of the newly created role as confirmed by the server.
         :rtype: str
-
+        :raises RuntimeError: If ``role_name`` is empty, if the Preservica server is below v6.5.0,
+            or if the creation request fails.
         """
         self._check_if_user_has_user_manager_role()
 
@@ -103,14 +107,16 @@ class AdminAPI(AuthenticatedAPI):
 
     def add_security_tag(self, tag_name) -> str:
         """
-        Create a new security tag
+        Create a new security tag in the Preservica tenancy.
 
-        :param tag_name: The new security tag
+        Security tags are used to control access to repository content.
+
+        :param tag_name: The name of the new security tag to create.
         :type tag_name: str
-
-        :return: The new security tag
+        :returns: The name of the newly created security tag as confirmed by the server.
         :rtype: str
-
+        :raises RuntimeError: If ``tag_name`` is empty, if the Preservica server is below v6.4.0,
+            or if the creation request fails.
         """
 
         self._check_if_user_has_user_manager_role()
@@ -142,11 +148,11 @@ class AdminAPI(AuthenticatedAPI):
 
     def system_roles(self) -> list[str]:
         """
-        List all the user access roles in the system
+        Return a list of all  role names defined in the Preservica tenancy.
 
-        :return: list of roles
-        :rtype: list
-
+        :returns: A list of role name strings.
+        :rtype: list[str]
+        :raises RuntimeError: If the Preservica server is below v6.5.0, or if the request fails.
         """
 
         if (self.major_version < 6) or (self.major_version == 6 and self.minor_version < 5):
@@ -169,11 +175,11 @@ class AdminAPI(AuthenticatedAPI):
 
     def security_tags(self) -> list[str]:
         """
-        List all the security tags in the system
+        Return a list of all security tag names defined in the Preservica tenancy.
 
-        :return: list of security tags
-        :rtype: list
-
+        :returns: A list of security tag name strings.
+        :rtype: list[str]
+        :raises RuntimeError: If the request fails.
         """
         self._check_if_user_has_manager_role()
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -190,11 +196,15 @@ class AdminAPI(AuthenticatedAPI):
 
     def delete_user(self, username: str):
         """
-        Delete a user
+        Permanently delete a user from the Preservica tenancy.
 
-        :param username: email address of the preservica user
+        The user account is disabled before deletion. This operation cannot be undone.
+
+        :param username: The email address of the user to delete.
         :type username: str
-
+        :returns: None
+        :rtype: None
+        :raises RuntimeError: If the delete request fails.
         """
         self._check_if_user_has_manager_role()
         self.disable_user(username)
@@ -208,21 +218,22 @@ class AdminAPI(AuthenticatedAPI):
 
     def add_user(self, username: str, full_name: str, roles: list[str], externally_authenticated: bool = False) -> dict:
         """
-        Add a new user
+        Create a new user account to the Preservica tenancy.
 
-        :param externally_authenticated:
-
-        :param username: email address of the preservica user
+        :param username: The email address of the new user (used as the login username).
         :type username: str
-
-        :param full_name: Users real name
+        :param full_name: The full display name of the new user.
         :type full_name: str
-
-        :param roles: List of roles assigned to the user
-        :type roles: list
-
-        :return: dictionary of user attributes
+        :param roles: A list of role names to assign to the new user.
+        :type roles: list[str]
+        :param externally_authenticated: If ``True``, the user is authenticated via an external
+            identity provider (e.g. LDAP/SSO) rather than Preservica's internal authentication.
+            Defaults to ``False``.
+        :type externally_authenticated: bool
+        :returns: A dictionary of the newly created user's attributes with keys:
+            ``UserName``, ``FullName``, ``Email``, ``Tenant``, ``Enabled``, ``Roles``.
         :rtype: dict
+        :raises RuntimeError: If the creation request fails.
         """
         self._check_if_user_has_user_manager_role()
 
@@ -250,17 +261,17 @@ class AdminAPI(AuthenticatedAPI):
 
     def change_user_display_name(self, username: str, new_display_name: str) -> dict:
         """
-         Change the user display name
+        Change the full display name of an existing Preservica user.
 
-         :param username: email address of the preservica user
-         :type username: str
-
-         :param new_display_name: Users real name
-         :type new_display_name: str
-
-         :return: dictionary of user attributes
-         :rtype: dict
-         """
+        :param username: The email address of the user whose display name should be changed.
+        :type username: str
+        :param new_display_name: The new full display name to assign to the user.
+        :type new_display_name: str
+        :returns: A dictionary of the updated user's attributes with keys:
+            ``UserName``, ``FullName``, ``Email``, ``Tenant``, ``Enabled``, ``Roles``.
+        :rtype: dict
+        :raises RuntimeError: If fetching or updating the user record fails.
+        """
         self._check_if_user_has_user_manager_role()
         
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
@@ -288,9 +299,11 @@ class AdminAPI(AuthenticatedAPI):
 
     def current_user(self):
         """
-        Returns details about the current authenticated user
-        :return: dictionary of user attributes
+        Return details about the currently authenticated  user.
+
+        :returns: A dictionary of the current user's attributes
         :rtype: dict
+        :raises RuntimeError: If the request fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         request = self.session.get(f"{self.protocol}://{self.server}/api/user/details", headers=headers)
@@ -305,13 +318,15 @@ class AdminAPI(AuthenticatedAPI):
 
     def user_details(self, username: str) -> dict:
         """
-        Get the details of a user by their username
+        Retrieve the full details of a Preservica user by their email address.
 
-        :param username: email address of the preservica user
+        :param username: The email address of the user to look up.
         :type username: str
-
-        :return: dictionary of user attributes
+        :returns: A dictionary of the user's attributes with keys:
+            ``UserName`` (str), ``FullName`` (str), ``Email`` (str),
+            ``Tenant`` (str), ``Enabled`` (bool), ``Roles`` (list[str]).
         :rtype: dict
+        :raises RuntimeError: If the request fails.
         """
 
         self._check_if_user_has_manager_role()
@@ -323,15 +338,16 @@ class AdminAPI(AuthenticatedAPI):
             logger.debug(xml_response)
             entity_response = xml.etree.ElementTree.fromstring(xml_response)
             user_name = entity_response.find(f'.//{{{self.admin_ns}}}UserName')
-            return_dict['UserName'] = user_name.text
+            return_dict['UserName'] = user_name.text if user_name is not None else None
             fullname = entity_response.find(f'.//{{{self.admin_ns}}}FullName')
-            return_dict['FullName'] = fullname.text
+            return_dict['FullName'] = fullname.text if fullname is not None else None
             email = entity_response.find(f'.//{{{self.admin_ns}}}Email')
-            return_dict['Email'] = email.text
+            return_dict['Email'] = email.text  if email is not None else None
             tenant = entity_response.find(f'.//{{{self.admin_ns}}}Tenant')
-            return_dict['Tenant'] = tenant.text
+            return_dict['Tenant'] = tenant.text if tenant is not None else None
             enable = entity_response.find(f'.//{{{self.admin_ns}}}Enabled')
-            return_dict['Enabled'] = bool(enable.text == "true")
+            if enable is not None:
+                return_dict['Enabled'] = bool(enable.text == "true")
             roles = entity_response.findall(f'.//{{{self.admin_ns}}}Role')
             return_dict['Roles'] = [role.text for role in roles if role.text is not None]
             return return_dict
@@ -353,30 +369,43 @@ class AdminAPI(AuthenticatedAPI):
 
     def disable_user(self, username):
         """
-         Disable a Preservica User to prevent them logging in
+        Disable a Preservica user account to prevent the user from logging in.
 
-        :param username: email address of the preservica user
+        :param username: The email address of the user to disable.
         :type username: str
-
+        :returns: The server response body as a string.
+        :rtype: str
+        :raises RuntimeError: If the request fails.
         """
         self._check_if_user_has_manager_role()
         return self._account_status_(username, "false", "disable_user")
 
     def enable_user(self, username):
         """
-        Enable a Preservica User
+        Enable a previously disabled Preservica user account.
 
-        :param username: email address of the preservica user
+        :param username: The email address of the user to enable.
         :type username: str
-
+        :returns: The server response body as a string.
+        :rtype: str
+        :raises RuntimeError: If the request fails.
         """
         self._check_if_user_has_manager_role()
         return self._account_status_(username, "true", "enable_user")
 
     def user_report(self, report_name="users.csv"):
         """
-        Create a report on all tenancy users
-        :return:
+        Write a CSV report of all users in the Preservica tenancy to a file.
+
+        The report contains one row per user with the following columns:
+        ``UserName``, ``FullName``, ``Email``, ``Tenant``, ``Enabled``, ``Roles``.
+
+        :param report_name: The file path to write the CSV report to.
+            Defaults to ``"users.csv"`` in the current working directory.
+        :type report_name: str
+        :returns: None
+        :rtype: None
+        :raises RuntimeError: If any underlying user detail request fails.
         """
 
         self._check_if_user_has_manager_role()
@@ -392,10 +421,11 @@ class AdminAPI(AuthenticatedAPI):
 
     def all_users(self) -> list[str]:
         """
-        Return a list of all users in the system
+        Return a list of all user email addresses registered in the Preservica tenancy.
 
-        :return list of usernames:
-        :rtype: list
+        :returns: A list of username strings, each being the email address of a registered user.
+        :rtype: list[str]
+        :raises RuntimeError: If the request fails.
         """
 
         self._check_if_user_has_manager_role()
@@ -413,22 +443,20 @@ class AdminAPI(AuthenticatedAPI):
 
     def add_xml_schema(self, name: str, description: str, originalName: str, xml_data: Any):
         """
-        Add a new XSD document to Preservica
+        Upload a new XSD schema document to the Preservica schema store.
 
-        :param name: Name for the XSD schema
+        :param name: The display name for the XSD schema within Preservica.
         :type name: str
-
-        :param description: Description for the XSD schema
+        :param description: A human-readable description of the XSD schema.
         :type description: str
-
-        :param originalName: The original file name for the schema on disk
+        :param originalName: The original filename of the schema file on disk (e.g. ``"my-schema.xsd"``).
         :type originalName: str
-
-        :param xml_data: The xml schema as a UTF-8 string or a file like object
-        :type xml_data: Any
-
-        :return:
+        :param xml_data: The XSD schema content, either as a UTF-8 encoded string or as a
+            file-like object opened in binary mode.
+        :type xml_data: str or file-like object
+        :returns: None
         :rtype: None
+        :raises RuntimeError: If the upload request fails.
         """
 
         self._check_if_user_has_config_manager_role()
@@ -453,29 +481,27 @@ class AdminAPI(AuthenticatedAPI):
 
     def add_xml_document(self, name: str, xml_data: Any, document_type: str = "MetadataTemplate"):
         """
-        Add a new XML document to Preservica
-        The default type of XML document is a descriptive metadata template
+        Upload a new XML document to the Preservica XML document store.
 
-        Options are:
+        The default document type is a descriptive metadata template. Supported
+        ``document_type`` values are:
 
-        MetadataDropdownLists  -> Authority Lists
-        CustomIndexDefinition  -> Custom Search Indexes
-        MetadataTemplate -> Metadata Template
-        UploadWizardConfigurationFile -> Upload Wizard Config
-        ConfigurationFile -> Heritrix Config File
+        - ``"MetadataDropdownLists"`` — Authority Lists
+        - ``"CustomIndexDefinition"`` — Custom Search Indexes
+        - ``"MetadataTemplate"`` — Descriptive Metadata Template (default)
+        - ``"UploadWizardConfigurationFile"`` — Upload Wizard Configuration
+        - ``"ConfigurationFile"`` — Heritrix Crawler Configuration File
 
-        :param name: The name of the xml document
+        :param name: The display name for the XML document within Preservica.
         :type name: str
-
-        :param xml_data: The xml schema as a UTF-8 string or as a file like object
-        :type xml_data:
-
-        :param document_type: The type of the XML document, defaults to descriptive metadata templates
+        :param xml_data: The XML document content, either as a UTF-8 encoded string or as a
+            file-like object opened in binary mode.
+        :type xml_data: str or file-like object
+        :param document_type: The document type identifier. Defaults to ``"MetadataTemplate"``.
         :type document_type: str
-
-        :return:
+        :returns: None
         :rtype: None
-
+        :raises RuntimeError: If the upload request fails.
         """
 
         self._check_if_user_has_config_manager_role()
@@ -500,14 +526,16 @@ class AdminAPI(AuthenticatedAPI):
 
     def delete_xml_document(self, uri: str):
         """
-        Delete an XML document from Preservica's XML document store
+        Delete an XML document from Preservica's XML document store by its schema URI.
 
-        :param uri: The URI of the xml document to delete
+        If no document with the given URI is found, the method returns without error.
+
+        :param uri: The schema URI of the XML document to delete (as returned in the
+            ``SchemaUri`` key from :meth:`xml_documents`).
         :type uri: str
-
-        :return:
+        :returns: None
         :rtype: None
-
+        :raises RuntimeError: If a matching document is found but the delete request fails.
         """
 
         self._check_if_user_has_manager_role()
@@ -528,14 +556,16 @@ class AdminAPI(AuthenticatedAPI):
 
     def delete_xml_schema(self, uri: str):
         """
-        Delete an XML schema from Preservica
+        Delete an XSD schema document from Preservica by its schema URI.
 
-        :param uri: The URI of the xml schema to delete
+        If no schema with the given URI is found, the method returns without error.
+
+        :param uri: The schema URI of the XSD document to delete (as returned in the
+            ``SchemaUri`` key from :meth:`xml_schemas`).
         :type uri: str
-
-        :return:
+        :returns: None
         :rtype: None
-
+        :raises RuntimeError: If a matching schema is found but the delete request fails.
         """
 
         self._check_if_user_has_manager_role()
@@ -555,15 +585,16 @@ class AdminAPI(AuthenticatedAPI):
 
     def xml_schema(self, uri: str) -> str | None:
         """
-         Fetch the metadata schema XSD document as a string by its URI
+        Fetch the content of an XSD schema document stored in Preservica by its URI.
 
-        :param uri: The URI of the xml schema
+        :param uri: The schema URI of the XSD document to fetch (as returned in the
+            ``SchemaUri`` key from :meth:`xml_schemas`).
         :type uri: str
-
-        :return: The XML schema as a string
-        :rtype: str
-
-         """
+        :returns: The XSD schema content as a UTF-8 string, or ``None`` if no schema
+            with the given URI exists.
+        :rtype: str or None
+        :raises RuntimeError: If a matching schema is found but the content fetch fails.
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         for schema in self.xml_schemas():
@@ -581,14 +612,15 @@ class AdminAPI(AuthenticatedAPI):
 
     def xml_document(self, uri: str) -> str | None:
         """
-        fetch the metadata XML document as a string by its URI
+        Fetch the content of an XML document stored in Preservica by its URI.
 
-        :param uri: The URI of the xml document
+        :param uri: The schema URI of the XML document to fetch (as returned in the
+            ``SchemaUri`` key from :meth:`xml_documents`).
         :type uri: str
-
-        :return: The XML document as a string
-        :rtype: str
-
+        :returns: The XML document content as a UTF-8 string, or ``None`` if no document
+            with the given URI exists.
+        :rtype: str or None
+        :raises RuntimeError: If a matching document is found but the content fetch fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         for document in self.xml_documents():
@@ -606,11 +638,12 @@ class AdminAPI(AuthenticatedAPI):
 
     def xml_documents(self) -> List:
         """
-        fetch the list of XML documents stored in Preservica
+        Return a list of all XML documents stored in the Preservica XML document store.
 
-        :return: List of XML documents stored in Preservica
-        :rtype: list
-
+        :returns: A list of dictionaries, one per document. Each dictionary contains:
+            ``SchemaUri`` (str), ``Name`` (str), ``DocumentType`` (str), ``ApiId`` (str).
+        :rtype: list[dict]
+        :raises RuntimeError: If the request fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f'{self.protocol}://{self.server}/api/admin/documents', headers=headers)
@@ -626,10 +659,10 @@ class AdminAPI(AuthenticatedAPI):
                 name = document.find(f'.//{{{self.admin_ns}}}Name')
                 document_type = document.find(f'.//{{{self.admin_ns}}}DocumentType')
                 schema_uri = document.find(f'.//{{{self.admin_ns}}}SchemaUri')
-                document_dict['SchemaUri'] = schema_uri.text
-                document_dict['Name'] = name.text
-                document_dict['DocumentType'] = document_type.text
-                document_dict['ApiId'] = api_id.text
+                document_dict['SchemaUri'] = schema_uri.text   if schema_uri is not None else None
+                document_dict['Name'] = name.text   if name is not None else None
+                document_dict['DocumentType'] = document_type.text if document_type is not None else None
+                document_dict['ApiId'] = api_id.text if api_id is not None else None
                 results.append(document_dict)
             return results
         else:
@@ -638,12 +671,13 @@ class AdminAPI(AuthenticatedAPI):
 
     def xml_schemas(self) -> List:
         """
-         fetch the list of metadata schema XSD documents stored in Preservica
+        Return a list of all XSD schema documents stored in the Preservica schema store.
 
-        :return: List of XML schema's stored in Preservica
-        :rtype: list
-
-         """
+        :returns: A list of dictionaries, one per schema. Each dictionary contains:
+            ``SchemaUri`` (str), ``Name`` (str), ``Description`` (str), ``ApiId`` (str).
+        :rtype: list[dict]
+        :raises RuntimeError: If the request fails.
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
 
         request = self.session.get(f'{self.protocol}://{self.server}/api/admin/schemas', headers=headers)
@@ -659,13 +693,13 @@ class AdminAPI(AuthenticatedAPI):
                 name = schema.find(f'.//{{{self.admin_ns}}}Name')
                 description = schema.find(f'.//{{{self.admin_ns}}}Description')
                 aip_id = schema.find(f'.//{{{self.admin_ns}}}ApiId')
-                schema_dict['SchemaUri'] = schema_uri.text
-                schema_dict['Name'] = name.text
+                schema_dict['SchemaUri'] = schema_uri.text  if schema_uri is not None else None
+                schema_dict['Name'] = name.text  if name is not None else None
                 if description is not None:
                     schema_dict['Description'] = description.text
                 else:
                     schema_dict['Description'] = ""
-                schema_dict['ApiId'] = aip_id.text
+                schema_dict['ApiId'] = aip_id.text   if aip_id is not None else None
                 results.append(schema_dict)
             return results
         else:
@@ -674,11 +708,13 @@ class AdminAPI(AuthenticatedAPI):
 
     def xml_transforms(self) -> List:
         """
-        fetch the list of xml transforms stored in Preservica
+        Return a list of all XSLT transforms stored in the Preservica transform store.
 
-        :return: List of XML transforms stored in Preservica
-        :rtype: list
-
+        :returns: A list of dictionaries, one per transform. Each dictionary contains:
+            ``FromSchemaUri`` (str), ``ToSchemaUri`` (str), ``Name`` (str),
+            ``Purpose`` (str), ``ApiId`` (str).
+        :rtype: list[dict]
+        :raises RuntimeError: If the request fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         request = self.session.get(f'{self.protocol}://{self.server}/api/admin/transforms', headers=headers)
@@ -704,9 +740,9 @@ class AdminAPI(AuthenticatedAPI):
                 else:
                     transform_dict['FromSchemaUri'] = ""
 
-                transform_dict['Name'] = name.text
-                transform_dict['Purpose'] = purpose.text
-                transform_dict['ApiId'] = aip_id.text
+                transform_dict['Name'] = name.text    if name is not None else None
+                transform_dict['Purpose'] = purpose.text  if purpose is not None else None
+                transform_dict['ApiId'] = aip_id.text  if aip_id is not None else None
                 results.append(transform_dict)
             return results
         else:
@@ -715,17 +751,18 @@ class AdminAPI(AuthenticatedAPI):
 
     def xml_transform(self, input_uri: str, output_uri: str) -> str | None:
         """
-        fetch the XML transform as a string by its URIs
+        Fetch the content of an XSLT transform stored in Preservica by its input and output URIs.
 
-        :param input_uri: The URI of the input XML document
+        :param input_uri: The ``FromSchemaUri`` of the transform to fetch — the URI of the
+            input XML schema that the transform accepts.
         :type input_uri: str
-
-        :param output_uri: The URI of the output XML document
+        :param output_uri: The ``ToSchemaUri`` of the transform to fetch — the URI of the
+            output XML schema that the transform produces.
         :type output_uri: str
-
-        :return: The XML transform as a string
-        :rtype: str
-
+        :returns: The XSLT transform content as a UTF-8 string, or ``None`` if no transform
+            matching both URIs exists.
+        :rtype: str or None
+        :raises RuntimeError: If a matching transform is found but the content fetch fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
         for transform in self.xml_transforms():
@@ -742,17 +779,19 @@ class AdminAPI(AuthenticatedAPI):
 
     def delete_xml_transform(self, input_uri: str, output_uri: str):
         """
-        Delete a XSD document from Preservica
+        Delete an XSLT transform from Preservica by its input and output schema URIs.
 
-        :param input_uri: The URI of the input XML document
+        If no transform matching both URIs is found, the method returns without error.
+
+        :param input_uri: The ``FromSchemaUri`` of the transform to delete — the URI of the
+            input XML schema that the transform accepts.
         :type input_uri: str
-
-        :param output_uri: The URI of the output XML document
+        :param output_uri: The ``ToSchemaUri`` of the transform to delete — the URI of the
+            output XML schema that the transform produces.
         :type output_uri: str
-
-        :return:
+        :returns: None
         :rtype: None
-
+        :raises RuntimeError: If a matching transform is found but the delete request fails.
         """
 
         self._check_if_user_has_manager_role()
@@ -774,29 +813,26 @@ class AdminAPI(AuthenticatedAPI):
     def add_xml_transform(self, name: str, input_uri: str, output_uri: str, purpose: str, originalName: str,
                           xml_data: Any):
         """
-        Add a new XML transform to Preservica
+        Upload a new XSLT transform document to the Preservica transform store.
 
-        :param name: The name of the XML transform
+        :param name: The display name for the XSLT transform within Preservica.
         :type name: str
-
-        :param input_uri: The URI of the input XML document
+        :param input_uri: The schema URI of the input (source) XML format that the transform accepts.
         :type input_uri: str
-
-        :param output_uri: The URI of the output XML document
+        :param output_uri: The schema URI of the output (target) XML format that the transform produces.
         :type output_uri: str
-
-        :param purpose: The purpose of the transform, "transform" , "edit", "view"
+        :param purpose: The intended use of the transform. Accepted values are
+            ``"transform"`` (format conversion), ``"edit"`` (in-place editing), or ``"view"``
+            (rendering/display). The value is lowercased before submission.
         :type purpose: str
-
-        :param originalName: The original file name of the transform
+        :param originalName: The original filename of the XSLT file on disk (e.g. ``"my-transform.xslt"``).
         :type originalName: str
-
-        :param xml_data: The transform xml as a string or file like object
-        :type xml_data: Any
-
-        :return:
+        :param xml_data: The XSLT transform content, either as a UTF-8 encoded string or as a
+            file-like object opened in binary mode.
+        :type xml_data: str or file-like object
+        :returns: None
         :rtype: None
-
+        :raises RuntimeError: If the upload request fails.
         """
 
         self._check_if_user_has_config_manager_role()

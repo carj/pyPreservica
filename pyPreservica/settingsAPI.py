@@ -37,6 +37,34 @@ class SettingsAPI(AuthenticatedAPI):
         request_hook: Callable = None,
         credentials_path: str = "credentials.properties",
     ):
+        """
+        Initialise the SettingsAPI client and authenticate against the Preservica server.
+
+        Credentials may be supplied directly as arguments or loaded from environment variables
+        (``PRESERVICA_USERNAME``, ``PRESERVICA_PASSWORD``, ``PRESERVICA_TENANT``,
+        ``PRESERVICA_SERVER``) or a ``credentials.properties`` file.
+
+        :param username: Preservica account username.
+        :type username: str
+        :param password: Preservica account password.
+        :type password: str
+        :param tenant: Preservica tenant name.
+        :type tenant: str
+        :param server: Hostname of the Preservica server (e.g. ``us.preservica.com``).
+        :type server: str
+        :param use_shared_secret: Use a shared-secret token instead of username/password.
+        :type use_shared_secret: bool
+        :param two_fa_secret_key: TOTP secret key for two-factor authentication.
+        :type two_fa_secret_key: str
+        :param protocol: HTTP protocol to use, either ``"https"`` (default) or ``"http"``.
+        :type protocol: str
+        :param request_hook: Optional callable invoked as a requests event hook on each response.
+        :type request_hook: Callable
+        :param credentials_path: Path to a ``credentials.properties`` file used as a fallback
+            when credentials are not provided as arguments or environment variables.
+        :type credentials_path: str
+        :raises RuntimeError: If the connected Preservica system is older than v7.7.
+        """
         super().__init__(
             username,
             password,
@@ -66,6 +94,10 @@ class SettingsAPI(AuthenticatedAPI):
         :param profile_id: The rules for a specific profile id, Set to None for all rules
         :type profile_id: str
 
+        :returns: A dict containing a ``"rules"`` key whose value is a list of rule dicts.
+            Each rule dict includes ``profileId``, ``priority``, and ``selectorSettings``.
+        :rtype: dict
+        :raises RuntimeError: If the API request fails.
         """
         headers = {
             HEADER_TOKEN: self.token,
@@ -275,6 +307,10 @@ class SettingsAPI(AuthenticatedAPI):
         Profiles define a set of behaviours that will be applied when the profile is selected by a rule.
         A profile has no effect if it is not used by a rule. Includes settings for PII identification.
         PII detection tools may be run against the full text extracted from content.
+
+        :returns: A dict containing a ``"profiles"`` key whose value is a list of profile dicts.
+        :rtype: dict
+        :raises RuntimeError: If the API request fails.
         """
 
         headers = {

@@ -47,6 +47,36 @@ class ContentAPI(AuthenticatedAPI):
     def __init__(self, username: str|None = None, password: str|None = None, tenant: str|None = None, server: str|None = None,
                  use_shared_secret: bool = False, two_fa_secret_key: str|None = None,
                  protocol: str = "https", request_hook: Callable|None = None, credentials_path: str = 'credentials.properties'):
+        """
+        Initialise the ContentAPI client and authenticate against the Preservica server.
+
+        Credentials are resolved in the following priority order: explicit keyword arguments,
+        environment variables (``PRESERVICA_USERNAME``, ``PRESERVICA_PASSWORD``,
+        ``PRESERVICA_TENANT``, ``PRESERVICA_SERVER``), and finally the ``credentials.properties``
+        file at ``credentials_path``.
+
+        :param username: Preservica account username (e-mail address).
+        :type username: str or None
+        :param password: Preservica account password.
+        :type password: str or None
+        :param tenant: Preservica tenant identifier.
+        :type tenant: str or None
+        :param server: Preservica server hostname (e.g. ``us.preservica.com``).
+        :type server: str or None
+        :param use_shared_secret: When ``True``, authenticate using a shared-secret token
+            rather than username/password credentials.
+        :type use_shared_secret: bool
+        :param two_fa_secret_key: Base-32 TOTP secret key for two-factor authentication.
+        :type two_fa_secret_key: str or None
+        :param protocol: Transport protocol, either ``"https"`` (default) or ``"http"``.
+        :type protocol: str
+        :param request_hook: Optional callable that will be registered as a ``requests``
+            session event hook, invoked before every HTTP request.
+        :type request_hook: callable or None
+        :param credentials_path: Path to a ``credentials.properties`` file used as a
+            fallback credential source.
+        :type credentials_path: str
+        """
 
         super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
                          protocol, request_hook, credentials_path)
@@ -62,29 +92,57 @@ class ContentAPI(AuthenticatedAPI):
             self.next_start = next_start
 
     def search_callback(self, fn: Callable):
+        """
+        Register a progress callback that is invoked after each search page is fetched.
+
+        The callback receives a single string argument formatted as
+        ``"<fetched>:<total>"`` (e.g. ``"50:320"``), allowing callers to report
+        or act on incremental search progress.
+
+        :param fn: Callable that accepts one positional ``str`` argument.
+        :type fn: callable
+        """
         self.callback = fn
 
     def user_security_tags(self, with_permissions: bool = False):
         """
-             Return available security tags
+        Return the security tags available to the currently authenticated user.
 
-             :return: dict of security tags
-             :rtype:  dict
-         """
+        When ``with_permissions`` is ``False`` (the default) the returned dict maps
+        each tag name to itself.  When ``True``, each tag name maps to the list of
+        permission strings associated with that tag.
+
+        Requires Preservica v6.3.2 or higher; raises ``RuntimeError`` on older
+        servers.
+
+        :param with_permissions: When ``True``, include the permissions list for
+            each tag instead of just the tag name.
+        :type with_permissions: bool
+        :returns: Dictionary mapping security-tag names to their display name (or
+            to a list of permission strings when ``with_permissions=True``).
+        :rtype: dict
+        :raises RuntimeError: If the server version is below v6.3.2 or the API
+            call fails.
+        """
 
         return self.security_tags_base(with_permissions=with_permissions)
 
 
     def full_text(self, reference: str) -> str|None:
         """
-        Return the full text index value for asset.
-        The reference must be for an Asset.
+        Return the full-text index value for an Asset.
 
-        If the Asset has been OCR'd then this will return the OCR text
+        If the Asset has been OCR'd or otherwise indexed for full-text search,
+        this method returns the indexed text content.  The ``reference`` must
+        identify an Asset (document type ``IO``); content objects and folders
+        are not supported.
 
-        :param reference: The Asset reference
-        :return The value of the full text index or None if not found:
-        :rtype str:
+        :param reference: The UUID reference of the Asset whose full-text index
+            value should be retrieved.
+        :type reference: str
+        :returns: The full-text index string for the Asset, or ``None`` if the
+            reference is not found or does not correspond to an Asset.
+        :rtype: str or None
         """
 
         hits = list(self.simple_search_list(query=f"id:{reference}",
@@ -99,12 +157,29 @@ class ContentAPI(AuthenticatedAPI):
 
     def object_details(self, entity_type, reference: str, exclude_dates: bool = False) -> dict:
         """
+        Return the CMIS property bag for a single repository object.
 
-        :param exclude_dates: excludes cmis:createdBy, cmis:creationDate, cmis:lastModifiedBy, cmis:lastModificationDate
+        Retrieves all indexed metadata attributes stored against the object,
+        such as ``cmis:name``, ``cmis:objectId``, and custom schema fields.
+        Date-related properties (``cmis:createdBy``, ``cmis:creationDate``,
+        ``cmis:lastModifiedBy``, ``cmis:lastModificationDate``) can be omitted
+        by setting ``exclude_dates=True``.
+
+        :param entity_type: The type of entity to look up.  Either an
+            :class:`~pyPreservica.common.EntityType` enum value (e.g.
+            ``EntityType.ASSET``) or the raw string representation used by the
+            API (e.g. ``"IO"``).
+        :type entity_type: EntityType or str
+        :param reference: The UUID reference of the entity.
+        :type reference: str
+        :param exclude_dates: When ``True``, omits the four CMIS date/history
+            properties from the returned dictionary.
         :type exclude_dates: bool
-        :param entity_type:
-        :param reference:
-        :return: Dictionary of object attributes
+        :returns: Dictionary of CMIS property names to their values for the
+            requested object.
+        :rtype: dict
+        :raises RuntimeError: If the reference is not found in the repository
+            (HTTP 404), or if the API call fails for any other reason.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
         if type(entity_type) == EntityType:
@@ -130,6 +205,23 @@ class ContentAPI(AuthenticatedAPI):
 
 
     def download_bytes(self, reference) -> BytesIO:
+        """
+        Download the access copy of an Asset and return it as an in-memory byte buffer.
+
+        Streams the binary content from the Preservica content-download endpoint
+        directly into a :class:`~io.BytesIO` object.  The buffer's position is
+        reset to zero before it is returned so callers can read from it
+        immediately.
+
+        :param reference: The UUID reference of the Asset (Information Object) to
+            download.
+        :type reference: str
+        :returns: An in-memory byte buffer containing the downloaded file content,
+            seeked to position 0.
+        :rtype: io.BytesIO
+        :raises RuntimeError: If the reference is not found in the repository
+            (HTTP 404), or if the download fails for any other reason.
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:IO|{reference}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers, stream=True) as req:
@@ -151,6 +243,23 @@ class ContentAPI(AuthenticatedAPI):
 
 
     def download(self, reference, filename) -> str:
+        """
+        Download the access copy of an Asset and save it to a local file.
+
+        Streams the binary content from the Preservica content-download endpoint
+        directly to disk, flushing each chunk as it is written.
+
+        :param reference: The UUID reference of the Asset (Information Object) to
+            download.
+        :type reference: str
+        :param filename: Local filesystem path where the downloaded content will
+            be written.
+        :type filename: str
+        :returns: The ``filename`` path that was written to.
+        :rtype: str
+        :raises RuntimeError: If the reference is not found in the repository
+            (HTTP 404), or if the download fails for any other reason.
+        """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:IO|{reference}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/download', params=params, headers=headers,
@@ -172,6 +281,30 @@ class ContentAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, f"download failed with error code: {req.status_code}")
 
     def thumbnail_bytes(self, entity_type, reference: str, size: Thumbnail = Thumbnail.LARGE) -> BytesIO:
+        """
+        Retrieve the thumbnail image for a repository entity and return it as an in-memory byte buffer.
+
+        Downloads the PNG thumbnail generated by Preservica for the given entity.
+        The buffer's position is reset to zero before it is returned so callers
+        can read or pass it directly to image-processing libraries.
+
+        :param entity_type: The type of entity whose thumbnail is requested.
+            Either an :class:`~pyPreservica.common.EntityType` enum value or the
+            corresponding raw string used by the API (e.g. ``"IO"``, ``"SO"``).
+        :type entity_type: EntityType or str
+        :param reference: The UUID reference of the entity.
+        :type reference: str
+        :param size: The desired thumbnail size.  One of
+            :attr:`~pyPreservica.common.Thumbnail.SMALL`,
+            :attr:`~pyPreservica.common.Thumbnail.MEDIUM`, or
+            :attr:`~pyPreservica.common.Thumbnail.LARGE` (default).
+        :type size: Thumbnail
+        :returns: An in-memory byte buffer containing the PNG thumbnail image,
+            seeked to position 0.
+        :rtype: io.BytesIO
+        :raises RuntimeError: If the reference is not found in the repository
+            (HTTP 404), or if the thumbnail retrieval fails for any other reason.
+        """
         headers = {HEADER_TOKEN: self.token, 'accept': 'image/png', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params, headers=headers, stream=True) as req:
@@ -193,6 +326,31 @@ class ContentAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, f"thumbnail failed with error code: {req.status_code}")
 
     def thumbnail(self, entity_type, reference, filename, size=Thumbnail.LARGE) -> str:
+        """
+        Retrieve the thumbnail image for a repository entity and save it to a local file.
+
+        Downloads the PNG thumbnail generated by Preservica for the given entity
+        and writes it to ``filename`` on the local filesystem.
+
+        :param entity_type: The type of entity whose thumbnail is requested.
+            Either an :class:`~pyPreservica.common.EntityType` enum value or the
+            corresponding raw string used by the API (e.g. ``"IO"``, ``"SO"``).
+        :type entity_type: EntityType or str
+        :param reference: The UUID reference of the entity.
+        :type reference: str
+        :param filename: Local filesystem path where the PNG thumbnail will be
+            written.
+        :type filename: str
+        :param size: The desired thumbnail size.  One of
+            :attr:`~pyPreservica.common.Thumbnail.SMALL`,
+            :attr:`~pyPreservica.common.Thumbnail.MEDIUM`, or
+            :attr:`~pyPreservica.common.Thumbnail.LARGE` (default).
+        :type size: Thumbnail
+        :returns: The ``filename`` path that was written to.
+        :rtype: str
+        :raises RuntimeError: If the reference is not found in the repository
+            (HTTP 404), or if the thumbnail retrieval fails for any other reason.
+        """
         headers = {HEADER_TOKEN: self.token, 'accept': 'image/png', 'X-STREAM-No-Retry': 'true'}
         params = {'id': f'sdb:{entity_type}|{reference}', 'size': f'{size.value}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params, headers=headers,  stream=True) as req:
@@ -214,6 +372,20 @@ class ContentAPI(AuthenticatedAPI):
                 raise RuntimeError(req.status_code, f"thumbnail failed with error code: {req.status_code}")
 
     def indexed_fields(self) -> dict:
+        """
+        Return all search-index field names and their associated URIs.
+
+        Queries the Preservica ``/api/content/indexed-fields`` endpoint and
+        returns a dictionary mapping each field's short dotted name (e.g.
+        ``"xip.title"``, ``"cmis:name"``) to its full schema URI.  This is
+        useful for discovering which fields are available when building search
+        queries or filter dictionaries for the various search methods.
+
+        :returns: Dictionary mapping indexed field names (``"<schema>.<index>"``
+            format) to their full schema URI strings.
+        :rtype: dict
+        :raises RuntimeError: If the API call fails.
+        """
         headers = {HEADER_TOKEN: self.token}
         results = self.session.get(f'{self.protocol}://{self.server}/api/content/indexed-fields', headers=headers)
         if results.status_code == requests.codes.ok:
@@ -228,6 +400,28 @@ class ContentAPI(AuthenticatedAPI):
 
     def simple_search_csv(self, query: str = "%", page_size: int = 50, csv_file="search.csv",
                           list_indexes: list|None = None):
+        """
+        Run a simple keyword search and write all results to a CSV file.
+
+        Executes the same query as :meth:`simple_search_list` but instead of
+        returning a generator it writes every result row to a UTF-8 encoded CSV
+        file.  The first column is always ``xip.reference``.  If ``list_indexes``
+        is omitted, the default set of fields
+        (``xip.reference``, ``xip.title``, ``xip.description``,
+        ``xip.document_type``, ``xip.parent_ref``, ``xip.security_descriptor``)
+        is used as both the column headers and the requested metadata fields.
+
+        :param query: Lucene-style search expression.  Use ``"%"`` (default) to
+            match all objects.
+        :type query: str
+        :param page_size: Number of results to fetch per API request (default 50).
+        :type page_size: int
+        :param csv_file: Path to the output CSV file (default ``"search.csv"``).
+        :type csv_file: str
+        :param list_indexes: Optional list of index field names to include as
+            columns.  ``xip.reference`` is always prepended if not present.
+        :type list_indexes: list or None
+        """
         if list_indexes is None or len(list_indexes) == 0:
             metadata_fields = ["xip.reference", "xip.title", "xip.description", "xip.document_type",
                                "xip.parent_ref", "xip.security_descriptor"]
@@ -241,6 +435,33 @@ class ContentAPI(AuthenticatedAPI):
             writer.writerows(self.simple_search_list(query, page_size, metadata_fields))
 
     def simple_search_list(self, query: str = "%", page_size: int = 50, list_indexes: list|None = None) -> Generator:
+        """
+        Run a simple keyword search and yield all matching result rows as dictionaries.
+
+        Issues paginated requests to the Preservica search endpoint and lazily
+        yields each result row as a ``dict`` whose keys are the requested index
+        field names.  ``xip.reference`` is always present as the first key.
+        Pagination continues automatically until all matching objects have been
+        yielded.
+
+        If a progress callback has been registered via :meth:`search_callback`,
+        it is called after each page with the current progress string.
+
+        :param query: Lucene-style search expression.  Use ``"%"`` (default) to
+            match all objects.
+        :type query: str
+        :param page_size: Number of results to fetch per API request (default 50).
+        :type page_size: int
+        :param list_indexes: List of index field names to retrieve for each
+            result.  When omitted, the default set
+            (``xip.title``, ``xip.description``, ``xip.document_type``,
+            ``xip.parent_ref``, ``xip.security_descriptor``) is used.
+            ``xip.reference`` is always included.
+        :type list_indexes: list or None
+        :returns: Generator that yields one ``dict`` per matching object.
+        :rtype: Generator[dict, None, None]
+        :raises RuntimeError: If the API call fails.
+        """
 
         search_result = self._simple_search(query, 0, page_size, list_indexes)
         for e in search_result.results_list:
@@ -291,6 +512,32 @@ class ContentAPI(AuthenticatedAPI):
     def search_index_filter_csv(self, query: str = "%", csv_file="search.csv", page_size: int = 50,
                                 filter_values: dict|None = None,
                                 sort_values: dict|None = None):
+        """
+        Run a filtered search and write all results to a CSV file.
+
+        Executes the same query as :meth:`search_index_filter_list` but writes
+        every result row to a UTF-8 encoded CSV file instead of returning a
+        generator.  Column headers are derived from the keys of
+        ``filter_values``; ``xip.reference`` is always the first column.
+
+        :param query: Lucene-style search expression.  Use ``"%"`` (default) to
+            match all objects.
+        :type query: str
+        :param csv_file: Path to the output CSV file (default ``"search.csv"``).
+        :type csv_file: str
+        :param page_size: Number of results to fetch per API request (default 50).
+        :type page_size: int
+        :param filter_values: Dictionary mapping index field names to filter
+            values.  An empty string value (``""``) means "return this field but
+            do not restrict by value".  A non-empty string or list of strings
+            restricts results to objects whose field matches one of the supplied
+            values.  ``xip.reference`` is added automatically if absent.
+        :type filter_values: dict or None
+        :param sort_values: Optional dictionary mapping index field names to sort
+            directions.  Values starting with ``"d"`` (case-insensitive) sort
+            descending; all other values sort ascending.
+        :type sort_values: dict or None
+        """
         if filter_values is None:
             filter_values = {}
         if "xip.reference" not in filter_values:
@@ -306,12 +553,30 @@ class ContentAPI(AuthenticatedAPI):
 
     def search_fields(self, query: str = "%",  fields: list[Field]|None=None,  page_size: int = 25) -> Generator:
         """
-        Run a search query with multiple fields
+        Run a structured search using :class:`Field` objects and yield all matching result rows.
 
-        :param query: The main search query.
-        :param fields:  List of search fields
-        :param page_size:  The default search page size
-        :return: search result
+        Provides a richer search interface than :meth:`simple_search_list` or
+        :meth:`search_index_filter_list` by accepting a list of :class:`Field`
+        instances that can carry value filters, ``IS``/``NOT`` operators, and
+        sort orders.  Results are paginated automatically and yielded lazily.
+
+        Requires Preservica v7.5 or higher; raises ``RuntimeError`` on older
+        servers.
+
+        :param query: Lucene-style search expression.  Use ``"%"`` (default) to
+            match all objects.
+        :type query: str
+        :param fields: List of :class:`Field` instances specifying which index
+            fields to retrieve and optionally filter or sort by.  When
+            ``None`` or empty, only ``xip.title`` is requested with no filters.
+        :type fields: list[Field] or None
+        :param page_size: Number of results to fetch per API request (default 25).
+        :type page_size: int
+        :returns: Generator that yields one ``dict`` per matching object, with
+            ``xip.reference`` always present as a key.
+        :rtype: Generator[dict, None, None]
+        :raises RuntimeError: If the server version is below v7.5 or the API
+            call fails.
         """
 
         if self.major_version < 7 or (self.major_version == 7 and self.minor_version < 5):
@@ -408,13 +673,35 @@ class ContentAPI(AuthenticatedAPI):
     def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict|None = None,
                                  sort_values: dict|None = None) -> Generator:
         """
-        Run a search query with optional filters
+        Run a filtered search and yield all matching result rows as dictionaries.
 
-        :param query: The main search query.
-        :param page_size:  The default search page size
-        :param filter_values:  Dictionary of index names and values
-        :param sort_values:    Dictionary of sort index names and values
-        :return: search result
+        Issues paginated requests to the Preservica search endpoint, applying
+        per-field value filters and optional sort criteria.  Pagination
+        continues automatically until all matching objects have been yielded.
+        Each result row is a ``dict`` whose keys come from ``filter_values``,
+        with ``xip.reference`` always present.
+
+        If a progress callback has been registered via :meth:`search_callback`,
+        it is called after each page with the current progress string.
+
+        :param query: Lucene-style search expression.  Use ``"%"`` (default) to
+            match all objects.
+        :type query: str
+        :param page_size: Number of results to fetch per API request (default 25).
+        :type page_size: int
+        :param filter_values: Dictionary mapping index field names to filter
+            values.  An empty string value (``""``) means "return this field but
+            do not restrict by value".  A non-empty string or list of strings
+            restricts results to objects whose field matches one of the supplied
+            values.
+        :type filter_values: dict or None
+        :param sort_values: Optional dictionary mapping index field names to sort
+            directions.  Values starting with ``"d"`` (case-insensitive) sort
+            descending; all other values sort ascending.
+        :type sort_values: dict or None
+        :returns: Generator that yields one ``dict`` per matching object.
+        :rtype: Generator[dict, None, None]
+        :raises RuntimeError: If the API call fails.
         """
         search_result = self._search_index_filter(query, 0, page_size, filter_values, sort_values)
         for e in search_result.results_list:
@@ -428,11 +715,27 @@ class ContentAPI(AuthenticatedAPI):
 
     def search_index_filter_hits(self, query: str = "%", filter_values: dict|None = None) -> int:
         """
-        Run a search query with filters and return the number of hits only
+        Run a filtered search and return only the total number of matching objects.
 
-        :param query: The main search query.
-        :param filter_values:  Dictionary of index names and values
-        :return: Number of search results
+        Performs the same field-filtered query as :meth:`search_index_filter_list`
+        but fetches only a minimal page (10 results) and returns the
+        ``totalHits`` count reported by the API, without yielding the actual
+        result rows.  This is useful for counting matches cheaply before
+        deciding whether to retrieve the full result set.
+
+        :param query: Lucene-style search expression.  Use ``"%"`` (default) to
+            match all objects.
+        :type query: str
+        :param filter_values: Dictionary mapping index field names to filter
+            values.  An empty string value (``""``) means "do not restrict by
+            value".  A non-empty string or list of strings restricts the count
+            to objects whose field matches one of the supplied values.  When
+            ``None``, defaults to ``{"xip.reference": "", "xip.title": ""}``.
+        :type filter_values: dict or None
+        :returns: Total number of repository objects that match the query and
+            filters.
+        :rtype: int
+        :raises RuntimeError: If the API call fails.
         """
         start_from = str(0)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}

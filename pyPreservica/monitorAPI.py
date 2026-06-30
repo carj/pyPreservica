@@ -88,7 +88,9 @@ class MonitorAPI(AuthenticatedAPI):
         :type monitor_id:   str
         :param status:      The message status, info, warning, error etc.
         :type status:   MessageStatus
-        :return:            Generator for each message, each message is a dict object
+        :returns:           Generator for each message, each message is a dict object.
+        :rtype:             Generator[dict, None, None]
+        :raises RuntimeError: If the API request fails.
         """
         page_size = 25
         paged_set = self._messages_page_(monitor_id, maximum=page_size, next_page=None, status=status)
@@ -105,7 +107,10 @@ class MonitorAPI(AuthenticatedAPI):
 
         :param monitor_id:  The Process ID
         :type monitor_id:   str
-        :return:            List of timeseries information
+        :returns:           List of timeseries snapshot dicts, each containing progress
+            information recorded at a point in time.
+        :rtype:             list
+        :raises RuntimeError: If the API request fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         request = self.session.get(f'{self.protocol}://{self.server}/api/processmonitor/monitors/{monitor_id}/timeseries',
@@ -125,7 +130,9 @@ class MonitorAPI(AuthenticatedAPI):
         :type status:   MonitorStatus
         :param category: process categories (Ingest, Export, DataManagement, Automated)
         :type category:   MonitorCategory
-        :return: Generator for each monitor
+        :returns: Generator for each monitor, each monitor is a dict object.
+        :rtype: Generator[dict, None, None]
+        :raises RuntimeError: If the API request fails.
         """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json;charset=UTF-8'}
         params = {}
