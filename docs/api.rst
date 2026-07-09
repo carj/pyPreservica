@@ -239,10 +239,7 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
     Content objects have entity type EntityType.CONTENT_OBJECT
 
 .. autoclass:: pyPreservica.EntityType
-
 .. autoclass:: pyPreservica.RelationshipDirection
-
-
 .. autoclass:: pyPreservica.IntegrityCheck
 
 
@@ -286,7 +283,15 @@ https://demo.preservica.com/api/entity/documentation.html#/%2Fretention-policies
 .. autoclass:: RetentionAPI
      :members:
 
+Legal Hold API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+https://demo.preservica.com/api/entity/documentation.html#/%2Flegal-holds
+
+.. py:currentmodule:: pyPreservica
+.. autoclass:: LegalHold
+.. autoclass:: LegalHoldAPI
+     :members:
 
 
 Workflow API

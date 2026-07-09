@@ -1457,7 +1457,8 @@ class AuthenticatedAPI:
         logger.debug(self.xip_ns)
         logger.debug(self.entity_ns)
 
-def parse_date_to_iso(date):
+
+def parse_date_to_iso_date(datestr: str) -> datetime:
     """
     Parse a date string and return it normalised as an ISO 8601 timestamp with timezone.
 
@@ -1474,14 +1475,15 @@ def parse_date_to_iso(date):
     :raises ValueError: If the string cannot be parsed as a date/time value.
     """
     try:
-        date = datetime.fromisoformat(date.replace('Z','+00:00'))
+        date = datetime.fromisoformat(datestr.replace('Z','+00:00'))
         if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
             date = date.replace(tzinfo=dateutil.tz.UTC)
-        date = date.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
         return date
     except ValueError:
-        date = parse(date)
+        date = parse(datestr)
         if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
             date = date.replace(tzinfo=dateutil.tz.UTC)
-        date = date.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
         return date
+
+def parse_date_to_iso(date):
+    return parse_date_to_iso_date(date).strftime('%Y-%m-%dT%H:%M:%S.%f%z')

@@ -55,6 +55,7 @@ There is no support for use of the library from Preservica Ltd. For support see 
    upload
    admin
    retention
+   legal_hold
    workflow
    webhooks
    authority

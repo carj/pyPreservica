@@ -23,7 +23,7 @@ from .uploadAPI import (
     multi_asset_package,
 )
 from .workflowAPI import WorkflowAPI, WorkflowContext, WorkflowInstance, ProcessAPI, Process
-from .retentionAPI import RetentionAPI, RetentionAssignment, RetentionPolicy
+from .retentionAPI import RetentionAPI, RetentionAssignment, RetentionPolicy, LegalHoldAPI, LegalHold, LegalHoldAssignment
 from .parAPI import PreservationActionRegistry
 from .adminAPI import AdminAPI
 from .monitorAPI import MonitorAPI, MonitorCategory, MonitorStatus, MessageStatus
@@ -35,6 +35,6 @@ from .settingsAPI import SettingsAPI
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the pyPreservica package
-__version__ = "4.0.2"
+__version__ = "4.0.3"
 
 __license__ = "Apache License Version 2.0"

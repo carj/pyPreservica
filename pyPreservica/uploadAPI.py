@@ -15,6 +15,7 @@ import uuid
 import xml
 from datetime import datetime, timedelta, timezone
 from time import sleep
+from typing import Callable
 from xml.dom import minidom
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
@@ -28,6 +29,7 @@ from botocore.config import Config
 from botocore.credentials import RefreshableCredentials
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
 from dateutil.tz import tzlocal
+from pyrate_limiter import Rate, Duration, Limiter, InMemoryBucket
 from s3transfer import S3UploadFailedError
 from tqdm import tqdm
 
@@ -1328,6 +1330,16 @@ def _unpad(s):
 class UploadAPI(AuthenticatedAPI):
 
 
+    def __init__(self, username: str|None = None, password: str|None = None, tenant: str|None = None, server: str|None = None,
+                 use_shared_secret: bool = False, two_fa_secret_key: str|None = None,
+                 protocol: str = "https", request_hook: Callable|None = None, credentials_path: str = 'credentials.properties'):
+
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
+                         protocol, request_hook, credentials_path)
+
+        self.uploads_per_minute: int = 180
+        self.limiter: Limiter = None
+
 
 
     def ingest_web_video(self, url=None, parent_folder=None, **kwargs):
@@ -1814,13 +1826,16 @@ class UploadAPI(AuthenticatedAPI):
                 if delete_after_upload:
                     os.remove(path_to_zip_package)
 
-    def upload_zip_package(self, path_to_zip_package, folder=None, callback=None, delete_after_upload=False):
+    def upload_zip_package(self, path_to_zip_package, folder=None, callback=None, delete_after_upload=False, limit_per_minute= 180):
         """
         Upload a ZIP package directly to Preservica via the built-in S3 endpoint and start an ingest workflow.
 
         Uses auto-refreshing Preservica token credentials so that long-running uploads
         do not fail due to token expiry.  Multipart chunk sizes are automatically adjusted
         based on the package size.
+
+        This function can be rate limited to restrict the number of uploads per minute, it will default to a max of 180 / min.
+
 
         :param path_to_zip_package: Local path to the ZIP package file.
         :type path_to_zip_package: str
@@ -1834,12 +1849,23 @@ class UploadAPI(AuthenticatedAPI):
         :param delete_after_upload: When ``True``, the local ZIP file is deleted after a
             successful upload.  Defaults to ``False``.
         :type delete_after_upload: bool
+         :param limit_per_minute:  Restrict the number of uploads per min, default is 180 (3 per second)
+        :type limit_per_minute: int
         :returns: The ``preservica-progress-token`` header value returned by the server,
             which can be used to monitor the ingest workflow progress.
         :rtype: str
         :raises NoCredentialsError: If AWS credentials cannot be resolved.
         :raises ClientError: If the S3 upload fails.
         """
+
+        if self.limiter is None:
+            self.limiter = Limiter(Rate(limit_per_minute, Duration.MINUTE))
+            self.uploads_per_minute = limit_per_minute
+        if limit_per_minute != self.uploads_per_minute:
+            self.limiter = Limiter(Rate(limit_per_minute, Duration.MINUTE))
+            self.uploads_per_minute = limit_per_minute
+        self.limiter.try_acquire("upload_zip_package")
+
         bucket = f'{self.tenant.lower()}.package.upload'
         endpoint = f'{self.protocol}://{self.server}/api/s3/buckets'
         self.token = self.__token__()

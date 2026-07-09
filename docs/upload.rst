@@ -144,6 +144,27 @@ The default pyPreservica ``UploadProgressCallback`` looks like
                 sys.stdout.flush()
 
 
+
+-------------------------------
+Rate Limiting Uploads
+-------------------------------
+
+Calls to ```upload_zip_package``` can be rate limited to restrict the number of packages sent to the server.
+
+For example to limit the number of uploads to 6 per minute use the following code
+
+.. code-block:: python
+
+    upload = UploadAPI()
+    client = EntityAPI()
+
+    folder = client.folder("edf403d0-04af-46b0-ab21-e7a620bfdedf")
+    upload.upload_zip_package(path_to_zip_package="my-package.zip", folder=folder, limit_per_minute=6)
+
+
+If the function ```upload_zip_package``` is called more frequently then it will block
+
+
 -------------------------------
 Creating Packages
 -------------------------------

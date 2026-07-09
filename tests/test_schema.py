@@ -55,7 +55,7 @@ def test_add_xml_document():
     client = AdminAPI()
     client.delete_xml_document("http://www.crossref.org/schema/5.4.0")
     xml_doc = requests.get(
-        "https://gitlab.com/crossref/schema/-/raw/master/best-practice-examples/book5.3.0.xml").content.decode("utf-8")
+        "https://gitlab.com/crossref/schema/-/raw/master/best-practice-examples/book5.4.0.xml").content.decode("utf-8")
     client.add_xml_document("book5.4.0", xml_doc)
     xml_document = client.xml_document("http://www.crossref.org/schema/5.4.0")
     assert len(xml_document) == len(xml_doc)

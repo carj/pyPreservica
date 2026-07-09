@@ -8,7 +8,7 @@ author:     James Carr
 licence:    Apache License 2.0
 
 """
-
+import uuid
 import xml.etree.ElementTree
 from typing import Set, Callable, Generator
 
@@ -21,6 +21,7 @@ class RetentionAssignment:
     def __init__(self, entity_reference: str, policy_reference: str, api_id: str, start_date, expired=False):
         self.entity_reference = entity_reference
         self.policy_reference = policy_reference
+        self.policy_name = None
         self.api_id = api_id
         self.start_date = start_date
         self.expired = expired
@@ -67,6 +68,431 @@ class RetentionPolicy:
         return self.__str__()
 
 
+
+
+class LegalHold:
+    def __init__(self, name: str, reference: str):
+        self.name = name
+        self.reference = reference
+        self.description = ""
+        self.create_date = None
+        self.user = None
+
+
+    def __str__(self):
+        """
+        Return a human-readable string representation of the Legal Hold.
+
+        :returns: A formatted string showing the reference, name, and description.
+        :rtype: str
+        """
+        return f"Ref:\t\t\t{self.reference}\n" \
+               f"Name:\t\t\t{self.name}\n" \
+               f"Description:\t{self.description}\n"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class LegalHoldAssignment:
+    def __init__(self, entity_ref: str, legal_hold_ref: str, assigned_date: datetime = None):
+        self.entity_ref: str = entity_ref
+        self.legal_hold_ref: str = legal_hold_ref
+        self.assigned_date: datetime = assigned_date
+
+    def __str__(self):
+        """
+        Return a human-readable string representation of the LegalHoldAssignment.
+
+        """
+
+        return f"Asset Ref:\t\t\t{self.entity_ref}\n" \
+               f"Legal Hold Ref:\t\t\t{self.legal_hold_ref}\n" \
+               f"Assigned Date:\t{self.assigned_date}\n"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class LegalHoldAPI(AuthenticatedAPI):
+
+    def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False,
+                 two_fa_secret_key: str|None = None, protocol: str = "https", request_hook: Callable|None = None,
+                 credentials_path: str = 'credentials.properties'):
+
+        super().__init__(username, password, tenant, server, use_shared_secret, two_fa_secret_key,
+                         protocol, request_hook, credentials_path)
+
+        if self.major_version < 10 and self.minor_version < 1:
+            raise RuntimeError("Legal Hold API is only available when connected to a v9.1 System")
+
+    def find(self, legal_hold: LegalHold | None = None) -> Generator:
+        """
+
+        Find all Assets which are under the given legal hold
+
+
+        :param legal_hold:
+        :type legal_hold:
+        :return:
+        :rtype:
+        """
+
+        def _find_entities(legal_hold_ref: str | None = None, start_index: int = 0, page_size: int = 25) -> PagedSet:
+            start_from = str(start_index)
+            headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
+            filter_values = {'xip.legal_hold_ref': f"{legal_hold_ref}", "xip.title": "", "xip.reference": "*"}
+            field_list = []
+            for key, value in filter_values.items():
+                field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
+            filter_terms = ','.join(field_list)
+            query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % ("*", filter_terms))
+            payload = {'start': start_from, 'max': str(page_size), 'metadata': list(filter_values.keys()),
+                       'q': query_term}
+            results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload,
+                                        headers=headers)
+            if results.status_code == requests.codes.ok:
+                json_doc = results.json()
+                results_list = []
+                hits = int(json_doc['value']['totalHits'])
+                metadata = json_doc['value']['metadata']
+                refs = list(map(lambda x: content_api_identifier_to_type(x), list(json_doc['value']['objectIds'])))
+
+                for m_row, r_row in zip(metadata, refs):
+                    results_map = {'xip.reference': r_row[1]}
+                    for li in m_row:
+                        results_map[li['name']] = li['value']
+                    results_list.append(results_map)
+
+                ps = PagedSet(results=results_list, has_more=(hits > (page_size + start_index)), total=hits,
+                              next_page="")
+                return ps
+
+            else:
+                logger.error(f"find failed with error code {results.status_code}")
+                raise RuntimeError(results.status_code, "find failed")
+
+        if legal_hold is None:
+            legal_hold_value = "*"
+        else:
+            legal_hold_value = legal_hold.reference
+
+        page_size_value = 25
+        start_index_value = 0
+        paged_set = _find_entities(legal_hold_ref=legal_hold_value, start_index=start_index_value, page_size=page_size_value)
+        for entity in paged_set.results:
+            entity_ref = entity['xip.reference']
+            hold_ref = entity['xip.legal_hold_ref']
+            yield LegalHoldAssignment(entity_ref, hold_ref)
+
+        start_index_value = start_index_value + page_size_value
+        while paged_set.has_more:
+            paged_set = _find_entities(legal_hold_ref=legal_hold_value, start_index=start_index_value, page_size=page_size_value)
+            for entity in paged_set.results:
+                entity_ref = entity['xip.reference']
+                hold_ref = entity['xip.legal_hold_ref']
+                yield LegalHoldAssignment(entity_ref, hold_ref)
+
+
+
+    def remove_legal_hold_assignment(self, asset: Asset, legal_hold: LegalHold) -> Asset:
+        """
+
+        Remove an asset from a legal hold
+
+        :param asset:
+        :type asset:
+        :param legal_hold:
+        :type legal_hold:
+        :return:
+        :rtype:
+        """
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/{asset.path}/{asset.reference}/legal-holds/{legal_hold.reference}',headers=headers)
+
+        if request.status_code == requests.codes.no_content:
+            return asset
+        else:
+            raise RuntimeError(request.status_code, "remove_legal_hold_assignment failed")
+
+    def assign_legal_hold(self, asset: Asset, legal_hold: LegalHold) -> LegalHold:
+        """
+        Assign a legal hold to an Asset
+
+        :param asset:
+        :type asset:
+        :param legal_hold:
+        :type legal_hold:
+        :return:
+        :rtype: LegalHold
+        """
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        structural_object = xml.etree.ElementTree.Element('LegalHoldAssignmentRequest ', {"xmlns": self.xip_ns})
+        xml.etree.ElementTree.SubElement(structural_object, "LegalHoldRef").text = legal_hold.reference
+        xml_request = xml.etree.ElementTree.tostring(structural_object, encoding='utf-8')
+        logger.debug(xml_request)
+
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity/{asset.path}/{asset.reference}/legal-holds',
+                                   data=xml_request, headers=headers)
+
+        if request.status_code == requests.codes.ok:
+            return legal_hold
+        else:
+            raise RuntimeError(request.status_code, "assign_legal_hold failed")
+
+    def _legal_holds_(self, name: str|None, maximum: int = 100, next_page: str = None) -> PagedSet:
+        """
+
+        :param maximum:
+        :type maximum:
+        :param next_page:
+        :type next_page:
+        :return:
+        :rtype:
+        """
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        if next_page is None:
+            if name is None:
+                params = {'start': '0', 'max': str(maximum), 'expand': 'true'}
+            else:
+                params = {'start': '0', 'max': str(maximum), 'expand': 'true', 'name': name}
+            request = self.session.get(f'{self.protocol}://{self.server}/api/entity/legal-holds', params=params,
+                                       headers=headers)
+        else:
+            request = self.session.get(next_page, headers=headers)
+
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            logger.debug(xml_response)
+            result = set()
+            next_url = entity_response.find(f'.//{{{self.entity_ns}}}Paging/{{{self.entity_ns}}}Next')
+            total_results = int(entity_response.find(f'.//{{{self.entity_ns}}}TotalResults').text)
+            for hold in entity_response.findall(f'.//{{{self.entity_ns}}}LegalHold'):
+                ref = hold.find(f'.//{{{self.entity_ns}}}Ref').text
+                name = hold.find(f'.//{{{self.entity_ns}}}Name').text
+                description = hold.find(f'.//{{{self.entity_ns}}}Description').text
+                user = hold.find(f'.//{{{self.entity_ns}}}User').text
+                created =  datetime.fromisoformat(hold.find(f'.//{{{self.entity_ns}}}CreatedDate').text.replace("Z", "+00:00"))
+                lh = LegalHold(name, ref)
+                lh.description = description
+                lh.user = user
+                lh.create_date = created
+                result.add(lh)
+            has_more = True
+            url = None
+            if next_url is None:
+                has_more = False
+            else:
+                url = next_url.text
+            return PagedSet(result, has_more, total_results, url)
+        else:
+            raise RuntimeError(request.status_code, "policies failed")
+
+
+    def _create_hold_from_xml(self, xml_request: str) -> LegalHold:
+
+        entity_response = xml.etree.ElementTree.fromstring(xml_request)
+        logger.debug(xml_request)
+        ref = entity_response.find(f'.//{{{self.entity_ns}}}Ref').text
+        name = entity_response.find(f'.//{{{self.entity_ns}}}Name').text
+        description = entity_response.find(f'.//{{{self.entity_ns}}}Description').text
+        user = entity_response.find(f'.//{{{self.entity_ns}}}User').text
+        created = datetime.fromisoformat(
+            entity_response.find(f'.//{{{self.entity_ns}}}CreatedDate').text.replace("Z", "+00:00"))
+        lh = LegalHold(name, ref)
+        lh.description = description
+        lh.user = user
+        lh.create_date = created
+        return lh
+
+    def update_legal_hold(self, legal_hold: LegalHold) -> LegalHold:
+        """
+
+        Update an existing legal hold
+
+
+        :param legal_hold:
+        :type legal_hold:
+        :return:
+        :rtype:
+        """
+
+        self._check_if_user_has_config_manager_role()
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        structural_object = xml.etree.ElementTree.Element('LegalHold', {"xmlns": self.xip_ns})
+        xml.etree.ElementTree.SubElement(structural_object, "Name").text = legal_hold.name
+        xml.etree.ElementTree.SubElement(structural_object, "Description").text = legal_hold.description
+
+        xml_request = xml.etree.ElementTree.tostring(structural_object, encoding='utf-8')
+        logger.debug(xml_request)
+
+        request = self.session.put(f'{self.protocol}://{self.server}/api/entity/legal-holds/{legal_hold.reference}',
+                                   headers=headers, data=xml_request)
+
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            return self._create_hold_from_xml(xml_response)
+        else:
+            logger.error(f"create_hold failed with error code {request.status_code}")
+            raise RuntimeError(request.status_code, "create_hold failed")
+
+    def create_hold(self, name: str,  description: str|None = None) -> LegalHold:
+        """
+        Create a new system legal hold
+
+        This just creates the object and does not assign the hold to any assets
+
+        :param name: The name of the new hold
+        :type name:  str
+        :param description: The description of the legal hold
+        :type description:  str
+        :return:
+        :rtype: LegalHold
+        """
+
+        self._check_if_user_has_config_manager_role()
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        structural_object = xml.etree.ElementTree.Element('LegalHold', {"xmlns": self.xip_ns})
+        xml.etree.ElementTree.SubElement(structural_object, "Name").text = name
+        if description is not None:
+            xml.etree.ElementTree.SubElement(structural_object, "Description").text = description
+
+        xml_request = xml.etree.ElementTree.tostring(structural_object, encoding='utf-8')
+        logger.debug(xml_request)
+
+        request = self.session.post(f'{self.protocol}://{self.server}/api/entity/legal-holds', data=xml_request,
+                                   headers=headers)
+
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            return self._create_hold_from_xml(xml_response)
+        else:
+            logger.error(f"create_hold failed with error code {request.status_code}")
+            raise RuntimeError(request.status_code, "create_hold failed")
+
+
+    def legal_hold(self, reference) -> LegalHold:
+        """
+        Fetch a legal hold by its reference
+
+        :param reference:
+        :type reference:
+        :return:
+        :rtype:
+        """
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        request = self.session.get(f'{self.protocol}://{self.server}/api/entity/legal-holds/{reference}', headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            return self._create_hold_from_xml(xml_response)
+        else:
+            logger.error(f"hold failed with error code {request.status_code}")
+            raise RuntimeError(request.status_code, "hold failed")
+
+
+    def delete_legal_hold(self, reference: str):
+        """
+        Delete an existing legal hold by its reference or name
+
+        :param reference:
+        :type reference:
+        :return:
+        :rtype:
+        """
+
+        self._check_if_user_has_config_manager_role()
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+
+        ref = None
+        try:
+            uuid.UUID(f'urn:uuid:{reference}')
+            ref = reference
+        except ValueError:
+            holds = list(self.legal_holds(name=reference))
+            if len(holds) == 0:
+                raise RuntimeError("No legal holds found with that name")
+            if len(holds) > 1:
+                raise RuntimeError("No unique legal hold found with that name")
+            ref = holds[0].reference
+        finally:
+            if ref is not None:
+                request = self.session.delete(f'{self.protocol}://{self.server}/api/entity/legal-holds/{ref}', headers=headers)
+                if request.status_code == requests.codes.no_content:
+                    return
+                else:
+                    logger.error(f"delete_hold failed with error code {request.status_code}")
+                    raise RuntimeError(request.status_code, "delete_hold failed")
+
+
+
+
+    def legal_holds(self, name: str|None = None) -> Generator[LegalHold, None, None]:
+        """
+        List all the system legal holds
+
+        :return: Generator of legal holds
+        :rtype: Generator[LegalHold]
+        """
+
+        paged_set = self._legal_holds_(name, maximum=20, next_page=None)
+
+        for hold in paged_set.results:
+            yield hold
+
+        while paged_set.has_more:
+            paged_set = self._legal_holds_(name, maximum=20, next_page=paged_set.next_page)
+            for hold in paged_set.results:
+                yield hold
+
+
+    def asset_holds(self, asset: Asset) -> list[LegalHoldAssignment]:
+        """
+        Return all the holds on an entity
+
+        :param asset: The asset to query for holds
+        :type asset:  Asset
+        :return:      The list of holds put on this asset
+        :rtype:       list
+        """
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/xml;charset=UTF-8'}
+        request = self.session.get(
+            f'{self.protocol}://{self.server}/api/entity/{asset.path}/{asset.reference}/legal-holds',
+            headers=headers)
+        if request.status_code == requests.codes.ok:
+            xml_response = str(request.content.decode('utf-8'))
+            entity_response = xml.etree.ElementTree.fromstring(xml_response)
+            assignments = []
+            for hold in entity_response.findall(f'.//{{{self.entity_ns}}}LegalHoldAssignment'):
+                entity_ref = hold.find(f'.//{{{self.entity_ns}}}Entity').text
+                assert entity_ref ==  asset.reference
+                assigned_date = hold.find(f'.//{{{self.entity_ns}}}AssignedDate').text
+                hold_ref = hold.find(f'.//{{{self.entity_ns}}}LegalHold').text
+                assignment: LegalHoldAssignment = LegalHoldAssignment(entity_ref, hold_ref, parse_date_to_iso_date(assigned_date))
+                assignments.append(assignment)
+
+            return assignments
+
+        else:
+            logger.error(f"holds failed with error code {request.status_code}")
+            raise RuntimeError(request.status_code, "holds failed")
+
+
+
+
 class RetentionAPI(AuthenticatedAPI):
 
     def __init__(self, username=None, password=None, tenant=None, server=None, use_shared_secret=False,
@@ -104,6 +530,73 @@ class RetentionAPI(AuthenticatedAPI):
 
         if self.major_version < 7 and self.minor_version < 2:
             raise RuntimeError("Retention API is only available when connected to a v6.2 System")
+
+
+    def find(self, policy: RetentionPolicy|None = None) -> Generator:
+        """
+        Find all entities which have a retention policy
+
+        Find entities with a specific policy
+
+        :param policy:  Find entities with this specific policy
+        :type policy:   RetentionPolicy
+        :return:  entities with the policy or policies
+        :rtype:   Generator of entities
+        """
+
+
+        def _find_entities(policy_ref: str|None = None, start_index: int = 0, page_size: int = 25) -> PagedSet:
+            start_from = str(start_index)
+            headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
+            filter_values = {"xip.retention_policy_assignment_ref": f"{policy_ref}", "xip.retention_policy_assignment_name": "", "xip.title": "", "xip.reference": "*"}
+            field_list = []
+            for key, value in filter_values.items():
+                field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
+            filter_terms = ','.join(field_list)
+            query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % ("*", filter_terms))
+            payload = {'start': start_from, 'max': str(page_size), 'metadata': list(filter_values.keys()), 'q': query_term}
+            results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload, headers=headers)
+            if results.status_code == requests.codes.ok:
+                json_doc = results.json()
+                results_list = []
+                hits = int(json_doc['value']['totalHits'])
+                metadata = json_doc['value']['metadata']
+                refs = list(map(lambda x: content_api_identifier_to_type(x), list(json_doc['value']['objectIds'])))
+
+                for m_row, r_row in zip(metadata, refs):
+                    results_map = {'xip.reference': r_row[1]}
+                    for li in m_row:
+                        results_map[li['name']] = li['value']
+                    results_list.append(results_map)
+
+                ps = PagedSet(results=results_list, has_more=(hits > (page_size+start_index)), total=hits, next_page="")
+                return ps
+
+            else:
+                logger.error(f"find failed with error code {results.status_code}")
+                raise RuntimeError(results.status_code, "find failed")
+
+
+        if policy is None:
+            policy_ref_value = "*"
+        else:
+            policy_ref_value = policy.reference
+
+        page_size_value = 25
+        start_index_value = 0
+        paged_set = _find_entities(policy_ref = policy_ref_value,  start_index=start_index_value, page_size=page_size_value)
+        for entity in paged_set.results:
+            ra = RetentionAssignment(entity['xip.reference'], entity['xip.retention_policy_assignment_ref'], api_id=None, start_date=None)
+            ra.policy_name = entity['xip.retention_policy_assignment_name']
+            yield ra
+        start_index_value = start_index_value + page_size_value
+        while paged_set.has_more:
+            paged_set = _find_entities(policy_ref = policy_ref_value, start_index=start_index_value, page_size=page_size_value)
+            for entity in paged_set.results:
+                ra = RetentionAssignment(entity['xip.reference'], entity['xip.retention_policy_assignment_ref'],
+                                         api_id=None, start_date=None)
+                ra.policy_name = entity['xip.retention_policy_assignment_name']
+                yield ra
 
     def policy(self, reference: str) -> RetentionPolicy:
         """

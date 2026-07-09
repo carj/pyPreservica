@@ -2,7 +2,7 @@
 Retention API
 =================
 
-https://eu.preservica.com/api/entity/documentation.html#/%2Fretention-policies
+https://demo.preservica.com/api/entity/documentation.html#/%2Fretention-policies
 
 ----------------------
 Retention Policies
@@ -97,3 +97,33 @@ Remove a policy assignment from an asset
 
     retention_assignment = retention.remove_assignments(assignment)
 
+
+--------------------------------------
+Finding Assets Under Retention
+--------------------------------------
+
+To find all the assets in the system under a retention policy use:
+
+.. code-block:: python
+
+    retention = RetentionAPI()
+
+    for assignment in retention.find():
+        asset = assignment.entity_reference
+        policy = assignment.policy_reference
+
+
+You can also restrict the call to look for assets with a specific policy
+
+.. code-block:: python
+
+    retention = RetentionAPI()
+
+    policy = retention.policy_by_name("Standard Policy")
+
+    for assignment in retention.find(policy):
+        asset = assignment.entity_reference
+        assert assignment.policy_reference == policy.reference
+
+
+This method will return a Generator of ``RetentionAssignment`` objects
