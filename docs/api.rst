@@ -290,6 +290,7 @@ https://demo.preservica.com/api/entity/documentation.html#/%2Flegal-holds
 
 .. py:currentmodule:: pyPreservica
 .. autoclass:: LegalHold
+.. autoclass:: LegalHoldAssignment
 .. autoclass:: LegalHoldAPI
      :members:
 
