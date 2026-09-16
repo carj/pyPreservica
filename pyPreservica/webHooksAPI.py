@@ -54,6 +54,8 @@ class LambdaURLHandler:
                                  digestmod=hashlib.sha256).hexdigest()
             if signature == event['headers']['preservica-signature']:
                 doc_body = event['body']
+                if isinstance(doc_body, str):
+                    doc_body= json.loads(doc_body)
                 for reference in list(doc_body['events']):
                     entity_ref = reference['entityRef']
                     entity_type = reference['entityType']
