@@ -800,10 +800,15 @@ which returns each Bitstream from all the Representations and Content Objects wi
         do_something(bitstream)
 
 
+
+----------------------------------------------------
+Downloading Content
+----------------------------------------------------
+
 The actual content files can be downloaded to a disk file using ``bitstream_content()``
 
 This will download the bitstream to the file path given by the second argument, to save the object using
-the original file name use the following:
+the original file name into the current directory use the following:
 
 .. code-block:: python
 
@@ -853,9 +858,19 @@ To download all the access bitstreams to the current folder you would use.
 The content files can be written to a byte array using ``bitstream_bytes()`` this
 returns a BytesIO object.
 
+
 .. code-block:: python
 
-    byte_array = client.bitstream_bytes(bitstream)
+    byte_array: BytesIO = client.bitstream_bytes(bitstream)
+
+
+
+.. warning::
+    Downloading files into a BytesIO will store the file contents directly into memory and this could fail for
+    large files. For large files it is safer to write the bytes to a file on disk or download in chunks using the
+    method below.
+
+
 
 If you need to process bitstream content as it is downloaded from Preservica pyPreservica provides the following API.
 
@@ -882,6 +897,23 @@ The storage adapters which hold a copy of the bitstream can be found using:
 
     for bitstream in client.bitstreams_for_asset(asset):
         locations = client.bitstream_location(bitstream)
+
+
+
+----------------------------------------------------
+Downloading Partial Content
+----------------------------------------------------
+
+To download a section of a larger files you can pass a range request to both ``bitstream_bytes()`` and
+``bitstream_content()``.
+
+For example to only download the first 1K bytes of a image you can use:
+
+.. code-block:: python
+
+    for bs in client.bitstreams_for_asset(asset):
+        b: BytesIO = client.bitstream_bytes(bs, start_byte=0, end_byte=1024-1)
+        assert b.getbuffer().nbytes == 1024
 
 
 ----------------------------------------------------

@@ -16,7 +16,9 @@ from datetime import timedelta, timezone
 from io import BytesIO
 from time import sleep
 from typing import Any, Generator, Tuple, Iterable, Union, Callable
+from urllib import request
 
+from tqdm import tqdm
 
 from pyPreservica.common import *
 
@@ -68,8 +70,8 @@ class EntityAPI(AuthenticatedAPI):
         :rtype: Generator
         """
         if not isinstance(bitstream, Bitstream):
-            logger.error("bitstream_content argument is not a Bitstream object")
-            raise RuntimeError("bitstream_bytes argument is not a Bitstream object")
+            logger.error("bitstream_chunks argument is not a Bitstream object")
+            raise RuntimeError("bitstream_chunks argument is not a Bitstream object")
         with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}, stream=True) as request:
             if request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
@@ -83,13 +85,21 @@ class EntityAPI(AuthenticatedAPI):
                 logger.error(exception)
                 raise exception
 
-    def bitstream_bytes(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE) -> BytesIO:
+    def bitstream_bytes(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE,  start_byte: int = -1, end_byte: int = 0, show_progress: bool = False,  max_retries: int = 5) -> BytesIO:
         """
         Download a file represented as a Bitstream to a byteIO array
 
         Returns the byteIO
         Returns None if the file does not contain the correct number of bytes (default 2k)
 
+        :param max_retries:
+        :type max_retries:
+        :param show_progress: Show download progress on the terminal
+        :type show_progress: bool
+        :param end_byte:  The last byte to download if using the HTTP Range header
+        :type end_byte:   int
+        :param start_byte: The first byte to download if using the HTTP Range header
+        :type start_byte:  int
         :param chunk_size: The buffer copy chunk size in bytes default
         :param bitstream: A Bitstream object
         :type bitstream: Bitstream
@@ -98,28 +108,71 @@ class EntityAPI(AuthenticatedAPI):
         :rtype: byteIO
         """
         if not isinstance(bitstream, Bitstream):
-            logger.error("bitstream_content argument is not a Bitstream object")
+            logger.error("bitstream_bytes argument is not a Bitstream object")
             raise RuntimeError("bitstream_bytes argument is not a Bitstream object")
-        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}, stream=True) as response:
-            if response.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.bitstream_bytes(bitstream)
-            elif response.status_code == requests.codes.ok:
-                file_bytes = BytesIO()
-                for chunk in response.iter_content(chunk_size=chunk_size):
-                    file_bytes.write(chunk)
-                file_bytes.seek(0)
-                if file_bytes.getbuffer().nbytes == bitstream.length:
-                    logger.debug(f"Downloaded {bitstream.length} bytes from {bitstream.filename}")
-                    return file_bytes
-                else:
-                    logger.error("Downloaded file size did not match the Preservica held value")
-                    raise RuntimeError("Downloaded file size did not match the Preservica held value")
-            else:
-                exception = HTTPException(bitstream.filename, response.status_code, response.url, "bitstream_bytes",
-                                          response.content.decode('utf-8'))
-                logger.error(exception)
-                raise exception
+
+        headers = {HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}
+
+
+        file_length = bitstream.length
+
+        if start_byte > -1 and end_byte > 0:
+            headers['Range'] = f"bytes={start_byte}-{end_byte}"
+            file_length = end_byte - start_byte + 1
+
+
+        progress = tqdm(total=file_length, unit='B', unit_scale=True, unit_divisor=1024,
+                        desc=bitstream.filename, disable=not show_progress)
+
+        bytes_written = 0
+        attempt = 0
+        file_bytes = BytesIO()
+        try:
+            while True:
+                if bytes_written:
+                    if end_byte > 0:
+                        headers['Range'] = f"bytes={bytes_written}-{end_byte}"
+                    else:
+                        headers['Range'] = f"bytes={bytes_written}-"
+                try:
+                    with self.session.get(bitstream.content_url, headers=headers, stream=True) as response:
+                        if response.status_code == requests.codes.unauthorized:
+                            self.token = self.__token__()
+                            return self.bitstream_bytes(bitstream)
+                        elif (response.status_code == requests.codes.ok) or (response.status_code == requests.codes.partial_content):
+
+                            for chunk in response.iter_content(chunk_size=chunk_size):
+                                file_bytes.write(chunk)
+                                bytes_written += len(chunk)
+                                progress.update(len(chunk))
+                            if file_bytes.getbuffer().nbytes == file_length:
+                                logger.debug(f"Downloaded {file_length} bytes from {bitstream.filename}")
+                                break
+                            else:
+                                logger.error("Downloaded file size did not match the Preservica held value")
+                                raise RuntimeError("Downloaded file size did not match the Preservica held value")
+                        else:
+                            exception = HTTPException(bitstream.filename, response.status_code, response.url, "bitstream_bytes")
+                            logger.error(exception)
+                            raise exception
+
+                except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError) as e:
+                    attempt += 1
+                    if attempt > max_retries:
+                        raise RuntimeError(f"Exceeded {max_retries} retries downloading {bitstream.filename}")
+                    self.token = self.__token__()
+                    headers[HEADER_TOKEN] = self.token
+                    continue
+
+
+        finally:
+            progress.close()
+            file_bytes.seek(0)
+
+        return file_bytes
+
+
+
 
     def bitstream_location(self, bitstream: Bitstream) -> list:
         """"
@@ -157,7 +210,7 @@ class EntityAPI(AuthenticatedAPI):
 
 
 
-    def bitstream_content(self, bitstream: Bitstream, filename: str, chunk_size: int = CHUNK_SIZE) -> int:
+    def bitstream_content(self, bitstream: Bitstream, filename: str, chunk_size: int = CHUNK_SIZE, start_byte: int = -1, end_byte: int = 0, show_progress: bool = False,  max_retries: int = 5) -> int:
         """
         Download a file represented as a Bitstream to a local filename
 
@@ -179,27 +232,65 @@ class EntityAPI(AuthenticatedAPI):
         if not isinstance(bitstream, Bitstream):
             logger.error("bitstream_content argument is not a Bitstream object")
             raise RuntimeError("bitstream_content argument is not a Bitstream object")
-        with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}, stream=True) as request:
-            if request.status_code == requests.codes.unauthorized:
-                self.token = self.__token__()
-                return self.bitstream_content(bitstream, filename)
-            elif request.status_code == requests.codes.ok:
-                with open(filename, 'wb') as file:
-                    for chunk in request.iter_content(chunk_size=chunk_size):
-                        file.write(chunk)
-                    file.flush()
-                if os.path.getsize(filename) == bitstream.length:
-                    logger.debug(f"Downloaded {bitstream.length} bytes into {filename}")
-                    return bitstream.length
-                else:
-                    logger.error("Download file size did not match the Preservica held value")
-                    os.remove(filename)
-                    raise RuntimeError("Downloaded file size did not match the Preservica held value")
-            else:
-                exception = HTTPException(bitstream.filename, request.status_code, request.url, "bitstream_content",
-                                          request.content.decode('utf-8'))
-                logger.error(exception)
-                raise exception
+
+        headers = {HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}
+
+        file_length = bitstream.length
+
+        if start_byte > -1 and end_byte > 0:
+            headers['Range'] = f"bytes={start_byte}-{end_byte}"
+            file_length = end_byte - start_byte + 1
+
+        progress = tqdm(total=file_length, unit='B', unit_scale=True, unit_divisor=1024,
+                        desc=bitstream.filename, disable=not show_progress)
+
+        bytes_written = 0
+        attempt = 0
+        mode = 'wb'
+        try:
+            while True:
+                if bytes_written:
+                    if end_byte > 0:
+                        headers['Range'] = f"bytes={bytes_written}-{end_byte}"
+                    else:
+                        headers['Range'] = f"bytes={bytes_written}-"
+
+                try:
+                    with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}, stream=True) as response:
+                        if response.status_code == requests.codes.unauthorized:
+                            self.token = self.__token__()
+                            return self.bitstream_content(bitstream, filename, chunk_size)
+                        elif (response.status_code == requests.codes.ok) or (response.status_code == requests.codes.partial_content):
+                            with open(filename, mode) as file:
+                                for chunk in response.iter_content(chunk_size=chunk_size):
+                                    file.write(chunk)
+                                    bytes_written += len(chunk)
+                                    progress.update(len(chunk))
+                                file.flush()
+                            if os.path.getsize(filename) == file_length:
+                                logger.debug(f"Downloaded {file_length} bytes into {filename}")
+                                return file_length
+                            else:
+                                logger.error("Download file size did not match the Preservica held value")
+                                os.remove(filename)
+                                raise RuntimeError("Downloaded file size did not match the Preservica held value")
+                        else:
+                            exception = HTTPException(bitstream.filename, response.status_code, response.url, "bitstream_content")
+                            logger.error(exception)
+                            raise exception
+
+                except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError) as e:
+                    attempt += 1
+                    if attempt > max_retries:
+                        raise RuntimeError(f"Exceeded {max_retries} retries downloading {bitstream.filename}")
+                    self.token = self.__token__()
+                    headers[HEADER_TOKEN] = self.token
+                    mode = 'ab'
+                    continue
+
+
+        finally:
+            progress.close()
 
     def download_opex(self, pid: str) -> str:
         """
@@ -1182,7 +1273,7 @@ class EntityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-    def move_sync(self, entity: EntityT, dest_folder: Folder) -> EntityT:
+    def move_sync(self, entity: EntityT, dest_folder: Folder = None) -> EntityT:
         """
         Move an entity (asset or folder) to a new folder
         This call blocks until the move is complete
@@ -2044,6 +2135,41 @@ class EntityAPI(AuthenticatedAPI):
                             bitstream.generation = generation
                             yield bitstream
 
+    def set_representation_name(self, asset: Asset,  name: str, rep_type: RepresentationType, rep_index: int = 1) -> str:
+        """
+            Change the name of a information object representation
+            
+            :param asset: The asset containing the representation
+            :type  asset: Asset
+            
+            :param name: The new name of the representation
+            :type  name: str
+        
+            :param rep_type: The type of the representation
+            :type  rep_type: RepresentationType
+            
+            :param rep_index: The index of the representation, defaults to 1 the first representation
+            :type  rep_index: int
+            
+        """
+        specifier = f"{rep_type.value}"
+
+        if rep_index > 1:
+            specifier = f"{rep_type.value}_{str(rep_index)}"
+
+        headers = {HEADER_TOKEN: self.token}
+        request = self.session.put(
+            f'{self.protocol}://{self.server}/api/entity/{asset.path}/{asset.reference}/representations/{specifier}/name',
+            headers=headers, params={"name": name})
+        if request.status_code == requests.codes.ok:
+            return name
+        else:
+            exception = HTTPException(asset.reference, request.status_code, request.url,
+                                      "set_representation_name", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
+
     def representations(self, asset: Asset) -> set[Representation]:
         """
         Return a set of representations for the asset
@@ -2067,7 +2193,7 @@ class EntityAPI(AuthenticatedAPI):
             representations = entity_response.findall(f'.//{{{self.entity_ns}}}Representation')
             result = set()
             for r in representations:
-                representation = Representation(asset, r.get('type'), r.get("name", None), r.text)
+                representation = Representation(asset,  RepresentationType[r.get('type')], r.get("name", r.get('type')), r.text)
                 result.add(representation)
             return result
         else:

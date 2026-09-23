@@ -36,7 +36,7 @@ def test_can_download_bistream(setup_data):
     assert len(representations) == 1
     representation = representations.pop()
     assert representation.name == "Preservation-1"
-    assert representation.rep_type == "Preservation"
+    assert representation.rep_type == RepresentationType.Preservation
     content_objects = client.content_objects(representation)
     assert len(content_objects) == 1
     content_object = content_objects[0]

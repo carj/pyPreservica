@@ -496,6 +496,14 @@ class RelationshipDirection(Enum):
     TO = "To"
 
 
+class RepresentationType(Enum):
+    """
+    Enumeration of the two possible values for Representation
+
+    """
+    Access = "Access"
+    Preservation = "Preservation"
+
 class EntityType(Enum):
     """
     Enumeration of the Entity Types
@@ -864,14 +872,14 @@ class Representation:
         Class to represent the Representation Object in the Preservica data model
     """
 
-    def __init__(self, asset: Asset, rep_type: str, name: str, url: str):
-        self.asset = asset
-        self.rep_type = rep_type
+    def __init__(self, asset: Asset, rep_type: RepresentationType, name: str, url: str):
+        self.asset: Asset = asset
+        self.rep_type: RepresentationType= rep_type
         self.name = name
         self.url = url
 
     def __str__(self):
-        return f"Type:\t\t\t{self.rep_type}\n" \
+        return f"Type:\t\t\t{self.rep_type.value}\n" \
                f"Name:\t\t\t{self.name}\n" \
                f"URL:\t{self.url}"
 

@@ -30,7 +30,7 @@ def test_get_all_events():
 def test_get_bitstream_checks():
     client = EntityAPI()
     asset = client.asset(ASSET_ID)
-    preservation_representations = list(filter(lambda x: x.rep_type == "Preservation", client.representations(asset)))
+    preservation_representations = list(filter(lambda x: x.rep_type == RepresentationType.Preservation, client.representations(asset)))
     preservation_content_objects = client.content_objects(preservation_representations.pop())
     generation = client.generations(preservation_content_objects[0])[0]
     assert generation.format_group == "tiff"

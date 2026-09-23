@@ -34,11 +34,11 @@ def test_get_representations(setup_data):
     assert asset is not None
     representations = client.representations(asset)
     assert len(representations) == 2
-    preservation_representations = list(filter(lambda x: x.rep_type == "Preservation", representations))
+    preservation_representations = list(filter(lambda x: x.rep_type == RepresentationType.Preservation, representations))
     assert len(preservation_representations) == 1
     representation = preservation_representations.pop()
     assert representation.asset.title == asset.title
-    assert representation.rep_type == "Preservation"
+    assert representation.rep_type == RepresentationType.Preservation
     assert representation.name == "Preservation-1"
 
 
@@ -48,11 +48,11 @@ def test_get_generations(setup_data):
     assert asset is not None
     representations = client.representations(asset)
     assert len(representations) == 2
-    preservation_representations = list(filter(lambda x: x.rep_type == "Preservation", representations))
+    preservation_representations = list(filter(lambda x: x.rep_type == RepresentationType.Preservation, representations))
     assert len(preservation_representations) == 1
     representation = preservation_representations.pop()
     assert representation.asset.title == asset.title
-    assert representation.rep_type == "Preservation"
+    assert representation.rep_type == RepresentationType.Preservation
     assert representation.name == "Preservation-1"
     content_objects = client.content_objects(representation)
     assert len(content_objects) == 1
@@ -64,11 +64,11 @@ def test_get_generations(setup_data):
     assert generation.active is True
     assert generation.original is True
     assert generation.format_group == "tiff"
-    access_representations = list(filter(lambda x: x.rep_type == "Access", representations))
+    access_representations = list(filter(lambda x: x.rep_type == RepresentationType.Access, representations))
     assert len(access_representations) == 1
     representation = access_representations.pop()
     assert representation.asset.title == asset.title
-    assert representation.rep_type == "Access"
+    assert representation.rep_type == RepresentationType.Access
     assert representation.name == "Access Copy"
     content_objects = client.content_objects(representation)
     assert len(content_objects) == 1
@@ -85,7 +85,7 @@ def test_get_generations(setup_data):
 def test_get_bitstream_content(setup_data):
     client = EntityAPI()
     asset = client.asset(ASSET_ID)
-    preservation_representations = list(filter(lambda x: x.rep_type == "Preservation", client.representations(asset)))
+    preservation_representations = list(filter(lambda x: x.rep_type == RepresentationType.Preservation, client.representations(asset)))
     preservation_content_objects = client.content_objects(preservation_representations.pop())
     generation = client.generations(preservation_content_objects[0])[0]
     assert generation.format_group == "tiff"
@@ -128,3 +128,25 @@ def test_get_bs_bytes(setup_data):
             b: Union[BytesIO, None] = client.bitstream_bytes(bs)
             assert b is not None
             assert b.getbuffer().nbytes == 1942466
+
+
+def test_get_bs_partial_bytes(setup_data):
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    for bs in client.bitstreams_for_asset(asset):
+        if bs.filename == 'LC-USZ62-51820.tiff':
+            b: Union[BytesIO, None] = client.bitstream_bytes(bs, start_byte=0, end_byte=1024-1)
+            assert b is not None
+            assert b.getbuffer().nbytes == 1024
+
+
+
+def test_get_bs_partial_bytes2(setup_data):
+    client = EntityAPI()
+    asset = client.asset(ASSET_ID)
+    for bs in client.bitstreams_for_asset(asset):
+        if bs.filename == 'LC-USZ62-51820.tiff':
+            b: Union[BytesIO, None] = client.bitstream_bytes(bs, start_byte=1024, end_byte=(1024*2)-1)
+            assert b is not None
+            assert b.getbuffer().nbytes == 1024
+
