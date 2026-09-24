@@ -1,0 +1,11 @@
+div.badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+div.badges a,
+div.badges img {
+    display: inline-block !important;
+    margin: 0 !important;
+}

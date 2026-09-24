@@ -9,6 +9,9 @@ master_doc = 'index'
 
 #html_logo = "images/trace.svg"
 
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]
+
 extensions = [
     'sphinx.ext.apidoc',
     'sphinx.ext.intersphinx',
@@ -43,3 +46,5 @@ project = u"pyPreservica"
 author = u"James Carr"
 
 googleanalytics_id = 'G-FWD081Y5Z6'
+
+

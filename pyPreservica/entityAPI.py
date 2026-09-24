@@ -105,8 +105,7 @@ class EntityAPI(AuthenticatedAPI):
         headers = {HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}
 
         try:
-            with RemoteZip(bitstream.content_url, headers=headers, session=self.session,
-                           support_suffix_range=False) as zip_file:
+            with RemoteZip(bitstream.content_url, headers=headers, session=self.session, support_suffix_range=False) as zip_file:
                 zip_file.extract(name)
                 return name
         except RemoteIOError as e:
