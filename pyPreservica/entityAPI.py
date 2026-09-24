@@ -12,11 +12,12 @@ licence:    Apache License 2.0
 import os.path
 import uuid
 import xml.etree.ElementTree
+import zipfile
 from datetime import timedelta, timezone
 from io import BytesIO
 from time import sleep
 from typing import Any, Generator, Tuple, Iterable, Union, Callable
-from urllib import request
+from zipfile import ZipInfo
 
 from tqdm import tqdm
 
@@ -84,6 +85,61 @@ class EntityAPI(AuthenticatedAPI):
                                           request.content.decode('utf-8'))
                 logger.error(exception)
                 raise exception
+
+
+    def bitstream_zip_content(self, bitstream: Bitstream,  name: str) -> str|None:
+        """
+
+        Download the contents of a zip file by its name
+
+        :param name: The name of the zip entry
+        :type name: str
+        :param bitstream:
+        :type bitstream:
+        :return: The name of the extracted file
+        :rtype: str
+        """
+
+        from remotezip import RemoteZip, RemoteIOError
+
+        headers = {HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}
+
+        try:
+            with RemoteZip(bitstream.content_url, headers=headers, session=self.session,
+                           support_suffix_range=False) as zip_file:
+                zip_file.extract(name)
+                return name
+        except RemoteIOError as e:
+            self.token = self.__token__()
+            self.bitstream_zip_content(bitstream, name)
+        except zipfile.BadZipFile as z:
+            return None
+
+
+    def bitstream_zip_names(self, bitstream: Bitstream) -> Generator[str, None, None]:
+        """
+
+        List the contents of a ZIP file stored in Preservica
+
+        :return: Generator of zip entry names
+        :rtype:
+        """
+        from remotezip import RemoteZip, RemoteIOError
+
+        headers = {HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}
+
+        try:
+            with RemoteZip(bitstream.content_url, headers=headers, session=self.session, support_suffix_range=False) as zip_file:
+                for name in zip_file.namelist():
+                    yield name
+        except RemoteIOError as e:
+            self.token = self.__token__()
+            yield from self.bitstream_zip_names(bitstream)
+        except zipfile.BadZipFile as z:
+            return None
+
+
+
 
     def bitstream_bytes(self, bitstream: Bitstream, chunk_size: int = CHUNK_SIZE,  start_byte: int = -1, end_byte: int = 0, show_progress: bool = False,  max_retries: int = 5) -> BytesIO:
         """

@@ -916,6 +916,40 @@ For example to only download the first 1K bytes of a image you can use:
         assert b.getbuffer().nbytes == 1024
 
 
+
+----------------------------------------------------
+Working with ZIP files
+----------------------------------------------------
+
+Storing ZIP files inside a digital preservation system is generally not seen as good practice.
+Its better to unzip the file before ingest and store each individual file, these can then be identified and preserved
+individually. Sometimes though it can not be avoided.
+
+The following functions allow access an individual file within a ZIP file stored in Preservica without having to
+download the entire ZIP file and extract the contents locally.
+
+Listing the contents of a stored ZIP file:
+
+.. code-block:: python
+
+    client = EntityAPI()
+    asset = client.asset('8b76b3bb-5e31-454e-b533-013ddec8a9cf')
+    for bs in client.bitstreams_for_asset(asset):
+        for name in client.bitstream_zip_names(bs):
+            print(name)
+
+
+Extract a file from inside a stored ZIP file using its name:
+
+.. code-block:: python
+
+    client = EntityAPI()
+    asset = client.asset('8b76b3bb-5e31-454e-b533-013ddec8a9cf')
+    for bs in client.bitstreams_for_asset(asset):
+        client.bitstream_zip_content("mets.xml")
+
+This will extract the mets.xml to the current directory
+
 ----------------------------------------------------
 BitStream Integrity Check History
 ----------------------------------------------------

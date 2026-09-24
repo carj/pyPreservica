@@ -35,6 +35,6 @@ from .settingsAPI import SettingsAPI
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the pyPreservica package
-__version__ = "4.0.4"
+__version__ = "4.1.0"
 
 __license__ = "Apache License Version 2.0"

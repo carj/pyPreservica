@@ -1,3 +1,4 @@
+import shutil
 from io import BytesIO
 from pathlib import Path
 from typing import Union
@@ -150,3 +151,25 @@ def test_get_bs_partial_bytes2(setup_data):
             assert b is not None
             assert b.getbuffer().nbytes == 1024
 
+
+
+def test_get_bs_zip_names(setup_data):
+    client = EntityAPI()
+    asset = client.asset('8b76b3bb-5e31-454e-b533-013ddec8a9cf')
+    for bs in client.bitstreams_for_asset(asset):
+        if bs.filename == "IS2016Data.zip":
+            for name in client.bitstream_zip_names(bs):
+                print(name)
+
+
+def test_get_bs_zip_content():
+    name = "IS2016Data/amlmrnnlm.ldafeat.hiddenlayer.genre.finetune.ctm.filt.sys"
+    shutil.rmtree("IS2016Data", ignore_errors=True)
+    client = EntityAPI()
+    asset = client.asset('8b76b3bb-5e31-454e-b533-013ddec8a9cf')
+    for bs in client.bitstreams_for_asset(asset):
+        if bs.filename == "IS2016Data.zip":
+            client.bitstream_zip_content(bs, name)
+            path = Path(name)
+            assert path.is_file()
+            shutil.rmtree("IS2016Data", ignore_errors=True)
