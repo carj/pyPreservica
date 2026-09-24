@@ -921,12 +921,13 @@ For example to only download the first 1K bytes of a image you can use:
 Working with ZIP files
 ----------------------------------------------------
 
-Storing ZIP files inside a digital preservation system is generally not seen as good practice.
+Storing Zip files inside a digital preservation system is generally not seen as good practice.
 Its better to unzip the file before ingest and store each individual file, these can then be identified and preserved
 individually. Sometimes though it can not be avoided.
 
-The following functions allow access an individual file within a ZIP file stored in Preservica without having to
-download the entire ZIP file and extract the contents locally.
+The following functions allow access to an individual file within a Zip stored in Preservica without having to
+download the entire ZIP file and extract the contents locally. For large Zip files this can make a big difference in
+performance.
 
 Listing the contents of a stored ZIP file:
 
