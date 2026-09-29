@@ -10,8 +10,10 @@ Storage Report
 
 Walks a Preservica folder hierarchy (or the whole repository), sums the size of the
 bitstreams held by each asset and folder, and renders the result as an interactive,
-self-contained HTML page with a radial "sunburst" chart in the style of the
-KDE Filelight disk usage application.
+self-contained HTML page with a radial "sunburst" chart in the style of a disk usage application.
+
+You can pass a folder argument to limit the report to a particular collection, or leave the argument empty
+to analyse the whole repository.
 
 .. code-block:: python
 
@@ -26,6 +28,10 @@ KDE Filelight disk usage application.
 
     client.storage_usage_report(folder=folder)
 
+The report will look something like this:
+
+.. note::
+    The report can take a while to run for large collections.
 
 .. raw:: html
 
