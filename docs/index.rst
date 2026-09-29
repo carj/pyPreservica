@@ -111,11 +111,11 @@ The User Guide
    legal_hold
    workflow
    webhooks
+   reporting
    authority
    groups
    par
    monitor
-   reporting
    example
 
 
