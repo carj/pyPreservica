@@ -115,6 +115,7 @@ The User Guide
    groups
    par
    monitor
+   reporting
    example
 
 

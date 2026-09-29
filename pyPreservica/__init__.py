@@ -31,6 +31,7 @@ from .webHooksAPI import WebHooksAPI, TriggerType, WebHookHandler, FlaskWebhookH
 from .authorityAPI import AuthorityAPI, Table
 from .mdformsAPI import MetadataGroupsAPI, Group, GroupField, GroupFieldType
 from .settingsAPI import SettingsAPI
+from .reportingAPI import ReportingAPI, StorageUsageReport, StorageNode
 
 __author__ = "James Carr (drjamescarr@gmail.com)"
 

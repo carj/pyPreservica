@@ -411,3 +411,20 @@ API for retrieving information about configuration settings.
 .. autoclass:: SettingsAPI
      :members:
 
+
+
+Reporting API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+API for generating reports about the content of the repository, such as storage usage.
+
+.. py:currentmodule:: pyPreservica
+
+.. autoclass:: ReportingAPI
+     :members:
+
+.. autoclass:: StorageUsageReport
+     :members:
+
+.. autoclass:: StorageNode
+     :members:
