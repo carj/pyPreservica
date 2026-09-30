@@ -29,7 +29,7 @@ to analyse the whole repository.
     client.storage_usage_report(folder=folder)
 
 
-.. note::
+.. warning::
     The report can take a while to run for large collections.
 
 
@@ -65,7 +65,7 @@ duplicates with the asset, folder and representation that holds every copy.
 
     print(f"{report.duplicate_files} extra copies using {report.reclaimable} bytes")
 
-.. note::
+.. warning::
     The report can take a long time to run for large collections. The report is designed to be run infrequently.
 
 .. raw:: html
