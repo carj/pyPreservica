@@ -31,11 +31,11 @@ from .webHooksAPI import WebHooksAPI, TriggerType, WebHookHandler, FlaskWebhookH
 from .authorityAPI import AuthorityAPI, Table
 from .mdformsAPI import MetadataGroupsAPI, Group, GroupField, GroupFieldType
 from .settingsAPI import SettingsAPI
-from .reportingAPI import ReportingAPI, StorageUsageReport, StorageNode
+from .reportingAPI import ReportingAPI, StorageUsageReport, StorageNode, DuplicateContentReport, DuplicateGroup, DuplicateFile
 
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the pyPreservica package
-__version__ = "4.2.0"
+__version__ = "4.2.1"
 
 __license__ = "Apache License Version 2.0"
