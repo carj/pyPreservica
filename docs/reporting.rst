@@ -106,5 +106,5 @@ or as JSON so the HTML report can be re-created later without scanning the repos
 
 .. note::
     The report reads the fixity values stored in Preservica, it does not re-calculate them. Files without a fixity
-    value or have different fixity alogorithms cannot be directly compared and are counted separately in the report.
+    value or have different fixity algorithms cannot be directly compared and are counted separately in the report.
 
