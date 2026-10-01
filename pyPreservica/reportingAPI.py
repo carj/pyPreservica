@@ -333,6 +333,43 @@ class StorageUsageReport(RepositoryReport):
         found.sort(key=lambda n: n.size, reverse=True)
         return found[:limit]
 
+    def _csv_rows(self, node: StorageNode, parent: Optional[StorageNode], path: list[str], depth: int,
+                  entity_type: Optional[EntityType], max_depth: Optional[int]) -> Generator[list, None, None]:
+        """ Yield a CSV row for a node and then its children, depth first, largest first """
+        if max_depth is not None and depth > max_depth:
+            return
+        if entity_type is None or node.entity_type == entity_type:
+            total = self.root.size
+            yield ["Folder" if node.is_folder else "Asset", node.reference or "", node.title, " / ".join(path), depth,
+                   node.size, human_size(node.size),
+                   f"{100.0 * node.size / parent.size:.2f}" if parent is not None and parent.size else "",
+                   f"{100.0 * node.size / total:.2f}" if total else "",
+                   node.asset_count, node.bitstream_count]
+        child_path = path + [node.title] if depth > 0 else path
+        for child in node.children:
+            yield from self._csv_rows(child, node, child_path, depth + 1, entity_type, max_depth)
+
+    def save_csv(self, filename: str, entity_type: Optional[EntityType] = None, max_depth: Optional[int] = None) -> str:
+        """
+        Write one row per folder and asset to a CSV file, for use in a spreadsheet.
+
+        Rows are written in tree order, each folder followed by its contents, largest first.
+        The first row is the scanned folder (or the repository) at depth 0, with the overall totals.
+        The folder path of each row is relative to the scanned folder.
+
+        :param filename: The CSV file to write
+        :param entity_type: Only write rows for EntityType.FOLDER or EntityType.ASSET, None for both
+        :param max_depth: Only write rows down to this depth below the scanned folder, None for all levels
+        :return: The filename
+        """
+        self._require_scan()
+        with open(filename, "w", encoding="utf-8", newline="") as fd:
+            writer = csv.writer(fd)
+            writer.writerow(["type", "reference", "title", "folder_path", "depth", "size_bytes", "size",
+                             "percent_of_parent", "percent_of_total", "assets", "files"])
+            writer.writerows(self._csv_rows(self.root, None, [], 0, entity_type, max_depth))
+        return filename
+
     def render_html(self, filename: str = "storage_usage.html", title: Optional[str] = None) -> str:
         """
         Render the scan results as a self-contained interactive HTML page containing a
@@ -1207,7 +1244,7 @@ class ReportingAPI(AuthenticatedAPI):
             Defaults to both Preservation and Access representations.
         :param max_workers: The number of worker threads used to size assets
         :param show_progress: Display progress bars on the console
-        :return: The StorageUsageReport, which can be used to save the results as JSON
+        :return: The StorageUsageReport, which can be used to save the results as CSV or JSON
         """
         report = StorageUsageReport(self.entity_client, representation_types=representation_types,
                                     max_workers=max_workers, show_progress=show_progress)

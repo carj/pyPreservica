@@ -161,3 +161,67 @@ def test_reporting_api_reuses_entity_client(offline_reporting_api, tmp_path):
     api.storage_usage_report(filename=str(tmp_path / "a.html"), show_progress=False)
     api.storage_usage_report(filename=str(tmp_path / "b.html"), show_progress=False)
     assert len(created) == 1
+
+
+def read_csv(filename):
+    import csv
+    with open(filename, encoding="utf-8", newline="") as fd:
+        return list(csv.DictReader(fd))
+
+
+def test_save_csv(tmp_path):
+    report = StorageUsageReport(FakeClient(), show_progress=False)
+    report.scan()
+    rows = read_csv(report.save_csv(str(tmp_path / "usage.csv")))
+
+    # tree order, largest first
+    assert [r["title"] for r in rows] == ["Repository", "Photos", "2024", "cake.tif", "party.tif", "beach.tif",
+                                          "Documents", "report.pdf"]
+    root = rows[0]
+    assert root["type"] == "Folder" and root["depth"] == "0" and root["reference"] == ""
+    assert root["size_bytes"] == "6650" and root["assets"] == "4" and root["files"] == "6"
+    assert root["percent_of_parent"] == "" and root["percent_of_total"] == "100.00"
+
+    cake = rows[3]
+    assert cake["type"] == "Asset" and cake["reference"] == "a3"
+    assert cake["folder_path"] == "Photos / 2024"
+    assert cake["depth"] == "3"
+    assert cake["size_bytes"] == "3000" and cake["size"] == "2.9 KiB"
+    assert cake["percent_of_parent"] == f"{100 * 3000 / 5500:.2f}"
+    assert cake["percent_of_total"] == f"{100 * 3000 / 6650:.2f}"
+
+    assert rows[1]["folder_path"] == ""
+
+
+def test_save_csv_filters(tmp_path):
+    report = StorageUsageReport(FakeClient(), show_progress=False)
+    report.scan()
+
+    folders = read_csv(report.save_csv(str(tmp_path / "folders.csv"), entity_type=EntityType.FOLDER))
+    assert [r["title"] for r in folders] == ["Repository", "Photos", "2024", "Documents"]
+
+    assets = read_csv(report.save_csv(str(tmp_path / "assets.csv"), entity_type=EntityType.ASSET))
+    assert [r["title"] for r in assets] == ["cake.tif", "party.tif", "beach.tif", "report.pdf"]
+
+    top = read_csv(report.save_csv(str(tmp_path / "top.csv"), max_depth=1))
+    assert [r["title"] for r in top] == ["Repository", "Photos", "Documents"]
+
+    top_folders = read_csv(report.save_csv(str(tmp_path / "top_folders.csv"), entity_type=EntityType.FOLDER,
+                                           max_depth=2))
+    assert [r["title"] for r in top_folders] == ["Repository", "Photos", "2024", "Documents"]
+
+
+def test_save_csv_from_json(tmp_path):
+    report = StorageUsageReport(FakeClient(), show_progress=False)
+    report.scan("f1")
+    reloaded = StorageUsageReport(None, show_progress=False)
+    reloaded.load_json(report.save_json(str(tmp_path / "usage.json")))
+    rows = read_csv(reloaded.save_csv(str(tmp_path / "usage.csv")))
+    assert rows[0]["title"] == "Photos" and rows[0]["reference"] == "f1"
+    assert rows[1]["title"] == "2024" and rows[1]["folder_path"] == ""
+    assert rows[2]["folder_path"] == "2024"
+
+
+def test_save_csv_no_scan_raises():
+    with pytest.raises(RuntimeError):
+        StorageUsageReport(FakeClient(), show_progress=False).save_csv("x.csv")

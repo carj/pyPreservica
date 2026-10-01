@@ -32,6 +32,42 @@ to analyse the whole repository.
 .. note::
     The report can take a while to run for large collections.
 
+``storage_usage_report`` returns a ``StorageUsageReport`` object which can also be saved as a CSV file for use in a
+spreadsheet. The CSV file has one row per folder and asset, in tree order with each folder followed by its contents,
+largest first. The first row is the scanned folder, or the repository, with the overall totals.
+
+The columns are ``type``, ``reference``, ``title``, ``folder_path``, ``depth``, ``size_bytes``, ``size``,
+``percent_of_parent``, ``percent_of_total``, ``assets`` and ``files``.
+
+.. code-block:: python
+
+    report = client.storage_usage_report(folder=folder)
+
+    report.save_csv("storage.csv")
+
+For large collections you can limit the CSV file to folders only, or to the top levels of the hierarchy.
+
+.. code-block:: python
+
+    # folders only, no assets
+    report.save_csv("folders.csv", entity_type=EntityType.FOLDER)
+
+    # the scanned folder and the two levels of folders and assets below it
+    report.save_csv("top_levels.csv", max_depth=2)
+
+The scan results can also be saved as JSON, so the HTML and CSV reports can be re-created later without scanning
+the repository again.
+
+.. code-block:: python
+
+    report.save_json("storage.json")
+
+    # later, without connecting to Preservica
+    report = StorageUsageReport(None)
+    report.load_json("storage.json")
+    report.save_csv("storage.csv")
+    report.render_html("storage.html")
+
 
 The completed report will look something like this:
 
@@ -40,7 +76,7 @@ The completed report will look something like this:
     <iframe src="_static/storage_usage_demo.html" style="width:100%; height:600px; border:1px solid #ccc;"
             title="Example storage usage report"></iframe>
 
-`Open the example report full screen <_static/storage_usage_demo.html>`_
+`Open the example report full screen <_static/storage_usage_demo.html>`__
 
 
 --------------------------
@@ -73,7 +109,7 @@ duplicates with the asset, folder and representation that holds every copy.
     <iframe src="_static/duplicate_demo.html" style="width:100%; height:600px; border:1px solid #ccc;"
             title="Example duplicate usage report"></iframe>
 
-`Open the example report full screen <_static/duplicate_demo.html>`_
+`Open the example report full screen <_static/duplicate_demo.html>`__
 
 
 By default only the active generations of Preservation representations are compared, and empty files are ignored
