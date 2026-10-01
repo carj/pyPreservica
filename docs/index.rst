@@ -41,9 +41,12 @@ There is no support for use of the library from Preservica Ltd. For support see 
 
 -------------------
 
-.. admonition:: New in this release
+.. admonition:: **New in this release**
 
-    Interactive Storage Usaga and Duplicate files reports
+
+    Two Interactive Reports:
+        * Storage Usage
+        * Duplicate Files
     https://pypreservica.readthedocs.io/en/latest/reporting.html
 
 
