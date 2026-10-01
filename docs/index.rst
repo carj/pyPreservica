@@ -43,7 +43,7 @@ There is no support for use of the library from Preservica Ltd. For support see 
 
 .. admonition:: New in this release
 
-    Interactive Storage Usgae and Duplicate files reports
+    Interactive Storage Usaga and Duplicate files reports
     https://pypreservica.readthedocs.io/en/latest/reporting.html
 
 
