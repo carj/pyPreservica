@@ -16,6 +16,15 @@ from pyPreservica.common import *
 
 logger = logging.getLogger(__name__)
 
+class PeriodUnit(Enum):
+    DAY = "DAY"
+    MONTH = "MONTH"
+    YEAR = "YEAR"
+
+
+class ExpiryAction(Enum):
+    REVIEW = "REVIEW"
+    CHANGE_SECURITY_TAG = "CHANGE_SECURITY_TAG"
 
 class RetentionAssignment:
     def __init__(self, entity_reference: str, policy_reference: str, api_id: str, start_date, expired=False):
@@ -699,8 +708,8 @@ class RetentionAPI(AuthenticatedAPI):
             * ``SecurityTag`` (str) -- Security tag applied to the policy.
             * ``StartDateField`` (str) -- Metadata field used as the retention start date.
             * ``Period`` (str) -- Numeric retention period value.
-            * ``PeriodUnit`` (str) -- Unit of the retention period (e.g. ``"years"``).
-            * ``ExpiryAction`` (str) -- Action taken when the retention period expires.
+            * ``PeriodUnit`` (PeriodUnit) -- Unit of the retention period (e.g. PeriodUnit.YEAR).
+            * ``ExpiryAction`` (ExpiryAction) -- Action taken when the retention period expires.
             * ``ExpiryActionParameters`` (str) -- Parameters for the expiry action.
             * ``Restriction`` (str) -- Restriction applied during the retention period.
             * ``Assignable`` (bool) -- Whether the policy may be assigned to new assets.
@@ -721,7 +730,7 @@ class RetentionAPI(AuthenticatedAPI):
         if 'Description' in kwargs:
             description = kwargs.get("Description")
         else:
-            raise RuntimeError("No Description specified in kwargs argument")
+            description = ""
 
         if 'SecurityTag' in kwargs:
             security_tag = kwargs.get("SecurityTag")
@@ -739,12 +748,12 @@ class RetentionAPI(AuthenticatedAPI):
             raise RuntimeError("No Period specified in kwargs argument")
 
         if 'PeriodUnit' in kwargs:
-            period_unit = kwargs.get("PeriodUnit")
+            period_unit: PeriodUnit = kwargs.get("PeriodUnit")
         else:
             raise RuntimeError("No PeriodUnit specified in kwargs argument")
 
         if 'ExpiryAction' in kwargs:
-            expiry_action = kwargs.get("ExpiryAction")
+            expiry_action: ExpiryAction = kwargs.get("ExpiryAction")
         else:
             raise RuntimeError("No ExpiryAction specified in kwargs argument")
 
@@ -769,8 +778,8 @@ class RetentionAPI(AuthenticatedAPI):
         xml.etree.ElementTree.SubElement(retention_policy, "SecurityTag").text = security_tag
         xml.etree.ElementTree.SubElement(retention_policy, "StartDateField").text = start_date_field
         xml.etree.ElementTree.SubElement(retention_policy, "Period").text = period
-        xml.etree.ElementTree.SubElement(retention_policy, "PeriodUnit").text = period_unit
-        xml.etree.ElementTree.SubElement(retention_policy, "ExpiryAction").text = expiry_action
+        xml.etree.ElementTree.SubElement(retention_policy, "PeriodUnit").text = period_unit.value
+        xml.etree.ElementTree.SubElement(retention_policy, "ExpiryAction").text = expiry_action.value
         xml.etree.ElementTree.SubElement(retention_policy, "ExpiryActionParameters").text = expiry_action_parameters
         xml.etree.ElementTree.SubElement(retention_policy, "Restriction").text = restriction
         xml.etree.ElementTree.SubElement(retention_policy, "Assignable").text = str(assignable)
@@ -799,8 +808,8 @@ class RetentionAPI(AuthenticatedAPI):
             * ``SecurityTag`` (str) -- Security tag applied to the policy.
             * ``StartDateField`` (str) -- Metadata field used as the retention start date.
             * ``Period`` (str) -- Numeric retention period value.
-            * ``PeriodUnit`` (str) -- Unit of the retention period (e.g. ``"years"``).
-            * ``ExpiryAction`` (str) -- Action taken when the retention period expires.
+            * ``PeriodUnit`` (PeriodUnit) -- Unit of the retention period (e.g. ``"years"``).
+            * ``ExpiryAction`` (ExpiryAction) -- Action taken when the retention period expires.
             * ``ExpiryActionParameters`` (str) -- Parameters for the expiry action.
             * ``Restriction`` (str) -- Restriction applied during the retention period.
             * ``Assignable`` (bool) -- Whether the policy may be assigned to new assets.
@@ -839,12 +848,12 @@ class RetentionAPI(AuthenticatedAPI):
             raise RuntimeError("No Period specified in kwargs argument")
 
         if 'PeriodUnit' in kwargs:
-            period_unit = kwargs.get("PeriodUnit")
+            period_unit: PeriodUnit = kwargs.get("PeriodUnit")
         else:
             raise RuntimeError("No PeriodUnit specified in kwargs argument")
 
         if 'ExpiryAction' in kwargs:
-            expiry_action = kwargs.get("ExpiryAction")
+            expiry_action: EntityType = kwargs.get("ExpiryAction")
         else:
             raise RuntimeError("No ExpiryAction specified in kwargs argument")
 
@@ -868,8 +877,8 @@ class RetentionAPI(AuthenticatedAPI):
         xml.etree.ElementTree.SubElement(retention_policy, "SecurityTag").text = security_tag
         xml.etree.ElementTree.SubElement(retention_policy, "StartDateField").text = start_date_field
         xml.etree.ElementTree.SubElement(retention_policy, "Period").text = period
-        xml.etree.ElementTree.SubElement(retention_policy, "PeriodUnit").text = period_unit
-        xml.etree.ElementTree.SubElement(retention_policy, "ExpiryAction").text = expiry_action
+        xml.etree.ElementTree.SubElement(retention_policy, "PeriodUnit").text = period_unit.value
+        xml.etree.ElementTree.SubElement(retention_policy, "ExpiryAction").text = expiry_action.value
         xml.etree.ElementTree.SubElement(retention_policy, "ExpiryActionParameters").text = expiry_action_parameters
         xml.etree.ElementTree.SubElement(retention_policy, "Restriction").text = restriction
         xml.etree.ElementTree.SubElement(retention_policy, "Assignable").text = str(assignable)

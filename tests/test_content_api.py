@@ -117,10 +117,10 @@ def test_field_search(setup_data):
 def test_search_index_filter_hits(setup_data):
     search = ContentAPI()
 
-    hits_closed: int = search.search_index_filter_hits(query="%", filter_values={"xip.security_descriptor": "closed"})
-    hits_open:int = search.search_index_filter_hits(query="%", filter_values={"xip.security_descriptor": "open"})
+    hits_closed: int = search.search_index_filter_hits(query="*", filter_values={"xip.security_descriptor": "closed"})
+    hits_open:int = search.search_index_filter_hits(query="*", filter_values={"xip.security_descriptor": "open"})
 
-    hits: int = search.search_index_filter_hits(query="%", filter_values={"xip.security_descriptor": ["open", "closed"]})
+    hits: int = search.search_index_filter_hits(query="*", filter_values={"xip.security_descriptor": ["open", "closed"]})
 
     assert hits > 0
     assert hits == hits_open + hits_closed
@@ -128,13 +128,13 @@ def test_search_index_filter_hits(setup_data):
 
 def test_search_index_filter_list(setup_data):
     search = ContentAPI()
-    results_open = list(search.search_index_filter_list(query="%", filter_values={"xip.security_descriptor": "open",
+    results_open = list(search.search_index_filter_list(query="*", filter_values={"xip.security_descriptor": "open",
                                                                           "xip.document_type": "IO",  "xip.parent_hierarchy":"ce3895dc-adec-4e20-9326-e1b36ffb60df"}))
 
-    results_closed = list(search.search_index_filter_list(query="%", filter_values={"xip.security_descriptor": "closed",
+    results_closed = list(search.search_index_filter_list(query="*", filter_values={"xip.security_descriptor": "closed",
                                                                                   "xip.document_type": "IO", "xip.parent_hierarchy":"ce3895dc-adec-4e20-9326-e1b36ffb60df"}))
 
-    results_open_closed = list(search.search_index_filter_list(query="%", filter_values={"xip.security_descriptor": ["open", "closed"],
+    results_open_closed = list(search.search_index_filter_list(query="*", filter_values={"xip.security_descriptor": ["open", "closed"],
                                                                                     "xip.document_type": "IO", "xip.parent_hierarchy":"ce3895dc-adec-4e20-9326-e1b36ffb60df"}))
     assert len(results_open_closed) > 0
     assert len(results_open_closed) == len(results_open) + len(results_closed)
@@ -147,9 +147,9 @@ def test_search_fields(setup_data):
     f2 = Field(name="xip.document_type", value="IO")
     f3 = Field(name="xip.parent_hierarchy", value="ce3895dc-adec-4e20-9326-e1b36ffb60df")
 
-    fields_open = list(search.search_fields(query="%",  fields=[f1,f2,f3]))
+    fields_open = list(search.search_fields(query="*",  fields=[f1,f2,f3]))
 
-    results_open = list(search.search_index_filter_list(query="%", filter_values={"xip.security_descriptor": "open",
+    results_open = list(search.search_index_filter_list(query="*", filter_values={"xip.security_descriptor": "open",
                                                                                   "xip.document_type": "IO",
                                                                                   "xip.parent_hierarchy": "ce3895dc-adec-4e20-9326-e1b36ffb60df"}))
     assert len(fields_open) > 0
@@ -164,9 +164,9 @@ def test_search_fields_with_list(setup_data):
     f2 = Field(name="xip.document_type", value="SO")
     f3 = Field(name="xip.parent_hierarchy", value="ce3895dc-adec-4e20-9326-e1b36ffb60df")
 
-    fields_open = list(search.search_fields(query="%",  fields=[f1,f2,f3]))
+    fields_open = list(search.search_fields(query="*",  fields=[f1,f2,f3]))
 
-    results_open = list(search.search_index_filter_list(query="%", filter_values={"xip.security_descriptor": ["open", "closed"],
+    results_open = list(search.search_index_filter_list(query="*", filter_values={"xip.security_descriptor": ["open", "closed"],
                                                                                   "xip.document_type": "SO",
                                                                                   "xip.parent_hierarchy": "ce3895dc-adec-4e20-9326-e1b36ffb60df"}))
     assert len(fields_open) > 0
@@ -180,9 +180,9 @@ def test_search_fields_with_list2(setup_data):
     f2 = Field(name="xip.document_type", value="SO", operator=Operator.NOT)
     f3 = Field(name="xip.parent_hierarchy", value="ce3895dc-adec-4e20-9326-e1b36ffb60df")
 
-    fields_open = list(search.search_fields(query="%",  fields=[f1,f2,f3]))
+    fields_open = list(search.search_fields(query="*",  fields=[f1,f2,f3]))
 
-    results_open = list(search.search_index_filter_list(query="%", filter_values={"xip.security_descriptor": ["open", "closed"],
+    results_open = list(search.search_index_filter_list(query="*", filter_values={"xip.security_descriptor": ["open", "closed"],
                                                                                   "xip.document_type": "IO",
                                                                                   "xip.parent_hierarchy": "ce3895dc-adec-4e20-9326-e1b36ffb60df"}))
 

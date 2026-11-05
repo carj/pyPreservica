@@ -890,7 +890,7 @@ class Representation:
 
     def __init__(self, asset: Asset, rep_type: RepresentationType, name: str, url: str):
         self.asset: Asset = asset
-        self.rep_type: RepresentationType= rep_type
+        self.rep_type: RepresentationType = rep_type
         self.name = name
         self.url = url
 

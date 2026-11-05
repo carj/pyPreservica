@@ -1,5 +1,6 @@
 import pytest
 from pyPreservica import *
+from pyPreservica.retentionAPI import ExpiryAction, PeriodUnit
 
 FOLDER_ID = "ebd977f6-bebd-4ecf-99be-e054989f9af4"
 ASSET_ID = "683f9db7-ff81-4859-9c03-f68cfa5d9c3d"
@@ -36,8 +37,8 @@ def test_create_policy():
     args['SecurityTag'] = "open"
     args['StartDateField'] = "xip.created"
     args['Period'] = "6"
-    args['PeriodUnit'] = "YEAR"
-    args['ExpiryAction'] = "REVIEW"
+    args['PeriodUnit'] = PeriodUnit.YEAR
+    args['ExpiryAction'] = ExpiryAction.REVIEW
     args['ExpiryActionParameters'] = "{\"EmailAddress\":[\"test@emailaddress1.com\",\"test@emailaddress2.com\"]}"
     args['Restriction'] = "DELETE"
     args['Assignable'] = bool(True)
@@ -60,8 +61,8 @@ def test_update_existing_policy():
     args['SecurityTag'] = "open"
     args['StartDateField'] = "xip.created"
     args['Period'] = "6"
-    args['PeriodUnit'] = "YEAR"
-    args['ExpiryAction'] = "REVIEW"
+    args['PeriodUnit'] = PeriodUnit.YEAR
+    args['ExpiryAction'] = ExpiryAction.REVIEW
     args['ExpiryActionParameters'] = "{\"EmailAddress\":[\"test@emailaddress1.com\",\"test@emailaddress2.com\"]}"
     args['Restriction'] = "DELETE"
     args['Assignable'] = bool(False)

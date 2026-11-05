@@ -10,6 +10,7 @@ licence:    Apache License 2.0
 """
 
 import os.path
+import tempfile
 import uuid
 import xml.etree.ElementTree
 import zipfile
@@ -2284,6 +2285,37 @@ class EntityAPI(AuthenticatedAPI):
             raise exception
 
 
+    def add_multi_part_access_representation(self, entity: Entity, access_files: list[str], name: str = "Access", zip_location: str = tempfile.gettempdir()):
+        """
+        Add a new Access representation to an existing asset consisting of multiple files
+
+        :param zip_location:        The location of the PAX ZIP before its uploaded
+        :param Entity entity:       The existing asset which will receive the new representation
+        :param list access_files:   The new digital files
+        :param str name:            The name of the new access representation defaults to "Access"
+        :return:
+        """
+
+        representations: dict[str, list[Path]] = {"Representation_Access": [Path(f) for f in access_files]}
+
+        output_dir = Path(zip_location)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        zip_path = output_dir / f"{entity.title}.pax.zip"
+
+        index: int = 1
+        with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+            for rep_name, files in representations.items():
+                for f in files:
+                    folder = f'{index:04}_{f.name}'
+                    zf.write(f, arcname=f"{rep_name}/{folder}/{f.name}")
+                    index = index + 1
+
+
+        self.add_access_representation(entity, str(zip_path), name)
+
+        Path(zip_path).unlink()
+
+
     def add_access_representation(self, entity: Entity, access_file: str, name: str = "Access"):
         """
         Add a new Access representation to an existing asset.
@@ -2486,9 +2518,11 @@ class EntityAPI(AuthenticatedAPI):
         """
 
         self.token = self.__token__()
-        previous = datetime.utcnow() - timedelta(days=previous_days)
-        from_date = previous.replace(tzinfo=timezone.utc).isoformat()
-        to_date = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+
+        now = datetime.now(timezone.utc)
+        from_date = (now - timedelta(days=previous_days)).isoformat()
+        to_date = now.isoformat()
+
         paged_set = self._all_events_page(maximum=25, next_page=None, type="Ingest", from_date=from_date,
                                           to_date=to_date)
         for entity in paged_set.results:
@@ -2750,10 +2784,12 @@ class EntityAPI(AuthenticatedAPI):
 
     def _updated_entities_page(self, previous_days: int = 1, maximum: int = 50, next_page: str = None) -> PagedSet:
         headers = {HEADER_TOKEN: self.token}
-        x = datetime.utcnow() - timedelta(days=previous_days)
-        today = x.replace(tzinfo=timezone.utc).isoformat()
+
+        now = datetime.now(timezone.utc)
+        from_date = (now - timedelta(days=previous_days)).isoformat()
+
         if next_page is None:
-            params = {'date': today, 'start': '0', 'max': str(maximum)}
+            params = {'date': from_date, 'start': '0', 'max': str(maximum)}
             request = self.session.get(f'{self.protocol}://{self.server}/api/entity/entities/updated-since',
                                        headers=headers, params=params)
         else:
@@ -2806,6 +2842,38 @@ class EntityAPI(AuthenticatedAPI):
             return self._delete_entity(asset, operator_comment, supervisor_comment, credentials_path)
         else:
             raise RuntimeError("delete_asset only deletes assets")
+
+
+    def delete_representation(self, representation: Representation):
+        """
+
+        Delete an access representation from an Asset
+
+        :param representation:
+        :type representation:
+        :return: None
+        :rtype:
+        """
+
+
+        if (isinstance(representation, Representation) is False) or (representation.rep_type == RepresentationType.Preservation):
+            raise RuntimeError("delete_representation only deletes Access representations")
+
+        if (self.major_version < 9) and (self.minor_version < 3):
+            raise RuntimeError("delete_representation API call is only available when connected to a v9.3 System")
+
+        headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/json'}
+        endpoint = f"{representation.asset.path}/{representation.asset.reference}/representations/{representation.name}"
+        request = self.session.delete(f"{self.protocol}://{self.server}/api/entity/{endpoint}", headers=headers)
+        if request.status_code == requests.codes.no_content:
+            return
+        else:
+            exception = HTTPException(representation.asset.reference, request.status_code, request.url,
+                                      "delete_representation", request.content.decode('utf-8'))
+            logger.error(exception)
+            raise exception
+
+
 
     def delete_folder(self, folder: Folder, operator_comment: str, supervisor_comment: str, credentials_path: str = "credentials.properties"):
         """

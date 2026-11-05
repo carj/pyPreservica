@@ -1015,6 +1015,17 @@ The Preservica tenancy requires the ``post.new.representation.feature`` flag to 
     pid = client.add_access_representation(asset, access_file="access.jpg")
 
 
+If you need to create a new representation for a multi-part asset, such as a book with digitised pages for example, use:
+
+
+.. code-block:: python
+
+    asset = client.asset("723f6f27-c894-4ce0-8e58-4c15a526330e")
+    add_multi_part_access_representation(asset, access_files=['page-1.jpg', 'page-2.jpg', 'page-3.jpg'])
+
+The order of objects in the argument list with be preserved in the representation.
+
+
 
 ----------------------------------------------------
 Moving Entities
