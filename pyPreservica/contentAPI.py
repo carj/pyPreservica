@@ -463,15 +463,15 @@ class ContentAPI(AuthenticatedAPI):
         :raises RuntimeError: If the API call fails.
         """
 
-        search_result = self._simple_search(query, 0, page_size, list_indexes)
-        for e in search_result.results_list:
-            yield e
-        found = len(search_result.results_list)
-        while search_result.hits > found:
+        found = 0
+        while True:
             search_result = self._simple_search(query, found, page_size, list_indexes)
-            for e in search_result.results_list:
-                yield e
-            found = found + len(search_result.results_list)
+            yield from search_result.results_list
+            found += len(search_result.results_list)
+            # Stop when everything has been returned, or if the server returns an
+            # empty page (otherwise "found" would never reach "hits").
+            if found >= search_result.hits or not search_result.results_list:
+                break
 
     def _simple_search(self, query: str = "%", start_index: int = 0, page_size: int = 10, list_indexes: list|None = None) -> SearchResult:
         start_from = str(start_index)
@@ -569,15 +569,16 @@ class ContentAPI(AuthenticatedAPI):
         if self.major_version < 9 or (self.major_version == 9 and self.minor_version < 3):
             raise RuntimeError("natural-language query searching is only available in v9.3 systems and higher")
 
-        search_result = self._search_fields(query=query, fields=fields, start_index=0, page_size=page_size, use_nlq=True)
-        for e in search_result.results_list:
-            yield e
-        found = len(search_result.results_list)
-        while search_result.hits > found:
-            search_result = self._search_fields(query=query, fields=fields, start_index=found, page_size=page_size, use_nlq=True)
-            for e in search_result.results_list:
-                yield e
-            found = found + len(search_result.results_list)
+        found = 0
+        while True:
+            search_result = self._search_fields(query=query, fields=fields, start_index=found, page_size=page_size,
+                                                use_nlq=True)
+            yield from search_result.results_list
+            found += len(search_result.results_list)
+            # Stop when everything has been returned, or if the server returns an
+            # empty page (otherwise "found" would never reach "hits").
+            if found >= search_result.hits or not search_result.results_list:
+                break
 
 
     def search_fields(self, query: str = "%",  fields: list[Field]|None=None,  page_size: int = 25) -> Generator:
@@ -611,98 +612,71 @@ class ContentAPI(AuthenticatedAPI):
         if self.major_version < 7 or (self.major_version == 7 and self.minor_version < 5):
             raise RuntimeError("search_fields API call is not available when connected to a v7.5 System")
 
-        search_result = self._search_fields(query=query, fields=fields, start_index=0, page_size=page_size)
-        for e in search_result.results_list:
-            yield e
-        found = len(search_result.results_list)
-        while search_result.hits > found:
+        found = 0
+        while True:
             search_result = self._search_fields(query=query, fields=fields, start_index=found, page_size=page_size)
-            for e in search_result.results_list:
-                yield e
-            found = found + len(search_result.results_list)
+            yield from search_result.results_list
+            found += len(search_result.results_list)
+            # Stop when everything has been returned, or if the server returns an
+            # empty page (otherwise "found" would never reach "hits").
+            if found >= search_result.hits or not search_result.results_list:
+                break
 
-    def _search_fields(self, query: str = "%", fields: list[Field]|None=None, start_index: int = 0, page_size: int = 25, use_nlq: bool = False) -> SearchResult:
+    def _search_fields(self, query: str = "%", fields: list[Field]|None = None, start_index: int = 0,
+                       page_size: int = 25, use_nlq: bool = False) -> SearchResult:
+        fields = fields or []
 
-        start_from = str(start_index)
-        headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
-
-        if use_nlq:
-            query_name = "nlq"
-        else:
-            query_name = "q"
-
-        if fields is None:
-            fields = []
-
-        field_list = []
-        sort_list = []
-        metadata_elements = []
+        field_terms = []
+        sort_terms = []
         for field in fields:
-            metadata_elements.append(field.name)
-            if field.value is None or field.value == "":
-                field_list.append('{' f' "name": "{field.name}", "values": [] ' + '}')
+            if field.value in (None, ""):
+                values = []
+            elif isinstance(field.value, list):
+                values = [str(v) for v in field.value]
             else:
+                values = [str(field.value)]
 
-                if isinstance(field.value, str):
-                    if field.operator == Operator.NOT:
-                        field_list.append(
-                            '{' f' "name": "{field.name}", "values": ["{field.value}"], "operator": "NOT" ' + '}')
-                    else:
-                        field_list.append('{' f' "name": "{field.name}", "values":[ "{field.value}" ]' '}')
-                if isinstance(field.value, list):
-                    values = [f'"{w}"' for w in field.value]
-                    v:str = f' {",".join(values)} '
-                    if field.operator == Operator.NOT:
-                        field_list.append(
-                            '{' f' "name": "{field.name}", "values": [ {v} ], "operator": "NOT" ' + '}')
-                    else:
-                        field_list.append('{' f' "name": "{field.name}", "values":[ {v} ]' '}')
-
+            term = {"name": field.name, "values": values}
+            if values and field.operator == Operator.NOT:
+                term["operator"] = Operator.NOT.value
+            field_terms.append(term)
 
             if field.sort_order is not None:
-                sort_list.append(f'{{"sortFields": ["{field.name}"], "sortOrder": "{field.sort_order.name}"}}')
+                sort_terms.append({"sortFields": [field.name], "sortOrder": field.sort_order.name})
 
+        query_term = {"nlq" if use_nlq else "q": query, "fields": field_terms}
+        if sort_terms:
+            query_term["sort"] = sort_terms
 
-        filter_terms = ','.join(field_list)
-
-        if len(sort_list) == 0:
-            query_term = ('{ "%s":  "%s",  "fields":  [ %s ] }' % (query_name, query, filter_terms))
-        else:
-            sort_terms = ','.join(sort_list)
-            query_term = ('{ "%s":  "%s",  "fields":  [ %s ],  "sort": [ %s ]}' % (query_name, query, filter_terms, sort_terms))
-
-        if len(metadata_elements) == 0:
-            metadata_elements.append("xip.title")
-
-
-        payload = {'start': start_from, 'max': str(page_size), 'metadata': list(metadata_elements), 'q': query_term}
+        payload = {
+            "start": str(start_index),
+            "max": str(page_size),
+            "metadata": [f.name for f in fields] or ["xip.title"],
+            "q": json.dumps(query_term),
+        }
         logger.debug(payload)
-        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload,
-                                    headers=headers)
-        results_list = []
-        if results.status_code == requests.codes.ok:
-            json_doc = results.json()
-            metadata = json_doc['value']['metadata']
-            refs = list(json_doc['value']['objectIds'])
-            refs = list(map(lambda x: content_api_identifier_to_type(x), refs))
-            hits = int(json_doc['value']['totalHits'])
 
-            for m_row, r_row in zip(metadata, refs):
-                results_map = {'xip.reference': r_row[1]}
-                for li in m_row:
-                    results_map[li['name']] = li['value']
-                results_list.append(results_map)
-            next_start = start_index + page_size
+        headers = {"Content-Type": "application/x-www-form-urlencoded", HEADER_TOKEN: self.token}
+        response = self.session.post(f"{self.protocol}://{self.server}/api/content/search",
+                                     data=payload, headers=headers)
+        if response.status_code != requests.codes.ok:
+            logger.error(f"search failed with error code: {response.status_code}")
+            raise RuntimeError(response.status_code, "_search_fields failed")
 
-            if self.callback is not None:
-                value = str(f'{len(results_list) + start_index}:{hits}')
-                self.callback(value)
+        value = response.json()["value"]
+        metadata = value["metadata"]
+        refs = [content_api_identifier_to_type(x) for x in value["objectIds"]]
+        hits = int(value["totalHits"])
 
-            search_results = self.SearchResult(metadata, refs, hits, results_list, next_start)
-            return search_results
-        else:
-            logger.error(f"search failed with error code: {results.status_code}")
-            raise RuntimeError(results.status_code, f"search_index_filter failed")
+        results_list = [
+            {"xip.reference": ref[1], **{item["name"]: item["value"] for item in row}}
+            for row, ref in zip(metadata, refs)
+        ]
+
+        if self.callback is not None:
+            self.callback(f"{start_index + len(results_list)}:{hits}")
+
+        return self.SearchResult(metadata, refs, hits, results_list, start_index + page_size)
 
     def search_index_filter_list(self, query: str = "%", page_size: int = 25, filter_values: dict|None = None,
                                  sort_values: dict|None = None) -> Generator:
@@ -737,15 +711,15 @@ class ContentAPI(AuthenticatedAPI):
         :rtype: Generator[dict, None, None]
         :raises RuntimeError: If the API call fails.
         """
-        search_result = self._search_index_filter(query, 0, page_size, filter_values, sort_values)
-        for e in search_result.results_list:
-            yield e
-        found = len(search_result.results_list)
-        while search_result.hits > found:
+        found = 0
+        while True:
             search_result = self._search_index_filter(query, found, page_size, filter_values, sort_values)
-            for e in search_result.results_list:
-                yield e
-            found = found + len(search_result.results_list)
+            yield from search_result.results_list
+            found += len(search_result.results_list)
+            # Stop when everything has been returned, or if the server returns an
+            # empty page (otherwise "found" would never reach "hits").
+            if found >= search_result.hits or not search_result.results_list:
+                break
 
     def search_index_filter_hits(self, query: str = "%", filter_values: dict|None = None) -> int:
         """
@@ -771,100 +745,84 @@ class ContentAPI(AuthenticatedAPI):
         :rtype: int
         :raises RuntimeError: If the API call fails.
         """
-        start_from = str(0)
-        headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
-
         if filter_values is None:
-            filter_values = {'xip.reference': '', 'xip.title': ''}
+            filter_values = {"xip.reference": "", "xip.title": ""}
 
-        field_list = []
-        for key, value in filter_values.items():
-            if value == "":
-                field_list.append('{' f' "name": "{key}", "values": [] ' + '}')
+        query_term = {"q": query, "fields": self._filter_terms(filter_values)}
+        payload = {
+            "start": "0",
+            "max": "10",
+            "metadata": list(filter_values),
+            "q": json.dumps(query_term),
+        }
+
+        headers = {"Content-Type": "application/x-www-form-urlencoded", HEADER_TOKEN: self.token}
+        response = self.session.post(f"{self.protocol}://{self.server}/api/content/search",
+                                     data=payload, headers=headers)
+        if response.status_code != requests.codes.ok:
+            logger.error(f"search failed with error code: {response.status_code}")
+            raise RuntimeError(response.status_code, "_search_index_filter_hits failed")
+
+        return int(response.json()["value"]["totalHits"])
+
+    @staticmethod
+    def _filter_terms(filter_values: dict) -> list[dict]:
+        """Convert a ``{field_name: value}`` dict into search API ``fields`` terms.
+
+        ``None`` or ``""`` means "return the field without restricting it"; a list
+        matches any of its values; any other value is matched as a string.
+        """
+        terms = []
+        for name, value in filter_values.items():
+            if value in (None, ""):
+                values = []
+            elif isinstance(value, list):
+                values = [str(v) for v in value]
             else:
-                if isinstance(value, str):
-                    field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
-                if isinstance(value, list):
-                    values = [f'"{w}"' for w in value]
-                    v: str = f' {",".join(values)} '
-                    field_list.append('{' f' "name": "{key}", "values":[ {v} ]' '}')
-
-        filter_terms = ','.join(field_list)
-
-        query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
-
-        payload = {'start': start_from, 'max': str(10), 'metadata': list(filter_values.keys()), 'q': query_term}
-        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload,
-                                    headers=headers)
-        if results.status_code == requests.codes.ok:
-            json_doc = results.json()
-            return int(json_doc['value']['totalHits'])
-        else:
-            logger.error(f"search failed with error code: {results.status_code}")
-            raise RuntimeError(results.status_code, f"_search_index_filter_hits failed")
+                values = [str(value)]
+            terms.append({"name": name, "values": values})
+        return terms
 
     def _search_index_filter(self, query: str = "%", start_index: int = 0, page_size: int = 25,
                              filter_values: dict|None = None, sort_values: dict|None = None) -> SearchResult:
-        start_from = str(start_index)
-        headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
+        filter_values = filter_values or {}
 
-        if filter_values is None:
-            filter_values = {}
+        query_term = {"q": query, "fields": self._filter_terms(filter_values)}
+        if sort_values is not None:
+            query_term["sort"] = [
+                {"sortFields": [name], "sortOrder": "desc" if str(direction).lower().startswith("d") else "asc"}
+                for name, direction in sort_values.items()
+            ]
 
-        field_list = []
-        for key, value in filter_values.items():
-            if value == "":
-                field_list.append('{' f' "name": "{key}", "values": [] ' + '}')
-            else:
-                if isinstance(value, str):
-                    field_list.append('{' f' "name": "{key}", "values": ["{value}"] ' + '}')
-                if isinstance(value, list):
-                    values = [f'"{w}"' for w in value]
-                    v: str = f' {",".join(values)} '
-                    field_list.append('{' f' "name": "{key}", "values":[ {v} ]' '}')
-
-        filter_terms = ','.join(field_list)
-
-        if sort_values is None:
-            query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
-        else:
-            sort_list = []
-            for key, value in sort_values.items():
-                direction = "asc"
-                if str(value).lower().startswith("d"):
-                    direction = "desc"
-                sort_list.append(f'{{"sortFields": ["{key}"], "sortOrder": "{direction}"}}')
-            sort_terms = ','.join(sort_list)
-            query_term = ('{ "q":  "%s",  "fields":  [ %s ],  "sort": [ %s ]}' % (query, filter_terms, sort_terms))
-
-        payload = {'start': start_from, 'max': str(page_size), 'metadata': list(filter_values.keys()), 'q': query_term}
+        payload = {
+            "start": str(start_index),
+            "max": str(page_size),
+            "metadata": list(filter_values),
+            "q": json.dumps(query_term),
+        }
         logger.debug(payload)
-        results = self.session.post(f'{self.protocol}://{self.server}/api/content/search', data=payload,
-                                    headers=headers)
-        results_list = []
-        if results.status_code == requests.codes.ok:
-            json_doc = results.json()
-            metadata = json_doc['value']['metadata']
-            refs = list(json_doc['value']['objectIds'])
-            refs = list(map(lambda x: content_api_identifier_to_type(x), refs))
-            hits = int(json_doc['value']['totalHits'])
 
-            for m_row, r_row in zip(metadata, refs):
-                results_map = {'xip.reference': r_row[1]}
-                for li in m_row:
-                    results_map[li['name']] = li['value']
-                results_list.append(results_map)
-            next_start = start_index + page_size
+        headers = {"Content-Type": "application/x-www-form-urlencoded", HEADER_TOKEN: self.token}
+        response = self.session.post(f"{self.protocol}://{self.server}/api/content/search",
+                                     data=payload, headers=headers)
+        if response.status_code != requests.codes.ok:
+            logger.error(f"search failed with error code: {response.status_code}")
+            raise RuntimeError(response.status_code, "_search_index_filter failed")
 
-            if self.callback is not None:
-                value = str(f'{len(results_list) + start_index}:{hits}')
-                self.callback(value)
+        value = response.json()["value"]
+        metadata = value["metadata"]
+        refs = [content_api_identifier_to_type(x) for x in value["objectIds"]]
+        hits = int(value["totalHits"])
 
-            search_results = self.SearchResult(metadata, refs, hits, results_list, next_start)
-            return search_results
-        else:
-            logger.error(f"search failed with error code: {results.status_code}")
-            raise RuntimeError(results.status_code, f"search_index_filter failed")
+        results_list = [
+            {"xip.reference": ref[1], **{item["name"]: item["value"] for item in row}}
+            for row, ref in zip(metadata, refs)
+        ]
+
+        if self.callback is not None:
+            self.callback(f"{start_index + len(results_list)}:{hits}")
+
+        return self.SearchResult(metadata, refs, hits, results_list, start_index + page_size)
 
     class ReportProgressCallBack:
         def __init__(self):

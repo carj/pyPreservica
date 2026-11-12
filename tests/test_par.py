@@ -39,7 +39,7 @@ def test_preservation_action_type():
 def test_properties():
     par = PreservationActionRegistry()
     document = par.properties()
-    assert len(json.loads(document)['parProperties']) == 102
+    assert len(json.loads(document)['parProperties']) == 106
 
 
 def test_property():
