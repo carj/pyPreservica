@@ -545,7 +545,7 @@ class EntityAPI(AuthenticatedAPI):
             :param entity: The entity
          """
         headers = {HEADER_TOKEN: self.token, 'Content-Type': 'application/octet-stream'}
-        params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}', 'size': f'{Thumbnail.SMALL.value}'}
+        params = {'id': f'sdb:{entity.entity_type.value}|{entity.reference}'}
         with self.session.get(f'{self.protocol}://{self.server}/api/content/thumbnail', params=params,
                               headers=headers) as request:
             if request.status_code == requests.codes.ok:

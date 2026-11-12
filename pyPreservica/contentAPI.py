@@ -551,6 +551,35 @@ class ContentAPI(AuthenticatedAPI):
             writer.writeheader()
             writer.writerows(self.search_index_filter_list(query, page_size, filter_values, sort_values))
 
+
+
+    def search_nlq(self, query: str = "%", fields: list[Field]|None=None, page_size: int = 25 )  -> Generator:
+        """
+
+        :param query:       natural-language query string. Results are ranked by semantic similarity using vector search.
+        :type query:        str
+        :param page_size:   Number of results to fetch per API request (default 25).
+        :type page_size:    int
+        :param fields:      List of :class:`Field`
+        :type fields:       list[Field] or None
+        :return:            Generator that yields one ``dict`` per matching object
+        :rtype:             Generator[dict, None, None]
+        """
+
+        if self.major_version < 9 or (self.major_version == 9 and self.minor_version < 3):
+            raise RuntimeError("natural-language query searching is only available in v9.3 systems and higher")
+
+        search_result = self._search_fields(query=query, fields=fields, start_index=0, page_size=page_size, use_nlq=True)
+        for e in search_result.results_list:
+            yield e
+        found = len(search_result.results_list)
+        while search_result.hits > found:
+            search_result = self._search_fields(query=query, fields=fields, start_index=found, page_size=page_size, use_nlq=True)
+            for e in search_result.results_list:
+                yield e
+            found = found + len(search_result.results_list)
+
+
     def search_fields(self, query: str = "%",  fields: list[Field]|None=None,  page_size: int = 25) -> Generator:
         """
         Run a structured search using :class:`Field` objects and yield all matching result rows.
@@ -592,10 +621,15 @@ class ContentAPI(AuthenticatedAPI):
                 yield e
             found = found + len(search_result.results_list)
 
-    def _search_fields(self, query: str = "%", fields: list[Field]|None=None, start_index: int = 0, page_size: int = 25) -> SearchResult:
+    def _search_fields(self, query: str = "%", fields: list[Field]|None=None, start_index: int = 0, page_size: int = 25, use_nlq: bool = False) -> SearchResult:
 
         start_from = str(start_index)
         headers = {'Content-Type': 'application/x-www-form-urlencoded', HEADER_TOKEN: self.token}
+
+        if use_nlq:
+            query_name = "nlq"
+        else:
+            query_name = "q"
 
         if fields is None:
             fields = []
@@ -632,10 +666,10 @@ class ContentAPI(AuthenticatedAPI):
         filter_terms = ','.join(field_list)
 
         if len(sort_list) == 0:
-            query_term = ('{ "q":  "%s",  "fields":  [ %s ] }' % (query, filter_terms))
+            query_term = ('{ "%s":  "%s",  "fields":  [ %s ] }' % (query_name, query, filter_terms))
         else:
             sort_terms = ','.join(sort_list)
-            query_term = ('{ "q":  "%s",  "fields":  [ %s ],  "sort": [ %s ]}' % (query, filter_terms, sort_terms))
+            query_term = ('{ "%s":  "%s",  "fields":  [ %s ],  "sort": [ %s ]}' % (query_name, query, filter_terms, sort_terms))
 
         if len(metadata_elements) == 0:
             metadata_elements.append("xip.title")
