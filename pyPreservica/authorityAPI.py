@@ -260,7 +260,7 @@ class AuthorityAPI(AuthenticatedAPI):
             if 'fields' in doc:
                 table.fields = doc['fields']
             if 'description' in doc:
-                table.fields = doc['description']
+                table.description = doc['description']
             return table
         else:
             exception = HTTPException("", response.status_code, response.url, "table",
