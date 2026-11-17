@@ -43,7 +43,9 @@ Upload a file as a new asset into an existing folder:
 from pyPreservica import *
 
 upload = UploadAPI()
+
 folder_ref = "ae108c8f-b058-4228-b099-6049175d2f0c"
+
 package = simple_asset_package(preservation_file="picture.tiff", parent_folder=folder_ref)
 upload.upload_zip_package(package)
 ```
@@ -54,6 +56,7 @@ Search the repository:
 from pyPreservica import *
 
 content = ContentAPI()
+
 for hit in content.simple_search_list("London"):
     print(hit)
 ```

@@ -32,7 +32,8 @@ This library provides classes for working with a range of the Preservica APIs.
 
 https://developers.preservica.com/api-reference
 
-This version of the documentation is for use against a Preservica 8.x-6.2 systems
+This version of the documentation is for use against a Preservica 9.4-6.2 systems.
+
 For Preservica 6.0 and 6.1 see `the previous version <https://pypreservica.readthedocs.io/en/v6.1/>`_
 
 
@@ -71,8 +72,10 @@ Upload a file as a new asset into an existing folder:
     from pyPreservica import *
 
     upload = UploadAPI()
+
     folder_ref = "ae108c8f-b058-4228-b099-6049175d2f0c"
-    package = simple_asset_package(preservation_file="picture.tiff", parent_folder=folder_ref)
+
+    package = simple_asset_package("picture.tiff", parent_folder=folder_ref)
     upload.upload_zip_package(package)
 
 
@@ -83,6 +86,7 @@ Search the repository:
     from pyPreservica import *
 
     content = ContentAPI()
+
     for hit in content.simple_search_list("London"):
         print(hit)
 

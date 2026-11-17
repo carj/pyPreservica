@@ -77,7 +77,7 @@ class EntityAPI(AuthenticatedAPI):
         with self.session.get(bitstream.content_url, headers={HEADER_TOKEN: self.token, 'X-STREAM-No-Retry': 'true'}, stream=True) as request:
             if request.status_code == requests.codes.unauthorized:
                 self.token = self.__token__()
-                yield from self.bitstream_chunks(bitstream)
+                yield from self.bitstream_chunks(bitstream, chunk_size)
             elif request.status_code == requests.codes.ok:
                 for chunk in request.iter_content(chunk_size=chunk_size):
                     yield chunk
@@ -208,7 +208,7 @@ class EntityAPI(AuthenticatedAPI):
                                 logger.error("Downloaded file size did not match the Preservica held value")
                                 raise RuntimeError("Downloaded file size did not match the Preservica held value")
                         else:
-                            exception = HTTPException(bitstream.filename, response.status_code, response.url, "bitstream_bytes")
+                            exception = HTTPException(bitstream.filename, response.status_code, response.url, "bitstream_bytes", message="")
                             logger.error(exception)
                             raise exception
 

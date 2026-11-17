@@ -4,7 +4,7 @@ Base class for authenticated API calls used by Entity, Content and Upload
 Manages the authentication token lifetime and namespace versions.
 
 author:     James Carr
-licence:    Apache License 2.0
+licence:    Apache Licence 2.0
 
 """
 import configparser
@@ -139,7 +139,7 @@ def _make_stored_zipfile(base_name, base_dir, verbose=0, dry_run=0,
     """
     import zipfile  # late import for breaking circular dependency
 
-    zip_filename = base_name + ".zip"
+    zip_filename = str(base_name) + ".zip"
     archive_dir = os.path.dirname(base_name)
 
     if archive_dir and not os.path.exists(archive_dir):

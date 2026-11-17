@@ -10,7 +10,6 @@ licence:    Apache License 2.0
 """
 
 import csv
-import json
 from typing import List, Set
 
 from pyPreservica.common import *
@@ -21,7 +20,7 @@ BASE_ENDPOINT = '/api/reference-metadata'
 
 
 class Table:
-    def __init__(self, name: str, security_tag: str, displayField: str=None, metadataConnections: list=[]):
+    def __init__(self, name: str, security_tag: str, displayField: str=None, metadataConnections: list=None):
         """
         Initialise an authority Table with its name, security tag, and optional display settings.
 
@@ -237,7 +236,6 @@ class AuthorityAPI(AuthenticatedAPI):
             logger.error(exception)
             raise exception
 
-        return None
 
     def table(self, reference: str) -> Table:
         """
