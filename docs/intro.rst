@@ -220,67 +220,227 @@ or on the google group forum
 General questions and queries about using pyPreservica should be posted on the google group forum above.
 
 =======================
-Examples
+Quick Start
 =======================
 
-Using the python console, create the entity API client object and request an Asset
-(Information Object) by its unique reference and display some of its attributes.
+This section walks through the most common tasks so you can get going quickly. Each step builds on the one before,
+and you can type every example straight into the Python console.
 
-All entities within the Preservica system have one unique reference which can be used to retrieve them.
+The examples assume you have installed pyPreservica and that your credentials are available, either as environment
+variables or in a ``credentials.properties`` file. See :ref:`Authentication` below for the options.
 
-The reference used to fetch entities (Assets, Folders) is the Preservica internal unique identifier.
-This is a universally unique identifier `(UUID) <https://en.wikipedia.org/wiki/Universally_unique_identifier>`_
+.. tip::
+    The UUIDs below are placeholders. Replace them with references from your own Preservica system.
+    You can find an entity's reference in its metadata panel in Preservica Explorer.
 
-You can find the reference when viewing the object metadata within Explorer. Later on we will look at how we can fetch
-entities using other 3rd party external identifiers which may be more meaningful such as ISBNs, DOIs etc.
+-----------------------------
+Step 1: Connect to Preservica
+-----------------------------
 
-To create the client object you will need valid credentials to connect to the Preservica server. See the following
-section on available authentication options.
-
+Each part of the Preservica API has its own client class, such as ``EntityAPI``, ``ContentAPI`` and ``UploadAPI``.
+Creating a client logs in to the server. Printing the client shows which server and user you are connected as,
+which is a quick way to check you are working on the right system.
 
 .. code-block:: python
 
     >>> from pyPreservica import *
     >>> client = EntityAPI()
     >>> client
-    pyPreservica version: 0.8.5  (Preservica 6.2 Compatible)
-    Connected to: us.preservica.com Version: 6.2.0 as test@test.com
-    >>> asset = client.asset("dc949259-2c1d-4658-8eee-c17b27a8823d")
-    >>> asset.reference
-    'dc949259-2c1d-4658-8eee-c17b27a8823d'
+    pyPreservica version: 4.3.0  (Preservica 9.x Compatible) Connected to: eu.preservica.com Preservica version: 8.2.0 as test@test.com in tenancy PREVIEW
+
+If the credentials are wrong, creating the client raises an exception, so you know straight away.
+
+--------------------------------
+Step 2: Fetch an Asset or Folder
+--------------------------------
+
+Every entity in Preservica has a unique reference, a
+`UUID <https://en.wikipedia.org/wiki/Universally_unique_identifier>`_, which you use to fetch it.
+
+.. code-block:: python
+
+    >>> asset = client.asset("9fd239eb-19a3-4a46-9495-40fd9a5d8f93")
     >>> asset.title
     'LC-USZ62-20901'
-    >>> asset.parent
-    'ae108c8f-b058-4228-b099-6049175d2f0c'
+    >>> asset.description
+    'Photograph of the Wright brothers first flight'
     >>> asset.security_tag
     'open'
     >>> asset.entity_type
     <EntityType.ASSET: 'IO'>
+    >>> asset.parent
+    'ae108c8f-b058-4228-b099-6049175d2f0c'
 
-If your credentials are valid, pyPreservica returns a client object which is the connection to the server. Printing the client
-returns information about the connection such as the server and the user name etc. This can be useful to check that you are connected to
-the correct system.
+    >>> folder = client.folder(asset.parent)
+    >>> folder.title
+    'Library of Congress'
 
-All entities have a parent reference attribute, for Assets this always points to the parent Folder.
-For Content Objects the parent points to the Asset and for Folders it points to the parent Folder if it exists.
-Folders at the root level of the repository do not have a parent and the attribute returns the special Python
-value of ``None``
+All entities have a ``parent`` attribute. For Assets it points to the parent Folder, and for Folders it points to the
+parent Folder if there is one. Folders at the root of the repository have a parent of ``None``.
 
-This example shows how pyPreservica can be used to upload and ingest a local file, picture.tiff
-into Preservica using the UploadAPI class. The tiff file will be ingested as a new Asset object inside the existing Preservica folder given 
-by the folder UUID.
-The ``simple_asset_package`` function creates the package, in this case an XIPv6 formatted package and the ``upload_zip_package`` method
-uploads it directly to the Preservica server using the S3 protocol.
-
+If you don't know whether a reference belongs to an Asset or a Folder, use ``client.entity()`` with an ``EntityType``:
 
 .. code-block:: python
 
-    >>> from pyPreservica import *
+    >>> entity = client.entity(EntityType.FOLDER, "ae108c8f-b058-4228-b099-6049175d2f0c")
 
-    >>> client = UploadAPI()
-    >>> folder = "dc949259-2c1d-4658-8eee-c17b27a8823d"
-    >>> zip_p = simple_asset_package(preservation_file="picture.tiff", parent_folder=folder)
-    >>> client.upload_zip_package(zip_p)
+-----------------------------
+Step 3: Browse the repository
+-----------------------------
+
+``descendants()`` returns the immediate children of a Folder, and ``all_descendants()`` walks the whole tree below it.
+Both handle paging for you, so you can loop over the results directly. Call them with no argument to start from the
+root of the repository.
+
+.. code-block:: python
+
+    # List the top-level folders
+    for entity in client.descendants():
+        print(entity.reference, entity.title)
+
+    # Count every Asset below a folder, at any depth
+    folder = client.folder("ae108c8f-b058-4228-b099-6049175d2f0c")
+    assets = [e for e in client.all_descendants(folder) if e.entity_type == EntityType.ASSET]
+    print(f"{len(assets)} assets found")
+
+--------------------------------
+Step 4: Read and update metadata
+--------------------------------
+
+Change the title or description of an entity, then save it back to the server:
+
+.. code-block:: python
+
+    asset = client.asset("9fd239eb-19a3-4a46-9495-40fd9a5d8f93")
+    asset.title = "The Wright Brothers First Flight"
+    asset.description = "Kitty Hawk, North Carolina, 17 December 1903"
+    asset = client.save(asset)
+
+Descriptive metadata, such as Dublin Core, is stored as XML documents. ``metadata_for_entity()`` returns the XML
+for a given schema, or ``None`` if the entity has none:
+
+.. code-block:: python
+
+    xml = client.metadata_for_entity(asset, "http://www.openarchives.org/OAI/2.0/oai_dc/")
+    print(xml)
+
+To attach a new XML document, pass the schema namespace and the XML as a string:
+
+.. code-block:: python
+
+    dublin_core = """<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"
+                                xmlns:dc="http://purl.org/dc/elements/1.1/">
+                         <dc:creator>Orville Wright</dc:creator>
+                     </oai_dc:dc>"""
+    client.add_metadata(asset, "http://www.openarchives.org/OAI/2.0/oai_dc/", dublin_core)
+
+--------------------------------
+Step 5: Use external identifiers
+--------------------------------
+
+External identifiers link Preservica entities to references from other systems, such as a catalogue number,
+ISBN or DOI. You can then find entities by those identifiers instead of by UUID.
+
+.. code-block:: python
+
+    client.add_identifier(asset, "ISBN", "978-3-16-148410-0")
+
+    for identifier_type, value in client.identifiers_for_entity(asset):
+        print(identifier_type, value)
+
+    # Find entities by an external identifier
+    for entity in client.identifier("ISBN", "978-3-16-148410-0"):
+        print(entity.reference, entity.title)
+
+-----------------------
+Step 6: Create a Folder
+-----------------------
+
+``create_folder()`` creates a new Folder. Pass the reference of a parent Folder, or leave it out to create the Folder
+at the root of the repository.
+
+.. code-block:: python
+
+    new_folder = client.create_folder("Photographs", "Digitised photograph collection", "open",
+                                      parent="ae108c8f-b058-4228-b099-6049175d2f0c")
+    print(new_folder.reference)
+
+----------------------
+Step 7: Download files
+----------------------
+
+``download()`` saves the access copy of an Asset, and ``thumbnail()`` saves its thumbnail image:
+
+.. code-block:: python
+
+    client.download(asset, "access-copy.jpg")
+    client.thumbnail(asset, "thumbnail.jpg")
+
+To get the original files, follow the data model down from the Asset through its Representations,
+Content Objects and Generations to the Bitstreams:
+
+.. code-block:: python
+
+    for representation in client.representations(asset):
+        for content_object in client.content_objects(representation):
+            for generation in client.generations(content_object):
+                for bitstream in generation.bitstreams:
+                    print(representation.rep_type, bitstream.filename, bitstream.length)
+                    client.bitstream_content(bitstream, bitstream.filename)
+
+-----------------------------
+Step 8: Search the repository
+-----------------------------
+
+The ``ContentAPI`` class searches Preservica's full-text index. It returns results one at a time as dictionaries
+and handles paging for you.
+
+.. code-block:: python
+
+    search = ContentAPI()
+
+    for hit in search.simple_search_list("Wright brothers"):
+        print(hit["xip.reference"], hit["xip.title"])
+
+You can also filter on index fields. Use an empty string to include a field in the results without filtering on it:
+
+.. code-block:: python
+
+    filters = {"xip.document_type": "IO", "xip.title": "", "xip.security_descriptor": "open"}
+
+    for hit in search.search_index_filter_list("%", filter_values=filters):
+        print(hit["xip.reference"], hit["xip.title"])
+
+--------------------------------
+Step 9: Upload and ingest a file
+--------------------------------
+
+The ``UploadAPI`` class sends new content to Preservica. ``simple_asset_package()`` wraps a single file in a
+submission package, and ``upload_zip_package()`` uploads it and starts the ingest. The file becomes a new Asset
+inside the Folder you choose.
+
+.. code-block:: python
+
+    upload = UploadAPI()
+    folder = client.folder("ae108c8f-b058-4228-b099-6049175d2f0c")
+
+    package = simple_asset_package("picture.tiff", parent_folder=folder,
+                                   Title="Wright Flyer", Description="First flight photograph")
+    upload.upload_zip_package(package)
+
+The ingest runs on the server, so the new Asset appears in the Folder once the ingest workflow finishes.
+
+----------
+Next steps
+----------
+
+The rest of this documentation covers each API in more detail:
+
+* :doc:`tutorial` for a longer worked example
+* :doc:`entity` for the full Entity API, including moving entities and changing security tags
+* :doc:`content` for search and reporting
+* :doc:`upload` for more packaging options, such as multi-file Assets and access copies
+* :doc:`workflow` for monitoring and starting workflows
 
 =======================
 Authentication
