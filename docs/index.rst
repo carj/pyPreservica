@@ -6,6 +6,9 @@ Release v\ |version|.
 
 .. container:: badges
 
+    .. image:: https://img.shields.io/pypi/v/pyPreservica.svg?maxAge=86400
+        :target: https://pypi.org/project/pyPreservica/
+
     ..  image:: https://pepy.tech/badge/pyPreservica
         :target: https://pepy.tech/project/pyPreservica
 
@@ -38,7 +41,7 @@ For Preservica 6.0 and 6.1 see `the previous version <https://pypreservica.readt
 
 
 pyPreservica is an open source 3rd party library and is not affiliated with `Preservica Ltd <https://preservica.com/>`_.
-There is no support for use of the library from Preservica Ltd. For support see :ref:`Support <Support>`
+There is no support for use of the library from Preservica Ltd. For support see :ref:`Support <intro:Support>`
 
 -------------------
 

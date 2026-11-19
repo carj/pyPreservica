@@ -227,7 +227,7 @@ This section walks through the most common tasks so you can get going quickly. E
 and you can type every example straight into the Python console.
 
 The examples assume you have installed pyPreservica and that your credentials are available, either as environment
-variables or in a ``credentials.properties`` file. See :ref:`Authentication` below for the options.
+variables or in a ``credentials.properties`` file. See :ref:`intro:Authentication` below for the options.
 
 .. tip::
     The UUIDs below are placeholders. Replace them with references from your own Preservica system.
@@ -675,9 +675,9 @@ Here’s a sample implementation.
     client = EntityAPI()
 
 
-
+-----------------------
 Low Level Logging
-^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 pyPreservica now provides low level event hooks into the underlying API requests to the server.
 To use this functionality, create a call back function with the following signature `call_back(r, *args, **kwargs)`
@@ -700,7 +700,7 @@ This API allows clients to do things such as audit all the API endpoints which a
         pass
 
 
-.. code-block:: python
+.. code-block:: text
 
     https://us.preservica.com/api/accesstoken/login
     https://us.preservica.com/api/entity/versiondetails/version

@@ -30,9 +30,7 @@ html_theme = "sphinx_clarity_theme"
 
 html_extra_path = ["googled4940437d6a0a50d.html"]
 
-html_theme_options = {
-    'analytics_id': 'G-FWD081Y5Z6'}
-
+autosectionlabel_prefix_document = True
 
 default_dark_mode = False
 
