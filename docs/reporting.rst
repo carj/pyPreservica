@@ -19,12 +19,10 @@ to analyse the whole repository.
 
     from pyPreservica import *
 
-
     entity = EntityAPI()
+    client = ReportingAPI()
 
     folder = entity.folder('uuid')
-
-    client = ReportingAPI()
 
     client.storage_usage_report(folder=folder, filename="storage_report.html")
 
