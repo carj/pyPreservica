@@ -26,7 +26,7 @@ to analyse the whole repository.
 
     client = ReportingAPI()
 
-    client.storage_usage_report(folder=folder)
+    client.storage_usage_report(folder=folder, filename="storage_report.html")
 
 
 .. warning::
