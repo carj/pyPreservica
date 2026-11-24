@@ -213,5 +213,4 @@ The ``formats`` column of the CSV file lists the format candidates for each file
 
 .. note::
     The report reads the format identification stored in Preservica, it does not re-identify the files.
-    A file with a PUID which was not identified by its extension, for example a format set manually, is treated
-    as a known format.
+    A file with a PUID which was not identified by its extension, is treated as a known format.

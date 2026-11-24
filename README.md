@@ -33,7 +33,7 @@ print(asset.security_tag)  # open
 
 # List all children of a folder
 folder = client.folder(asset.parent)
-for child in client.children(folder.reference):
+for child in client.descendants(folder.reference):
     print(child.title, child.entity_type)
 ```
 
@@ -77,10 +77,20 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/carj/p
 For announcements about new versions and discussion of pyPreservica please subscribe to the google groups
 forum https://groups.google.com/g/pypreservica
 
+
+## Support
+
+pyPreservica is 3rd party open source client. There is no official support provided.
+
+**Important:**
+
+There is no support for pyPreservica from Preservica Ltd https://preservica.com/
+
+
+
 ## License
 
 The package is available as open source under the terms of the Apache License 2.0
-
 
 ## Installation
 

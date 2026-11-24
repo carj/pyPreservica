@@ -498,11 +498,10 @@ class EntityAPI(AuthenticatedAPI):
         :rtype: str
 
         """
-        status = "ACTIVE"
         pid = self.__export_opex_start__(entity, **kwargs)
-        while status == "ACTIVE":
-            status = self.get_async_progress(pid)
+        while (status := self.get_async_progress(pid)) == "ACTIVE":
             logger.debug(status)
+            sleep(0.5)
         if status == "COMPLETED":
             return self.download_opex(pid)
         else:
@@ -1303,6 +1302,14 @@ class EntityAPI(AuthenticatedAPI):
             raise exception
 
     def get_progress(self, pid: str) -> AsyncProgress:
+        """
+        Return the status of a running asynchronous process as an enum value.
+
+        :param pid: The progress ID returned when the async operation was started
+        :type pid: str
+        :return: The current status of the process
+        :rtype: AsyncProgress
+        """
         return AsyncProgress[self.get_async_progress(pid)]
 
     def get_async_progress(self, pid: str) -> str:
@@ -1351,13 +1358,10 @@ class EntityAPI(AuthenticatedAPI):
             data=data, headers=headers)
         if request.status_code == requests.codes.accepted:
             sleep_sec = 1
-            while True:
-                status = self.get_async_progress(request.content.decode("utf-8"))
-                if status != "ACTIVE":
-                    return self.entity(entity.entity_type, entity.reference)
-                else:
-                    sleep(sleep_sec)
-                    sleep_sec = sleep_sec + 1
+            while (status := self.get_async_progress(request.content.decode("utf-8"))) == "ACTIVE":
+                sleep(sleep_sec)
+                sleep_sec += 1
+            return self.entity(entity.entity_type, entity.reference)
         else:
             exception = HTTPException(entity, request.status_code, request.url, "move_sync",
                                       request.content.decode('utf-8'))
@@ -1510,13 +1514,10 @@ class EntityAPI(AuthenticatedAPI):
                                    data=new_tag, headers=headers)
         if request.status_code == requests.codes.accepted:
             sleep_sec = 1
-            while True:
-                status = self.get_async_progress(request.content.decode("utf-8"))
-                if status != "ACTIVE":
-                    return self.entity(entity.entity_type, entity.reference)
-                else:
-                    sleep(sleep_sec)
-                    sleep_sec = sleep_sec + 1
+            while (status := self.get_async_progress(request.content.decode("utf-8"))) == "ACTIVE":
+                sleep(sleep_sec)
+                sleep_sec += 1
+            return self.entity(entity.entity_type, entity.reference)
         else:
             exception = HTTPException(entity.reference, request.status_code, request.url, "security_tag_sync",
                                       request.content.decode('utf-8'))
@@ -2069,13 +2070,11 @@ class EntityAPI(AuthenticatedAPI):
 
         """
 
-        status = "ACTIVE"
-
         pid = self.replace_generation_async(content_object=content_object, file_name=file_name,
                                             fixity_algorithm=fixity_algorithm, fixity_value=fixity_value)
 
-        while status == "ACTIVE":
-            status = self.get_async_progress(pid)
+        while (status := self.get_async_progress(pid)) == "ACTIVE":
+            sleep(0.5)
 
         return status
 

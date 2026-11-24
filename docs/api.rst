@@ -241,6 +241,10 @@ This part of the documentation covers all the interfaces of pyPreservica :class:
 .. autoclass:: pyPreservica.EntityType
 .. autoclass:: pyPreservica.RelationshipDirection
 .. autoclass:: pyPreservica.IntegrityCheck
+.. autoclass:: pyPreservica.Thumbnail
+.. autoclass:: pyPreservica.Relationship
+
+
 
 
 

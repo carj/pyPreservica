@@ -37,6 +37,6 @@ from .reportingAPI import (ReportingAPI, StorageUsageReport, StorageNode, Duplic
 __author__ = "James Carr (drjamescarr@gmail.com)"
 
 # Version of the pyPreservica package
-__version__ = "4.3.0"
+__version__ = "4.3.1"
 
 __license__ = "Apache License Version 2.0"
