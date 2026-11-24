@@ -11,6 +11,9 @@ disk usage application.
 The duplicate content report finds bitstreams which are held more than once, by
 matching their size and fixity values.
 
+The unknown format report finds bitstreams with no PRONOM identifier (PUID), or which were
+identified only from their file extension.
+
 author:     James Carr
 licence:    Apache License 2.0
 
@@ -20,6 +23,7 @@ import csv
 import html
 import json
 import logging
+import os
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -139,7 +143,16 @@ class RepositoryReport:
                         if key in seen:
                             continue
                         seen.add(key)
+                        bitstream.generation = generation
                         yield representation, content_object, bitstream
+
+    def _walk(self, parent: Optional[Entity], path: list[str]) -> Generator[tuple[Asset, list[str]], None, None]:
+        """ Yield each asset below a folder along with the titles of the folders above it """
+        for entity in self.client.descendants(parent):
+            if entity.entity_type == EntityType.FOLDER:
+                yield from self._walk(entity, path + [entity.title])
+            else:
+                yield Asset(entity.reference, entity.title), path
 
     def _for_each(self, items: list, function: Callable, description: str) -> list:
         """ Apply function to each item using the worker thread pool, returning the results in order """
@@ -796,14 +809,6 @@ class DuplicateContentReport(RepositoryReport):
         self.bytes_scanned: int = 0
         self.files_without_fixity: int = 0
 
-    def _walk(self, parent: Optional[Entity], path: list[str]) -> Generator[tuple[Asset, list[str]], None, None]:
-        """ Yield each asset below a folder along with the titles of the folders above it """
-        for entity in self.client.descendants(parent):
-            if entity.entity_type == EntityType.FOLDER:
-                yield from self._walk(entity, path + [entity.title])
-            else:
-                yield Asset(entity.reference, entity.title), path
-
     def _asset_files(self, item: tuple[Asset, list[str]]) -> Optional[list[DuplicateFile]]:
         asset, path = item
         try:
@@ -1001,6 +1006,7 @@ _DUPLICATES_HTML_TEMPLATE = r"""<!DOCTYPE html>
 :root[data-theme="dark"] { --bg:#202326; --panel:#2a2e32; --text:#fcfcfc; --muted:#a1a9b1; --border:#3c4146;
         --hover:#33404d; --bar:#31363b; --accent:#5fb4eb; --warn:#f0a36b; --chip:#383d42; }
 * { box-sizing:border-box; }
+[hidden] { display:none !important; }
 html,body { margin:0; }
 body { background:var(--bg); color:var(--text); font:14px/1.4 "Noto Sans", "Segoe UI", system-ui, sans-serif; }
 #source { display:flex; gap:6px 24px; padding:8px 16px; background:var(--panel); border-bottom:1px solid var(--border);
@@ -1196,6 +1202,635 @@ render();
 """
 
 
+# Identification methods which identify a file from its content rather than its name
+CONTENT_IDENTIFICATION_METHODS = {"signature", "container"}
+
+
+class UnknownFormatFile:
+    """
+    A bitstream whose file format is not known, or was only identified from its file extension.
+
+    :param reference: The reference of the asset containing the bitstream.
+    :param title: The title of the asset.
+    :param path: The titles of the folders from the scanned folder down to the asset's parent.
+    :param filename: The bitstream filename.
+    :param size: The bitstream size in bytes.
+    :param status: ``UnknownFormatFile.NO_PUID`` or ``UnknownFormatFile.EXTENSION_ONLY``.
+    :param formats: The format candidates of the generation, as dictionaries with the keys
+        ``puid``, ``name``, ``version``, ``method`` and ``priority``.
+    :param representation: The representation type name, e.g. ``Preservation``.
+    :param original: True if the bitstream is in the original generation, False if it was created by a migration.
+    :param content_object: The reference of the content object containing the bitstream.
+    """
+
+    NO_PUID = "no_puid"
+    EXTENSION_ONLY = "extension_only"
+
+    def __init__(self, reference: str, title: str, path: list[str], filename: str, size: int, status: str,
+                 formats: Optional[list[dict]] = None, representation: Optional[str] = None,
+                 original: Optional[bool] = None, content_object: Optional[str] = None):
+        self.reference = reference
+        self.title = title
+        self.path = list(path)
+        self.filename = filename or ""
+        self.size = int(size)
+        self.status = status
+        self.formats = list(formats or [])
+        self.representation = representation
+        self.original = original
+        self.content_object = content_object
+
+    @property
+    def extension(self) -> str:
+        """ The lower case file extension including the dot, e.g. ``.dat``, or an empty string """
+        return os.path.splitext(self.filename)[1].lower()
+
+    @property
+    def folder_path(self) -> str:
+        return " / ".join(self.path)
+
+    @staticmethod
+    def classify(formats: Optional[list[dict]]) -> Optional[str]:
+        """
+        Classify the format candidates of a generation, as returned by ``Generation.formats``
+
+        :param formats: The list of format dictionaries, with the keys PUID and IdentificationMethod
+        :return: ``NO_PUID`` if no candidate has a PUID, ``EXTENSION_ONLY`` if the candidates with a PUID were
+            identified from the file extension and none from the file content (signature or container),
+            otherwise None
+        """
+        with_puid = [f for f in (formats or []) if str(f.get("PUID") or "").strip()]
+        if not with_puid:
+            return UnknownFormatFile.NO_PUID
+        methods = {str(f.get("IdentificationMethod") or "").strip().lower() for f in with_puid}
+        if "extension" in methods and not methods & CONTENT_IDENTIFICATION_METHODS:
+            return UnknownFormatFile.EXTENSION_ONLY
+        return None
+
+    @staticmethod
+    def candidates(formats: Optional[list[dict]]) -> list[dict]:
+        """ Convert Generation.formats into the candidate dictionaries stored by the report """
+        result = []
+        for f in formats or []:
+            result.append({"puid": str(f.get("PUID") or "").strip() or None, "name": f.get("FormatName"),
+                           "version": f.get("FormatVersion"), "method": f.get("IdentificationMethod"),
+                           "priority": f.get("Priority")})
+        return result
+
+    def to_dict(self) -> dict:
+        return {"ref": self.reference, "title": self.title, "path": self.path, "filename": self.filename,
+                "ext": self.extension, "size": self.size, "status": self.status, "formats": self.formats,
+                "rep": self.representation, "original": self.original, "co": self.content_object}
+
+    @staticmethod
+    def from_dict(data: dict) -> "UnknownFormatFile":
+        return UnknownFormatFile(data.get("ref"), data.get("title"), data.get("path", []), data.get("filename"),
+                                 data.get("size", 0), data.get("status"), data.get("formats", []), data.get("rep"),
+                                 data.get("original"), data.get("co"))
+
+    def __str__(self):
+        return f"{self.filename} in {self.title} ({self.reference}): {self.status}"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class UnknownFormatReport(RepositoryReport):
+    """
+    Find bitstreams in a Preservica folder hierarchy whose file format is not known.
+
+    The report walks the folder tree using the Entity API and reads the format identification of the
+    active generations of every asset. Two kinds of file are reported:
+
+    * **No PUID** files, where none of the format candidates has a PRONOM identifier (PUID).
+    * **Extension only** files, which have a PUID but were identified only from their file extension,
+      not from their content by a signature or container match. These can be left out of the report.
+
+    :param client: An authenticated EntityAPI client.
+    :param representation_types: The representation types to include. Defaults to Preservation only.
+    :param include_extension_only: Include files which were identified by their file extension only.
+    :param max_workers: The number of worker threads used to read assets in parallel.
+    :param show_progress: Display a progress bar on the console while scanning.
+    """
+
+    def __init__(self, client: EntityAPI,
+                 representation_types: Iterable[RepresentationType] = (RepresentationType.Preservation,),
+                 include_extension_only: bool = True, max_workers: int = 4, show_progress: bool = True):
+        super().__init__(client, representation_types, max_workers, show_progress)
+        self.include_extension_only = bool(include_extension_only)
+        self.files: Optional[list[UnknownFormatFile]] = None
+        self.scope: Optional[str] = None
+        self.assets_scanned: int = 0
+        self.assets_failed: int = 0
+        self.files_scanned: int = 0
+        self.bytes_scanned: int = 0
+        self.extension_only_count: int = 0
+        self.extension_only_bytes: int = 0
+
+    def _asset_files(self, item: tuple[Asset, list[str]]) -> Optional[tuple[int, int, list[UnknownFormatFile]]]:
+        asset, path = item
+        try:
+            count = 0
+            total = 0
+            found = []
+            for representation, content_object, bitstream in self._active_bitstreams(asset):
+                count += 1
+                size = int(bitstream.length or 0)
+                total += size
+                generation = getattr(bitstream, "generation", None)
+                formats = getattr(generation, "formats", None)
+                status = UnknownFormatFile.classify(formats)
+                if status is None:
+                    continue
+                rep_type = getattr(representation, "rep_type", None)
+                found.append(UnknownFormatFile(asset.reference, asset.title, path, bitstream.filename, size, status,
+                                               UnknownFormatFile.candidates(formats),
+                                               rep_type.value if rep_type is not None else None,
+                                               getattr(generation, "original", None),
+                                               getattr(content_object, "reference", None)))
+            return count, total, found
+        except Exception as e:
+            logger.warning(f"Unable to read the formats of asset {asset.reference}: {e}")
+            return None
+
+    def scan(self, folder: Union[Folder, Entity, str, None] = None) -> list[UnknownFormatFile]:
+        """
+        Scan a folder hierarchy and find the bitstreams whose file format is not known.
+
+        :param folder: The folder (or folder reference) to start from, ``None`` for the whole repository.
+        :return: The files with no PUID, and if included the files identified by extension only, largest first.
+        """
+        folder = self._resolve_folder(folder)
+        self.scope = folder.title if folder is not None else "Repository"
+
+        assets = []
+        with tqdm(desc="Scanning folders", unit=" assets", disable=not self.show_progress) as bar:
+            for item in self._walk(folder, []):
+                assets.append(item)
+                bar.update(1)
+
+        results = self._for_each(assets, self._asset_files, "Reading formats")
+
+        files = []
+        self.assets_failed = 0
+        self.files_scanned = 0
+        self.bytes_scanned = 0
+        self.extension_only_count = 0
+        self.extension_only_bytes = 0
+        for result in results:
+            if result is None:
+                self.assets_failed += 1
+                continue
+            count, total, found = result
+            self.files_scanned += count
+            self.bytes_scanned += total
+            for f in found:
+                if f.status == UnknownFormatFile.EXTENSION_ONLY:
+                    self.extension_only_count += 1
+                    self.extension_only_bytes += f.size
+                    if not self.include_extension_only:
+                        continue
+                files.append(f)
+        files.sort(key=lambda f: (f.status != UnknownFormatFile.NO_PUID, -f.size, f.folder_path, f.filename))
+        self.assets_scanned = len(assets)
+        self.files = files
+        self.scanned_at = datetime.now()
+        return self.files
+
+    def _require_scan(self):
+        if self.files is None:
+            raise RuntimeError("No scan results, call scan() or load_json() first")
+
+    @property
+    def no_puid_files(self) -> list[UnknownFormatFile]:
+        """ The files where no format candidate has a PUID """
+        self._require_scan()
+        return [f for f in self.files if f.status == UnknownFormatFile.NO_PUID]
+
+    @property
+    def extension_only_files(self) -> list[UnknownFormatFile]:
+        """ The files identified by extension only, empty if they were not included in the report """
+        self._require_scan()
+        return [f for f in self.files if f.status == UnknownFormatFile.EXTENSION_ONLY]
+
+    def _group(self, key: Callable[[UnknownFormatFile], str], name: str) -> list[dict]:
+        groups = {}
+        for f in self.files:
+            k = key(f)
+            g = groups.get(k)
+            if g is None:
+                g = groups[k] = {name: k, "files": 0, "no_puid": 0, "extension_only": 0, "size": 0,
+                                 "folders": set(), "example": f.filename}
+            g["files"] += 1
+            g["no_puid" if f.status == UnknownFormatFile.NO_PUID else "extension_only"] += 1
+            g["size"] += f.size
+            g["folders"].add(f.folder_path)
+        result = []
+        for g in groups.values():
+            g["folders"] = len(g["folders"])
+            result.append(g)
+        result.sort(key=lambda g: (g["files"], g["size"]), reverse=True)
+        return result
+
+    def by_extension(self) -> list[dict]:
+        """
+        Group the reported files by file extension, most files first
+
+        :return: A list of dictionaries with the keys extension (an empty string for no extension), files,
+            no_puid, extension_only, size (bytes), folders (the number of folders) and example (a filename)
+        """
+        self._require_scan()
+        return self._group(lambda f: f.extension, "extension")
+
+    def by_folder(self) -> list[dict]:
+        """
+        Group the reported files by the folder containing their asset, most files first
+
+        :return: A list of dictionaries with the keys folder (the folder path relative to the scanned folder),
+            files, no_puid, extension_only, size (bytes), folders and example (a filename)
+        """
+        self._require_scan()
+        return self._group(lambda f: f.folder_path, "folder")
+
+    def summary(self) -> dict:
+        """ Return the scan totals as a dictionary """
+        self._require_scan()
+        no_puid = self.no_puid_files
+        return {"assets": self.assets_scanned, "failed": self.assets_failed, "files": self.files_scanned,
+                "bytes": self.bytes_scanned, "no_puid": len(no_puid), "no_puid_bytes": sum(f.size for f in no_puid),
+                "extension_only": self.extension_only_count, "extension_only_bytes": self.extension_only_bytes,
+                "include_extension_only": self.include_extension_only,
+                "representations": sorted(r.value for r in self.representation_types)}
+
+    def to_dict(self) -> dict:
+        """ Return the scan results as a dictionary """
+        self._require_scan()
+        return {**self._report_header(), "scope": self.scope, "summary": self.summary(),
+                "files": [f.to_dict() for f in self.files]}
+
+    def load_json(self, filename: str) -> list[UnknownFormatFile]:
+        """
+        Load scan results previously saved with save_json()
+
+        :param filename: The JSON file to read
+        :return: The reported files
+        """
+        with open(filename, "r", encoding="utf-8") as fd:
+            data = json.load(fd)
+        self._load_header(data)
+        self.scope = data.get("scope")
+        summary = data.get("summary", {})
+        self.assets_scanned = int(summary.get("assets", 0))
+        self.assets_failed = int(summary.get("failed", 0))
+        self.files_scanned = int(summary.get("files", 0))
+        self.bytes_scanned = int(summary.get("bytes", 0))
+        self.extension_only_count = int(summary.get("extension_only", 0))
+        self.extension_only_bytes = int(summary.get("extension_only_bytes", 0))
+        self.include_extension_only = bool(summary.get("include_extension_only", self.include_extension_only))
+        if "representations" in summary:
+            self.representation_types = {RepresentationType(r) for r in summary["representations"]}
+        self.files = [UnknownFormatFile.from_dict(f) for f in data.get("files", [])]
+        return self.files
+
+    def save_csv(self, filename: str) -> str:
+        """
+        Write one row per reported file to a CSV file, for use in a spreadsheet.
+
+        The formats column lists the format candidates as ``PUID name (method)``, separated by ``;``.
+
+        :param filename: The CSV file to write
+        :return: The filename
+        """
+        self._require_scan()
+        with open(filename, "w", encoding="utf-8", newline="") as fd:
+            writer = csv.writer(fd)
+            writer.writerow(["status", "asset_reference", "asset_title", "folder_path", "filename", "extension",
+                             "size_bytes", "size", "representation", "generation", "content_object", "formats"])
+            for f in self.files:
+                generation = "" if f.original is None else ("Original" if f.original else "Migrated")
+                candidates = "; ".join(" ".join(p for p in [c.get("puid") or "", c.get("name") or "",
+                                                            f"({c['method']})" if c.get("method") else ""] if p)
+                                       for c in f.formats)
+                writer.writerow(["No PUID" if f.status == UnknownFormatFile.NO_PUID else "Extension only",
+                                 f.reference, f.title, f.folder_path, f.filename, f.extension, f.size,
+                                 human_size(f.size), f.representation, generation, f.content_object, candidates])
+        return filename
+
+    def render_html(self, filename: str = "unknown_formats.html", title: Optional[str] = None) -> str:
+        """
+        Render the scan results as a self-contained HTML page with summary totals, the reported files
+        grouped by file extension and by folder, and a searchable list of the files.
+
+        The page has no external dependencies and can be opened directly in a web browser.
+
+        :param filename: The HTML file to write
+        :param title: The page title, defaults to the name of the scanned folder
+        :return: The filename
+        """
+        self._require_scan()
+        return self._write_page(_UNKNOWN_FORMAT_HTML_TEMPLATE, filename, title or f"Unknown file formats: {self.scope}",
+                                self.to_dict())
+
+
+_UNKNOWN_FORMAT_HTML_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+:root { --bg:#eff0f1; --panel:#fff; --text:#232629; --muted:#6b7780; --border:#d1d3d5; --hover:#e3eef9;
+        --chip:#e8ecef; --ok:#2e8540; --warn:#a8650a; --warn-bg:#fbeed6; --bad:#b3261e; --bad-bg:#fbe3e1;
+        --bar-ok:#58a55c; --bar-warn:#e0a030; --bar-bad:#d9534f; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg:#202326; --panel:#2a2e32; --text:#fcfcfc; --muted:#a1a9b1; --border:#3c4146;
+        --hover:#33404d; --chip:#383d42; --ok:#7cc97f; --warn:#f0b75a; --warn-bg:#4a3714; --bad:#f28b82;
+        --bad-bg:#4d2422; --bar-ok:#4c9a50; --bar-warn:#d0952a; --bar-bad:#d0504b; }
+}
+:root[data-theme="dark"] { --bg:#202326; --panel:#2a2e32; --text:#fcfcfc; --muted:#a1a9b1; --border:#3c4146;
+        --hover:#33404d; --chip:#383d42; --ok:#7cc97f; --warn:#f0b75a; --warn-bg:#4a3714; --bad:#f28b82;
+        --bad-bg:#4d2422; --bar-ok:#4c9a50; --bar-warn:#d0952a; --bar-bad:#d0504b; }
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+html,body { margin:0; }
+body { background:var(--bg); color:var(--text); font:14px/1.4 "Noto Sans", "Segoe UI", system-ui, sans-serif; }
+#source { display:flex; gap:6px 24px; padding:8px 16px; background:var(--panel); border-bottom:1px solid var(--border);
+          flex-wrap:wrap; font-size:13px; }
+#source:empty { display:none; }
+#source div { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#source span { color:var(--muted); margin-right:6px; }
+#source b { font-weight:600; }
+.wrap { max-width:1200px; margin:0 auto; padding:0 16px 24px; }
+header { padding-top:14px; padding-bottom:4px; }
+header h1 { font-size:20px; margin:0; font-weight:600; }
+header p { margin:4px 0 0; color:var(--muted); font-size:13px; }
+h2 { font-size:15px; font-weight:600; margin:22px 0 8px; }
+#tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin:14px 0; }
+.tile { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:10px 12px; }
+.tile .v { font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+.tile .l { color:var(--muted); font-size:12px; }
+.tile.bad .v { color:var(--bad); } .tile.warn .v { color:var(--warn); } .tile.ok .v { color:var(--ok); }
+#bar { display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--chip); }
+#bar div { height:100%; }
+#legend { display:flex; gap:6px 16px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin:6px 0 4px; }
+.sw { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
+#notes { color:var(--muted); font-size:13px; margin:8px 0 0; }
+#notes:empty { display:none; }
+.tbl { background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+.tr { display:grid; gap:4px 12px; padding:7px 12px; border-bottom:1px solid var(--border); font-size:13px;
+      align-items:center; }
+.tr:last-child { border-bottom:none; }
+.tr div { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tr.head { color:var(--muted); font-size:12px; }
+.tr.click { cursor:pointer; }
+.tr.click:hover, .tr.sel { background:var(--hover); }
+.groups .tr { grid-template-columns:minmax(0,2fr) repeat(3, minmax(0,1fr)) minmax(0,0.8fr) minmax(0,1.6fr); }
+.n { text-align:right; font-variant-numeric:tabular-nums; }
+.z { color:var(--muted); }
+.mono { font-family:ui-monospace, Consolas, monospace; font-size:12px; }
+.more { display:block; margin:8px auto 0; font:inherit; font-size:13px; color:var(--text); background:none;
+        border:1px solid var(--border); border-radius:4px; padding:4px 12px; cursor:pointer; }
+.more:hover { background:var(--hover); }
+.tools { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+.tools input, .tools select { font:inherit; color:var(--text); background:var(--panel); border:1px solid var(--border);
+          border-radius:4px; padding:6px 9px; }
+.tools input { flex:1; min-width:200px; }
+.count { color:var(--muted); font-size:13px; }
+.chipx { background:var(--chip); border:none; color:var(--text); border-radius:12px; padding:3px 10px; font:inherit;
+         font-size:12px; cursor:pointer; }
+.chipx:hover { background:var(--hover); }
+.files .tr { grid-template-columns:minmax(0,2.2fr) minmax(0,1.8fr) auto minmax(0,0.7fr) minmax(0,0.9fr); }
+.files .tr div.fn { white-space:normal; }
+.sub { display:block; color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pill { font-size:12px; padding:2px 8px; border-radius:10px; white-space:nowrap; }
+.pill.bad { background:var(--bad-bg); color:var(--bad); } .pill.warn { background:var(--warn-bg); color:var(--warn); }
+.mig { color:var(--bad); }
+.empty { padding:20px; text-align:center; color:var(--muted); }
+footer { color:var(--muted); font-size:12px; text-align:center; padding:8px 16px 20px; }
+@media (max-width: 720px) {
+  .groups .tr { grid-template-columns:minmax(0,1.6fr) repeat(2, minmax(0,1fr)); }
+  .groups .tr > :nth-child(4), .groups .tr > :nth-child(5), .groups .tr > :nth-child(6) { display:none; }
+  .files .tr { grid-template-columns:1fr auto; }
+  .files .tr.head { display:none; }
+  .files .tr > :nth-child(2) { grid-column:1 / -1; order:3; }
+  .files .tr > :nth-child(4), .files .tr > :nth-child(5) { display:none; }
+}
+</style>
+</head>
+<body>
+<div id="source"></div>
+<header class="wrap"><h1>Unknown file formats</h1><p id="scope"></p></header>
+<div class="wrap">
+  <div id="tiles"></div>
+  <div id="bar" role="img" aria-label="Format identification breakdown"></div>
+  <div id="legend"></div>
+  <p id="notes"></p>
+
+  <h2>By file extension</h2>
+  <div class="tbl groups" id="exts"></div>
+  <button class="more" id="exts-more" hidden></button>
+
+  <h2>By folder</h2>
+  <div class="tbl groups" id="folders"></div>
+  <button class="more" id="folders-more" hidden></button>
+
+  <h2 id="files-title">Files</h2>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Filter by filename, asset title, folder, reference or PUID" aria-label="Filter">
+    <select id="status" aria-label="Status"></select>
+    <select id="sort" aria-label="Sort by">
+      <option value="size">Largest first</option>
+      <option value="filename">Filename</option>
+      <option value="folder">Folder</option>
+    </select>
+    <span class="count" id="count"></span>
+  </div>
+  <div id="active"></div>
+  <div class="tbl files" id="files"></div>
+  <button class="more" id="files-more" hidden></button>
+</div>
+<footer id="footer"></footer>
+<script>
+const DATA = __DATA__;
+const S = DATA.summary;
+const PAGE = 100, GROUP_PAGE = 10;
+const NO = 'no_puid', EXT = 'extension_only';
+const withExt = S.include_extension_only;
+let shown = PAGE, extShown = GROUP_PAGE, folderShown = GROUP_PAGE, pick = null;
+
+function fmt(b) {
+  const u = ['B','KiB','MiB','GiB','TiB','PiB']; let i = 0; b = Number(b);
+  while (Math.abs(b) >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return i === 0 ? b + ' B' : b.toFixed(1) + ' ' + u[i];
+}
+function num(n) { return Number(n).toLocaleString(); }
+function pct(n, d) { return d ? (100 * n / d).toFixed(1) + '%' : '0%'; }
+function mk(tag, cls, text) {
+  const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e;
+}
+function folderOf(f) { return (f.path || []).join(' / '); }
+function extLabel(e) { return e || '(none)'; }
+
+DATA.files.forEach(f => {
+  f.folder = folderOf(f);
+  f.search = [f.filename, f.title, f.folder, f.ref, ...(f.formats || []).map(c => [c.puid, c.name].join(' '))]
+             .join(' ').toLowerCase();
+});
+
+(function header() {
+  const box = document.getElementById('source');
+  for (const [label, value] of [['Tenancy', DATA.tenant], ['Server', DATA.server]]) {
+    if (!value) continue;
+    const d = mk('div'); d.appendChild(mk('span', '', label)); d.appendChild(mk('b', '', value)); box.appendChild(d);
+  }
+  document.getElementById('scope').textContent = 'Scope: ' + (DATA.scope || 'Repository') + ' · active ' +
+    (S.representations || []).join(' and ') + ' generations';
+  const identified = S.files - S.no_puid - S.extension_only;
+  const tiles = [['No PUID', num(S.no_puid), fmt(S.no_puid_bytes), 'bad']];
+  if (withExt) tiles.push(['Extension only', num(S.extension_only), fmt(S.extension_only_bytes), 'warn']);
+  tiles.push(['Identified from content', pct(identified, S.files), num(identified) + ' files', 'ok']);
+  tiles.push(['Files scanned', num(S.files), fmt(S.bytes) + ' · ' + num(S.assets) + ' assets', '']);
+  const t = document.getElementById('tiles');
+  for (const [label, value, sub, cls] of tiles) {
+    const d = mk('div', 'tile ' + cls); d.appendChild(mk('div', 'l', label)); d.appendChild(mk('div', 'v', value));
+    d.appendChild(mk('div', 'l', sub)); t.appendChild(d);
+  }
+  const parts = [['Identified from content', identified, 'var(--bar-ok)'],
+                 ['Extension only', S.extension_only, 'var(--bar-warn)'], ['No PUID', S.no_puid, 'var(--bar-bad)']];
+  const bar = document.getElementById('bar'), legend = document.getElementById('legend');
+  for (const [label, n, colour] of parts) {
+    if (!S.files) break;
+    const seg = mk('div'); seg.style.width = (100 * n / S.files) + '%'; seg.style.background = colour; bar.appendChild(seg);
+    const l = mk('span'); const sw = mk('span', 'sw'); sw.style.background = colour; l.appendChild(sw);
+    l.appendChild(document.createTextNode(`${label} ${pct(n, S.files)}`)); legend.appendChild(l);
+  }
+  const notes = [];
+  if (!withExt && S.extension_only) notes.push(`${num(S.extension_only)} files identified by extension only are not listed.`);
+  const migrated = DATA.files.filter(f => f.original === false && f.status === NO).length;
+  if (migrated) notes.push(`${num(migrated)} files with no PUID were created by a migration.`);
+  if (S.failed) notes.push(`${num(S.failed)} assets could not be read.`);
+  document.getElementById('notes').textContent = notes.join(' ');
+  document.getElementById('footer').textContent = DATA.scanned ? 'Scanned ' + DATA.scanned.replace('T', ' ') : '';
+  const st = document.getElementById('status');
+  const opts = [['all', 'All statuses'], [NO, 'No PUID']]; if (withExt) opts.push([EXT, 'Extension only']);
+  for (const [v, l] of opts) { const o = mk('option', '', l); o.value = v; st.appendChild(o); }
+  if (!withExt) st.hidden = true;
+})();
+
+function group(key) {
+  const m = new Map();
+  for (const f of DATA.files) {
+    const k = key(f);
+    let g = m.get(k);
+    if (!g) m.set(k, g = {key: k, files: 0, no: 0, ext: 0, size: 0, folders: new Set(), example: f.filename});
+    g.files++; g[f.status === NO ? 'no' : 'ext']++; g.size += f.size; g.folders.add(f.folder);
+  }
+  return [...m.values()].sort((a, b) => b.files - a.files || b.size - a.size);
+}
+const EXTS = group(f => f.ext), FOLDERS = group(f => f.folder);
+
+function groupTable(id, rows, limit, kind) {
+  const box = document.getElementById(id); box.innerHTML = '';
+  const head = mk('div', 'tr head');
+  [kind === 'ext' ? 'Extension' : 'Folder', 'No PUID', withExt ? 'Extension only' : '', 'Size', 'Folders',
+   'Example'].forEach((h, i) => head.appendChild(mk('div', i && i < 5 ? 'n' : '', h)));
+  box.appendChild(head);
+  if (!rows.length) { box.appendChild(mk('div', 'empty', 'No files with an unknown format were found.')); return; }
+  for (const g of rows.slice(0, limit)) {
+    const r = mk('div', 'tr click');
+    if (pick && pick.kind === kind && pick.key === g.key) r.classList.add('sel');
+    r.appendChild(mk('div', kind === 'ext' && g.key ? 'mono' : (g.key ? '' : 'z'),
+                     kind === 'ext' ? extLabel(g.key) : (g.key || '(top level)')));
+    r.appendChild(mk('div', 'n' + (g.no ? '' : ' z'), num(g.no)));
+    r.appendChild(mk('div', 'n' + (g.ext ? '' : ' z'), withExt ? num(g.ext) : ''));
+    r.appendChild(mk('div', 'n', fmt(g.size)));
+    r.appendChild(mk('div', 'n', num(g.folders.size)));
+    r.appendChild(mk('div', 'z', g.example));
+    r.title = 'Show these files';
+    r.addEventListener('click', () => {
+      pick = (pick && pick.kind === kind && pick.key === g.key) ? null : {kind, key: g.key};
+      shown = PAGE; renderAll(); if (pick) document.getElementById('files-title').scrollIntoView({behavior: 'smooth'});
+    });
+    box.appendChild(r);
+  }
+  const more = document.getElementById(id + '-more');
+  more.hidden = rows.length <= limit;
+  more.textContent = `Show all ${num(rows.length)}`;
+}
+
+function candidateText(f) {
+  if (!f.formats || !f.formats.length) return 'No format candidates';
+  return f.formats.map(c => [c.puid, c.name, c.version].filter(Boolean).join(' ') + (c.method ? ` (${c.method})` : ''))
+                  .join('; ');
+}
+
+function renderFiles() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const status = document.getElementById('status').value;
+  const sort = document.getElementById('sort').value;
+  const list = DATA.files.filter(f => (status === 'all' || f.status === status) && (!q || f.search.includes(q)) &&
+    (!pick || (pick.kind === 'ext' ? f.ext === pick.key : f.folder === pick.key)));
+  if (sort === 'size') list.sort((a, b) => b.size - a.size);
+  else if (sort === 'filename') list.sort((a, b) => a.filename.localeCompare(b.filename));
+  else list.sort((a, b) => a.folder.localeCompare(b.folder) || a.filename.localeCompare(b.filename));
+
+  const active = document.getElementById('active'); active.innerHTML = '';
+  if (pick) {
+    const c = mk('button', 'chipx', (pick.kind === 'ext' ? 'Extension: ' + extLabel(pick.key) : 'Folder: ' +
+              (pick.key || '(top level)')) + '  ✕');
+    c.addEventListener('click', () => { pick = null; shown = PAGE; renderAll(); });
+    active.style.marginBottom = '10px'; active.appendChild(c);
+  } else active.style.marginBottom = '0';
+
+  const box = document.getElementById('files'); box.innerHTML = '';
+  const head = mk('div', 'tr head');
+  ['File', 'Folder', 'Status', 'Size', 'Generation'].forEach((h, i) => head.appendChild(mk('div', i === 3 ? 'n' : '', h)));
+  box.appendChild(head);
+  if (!list.length) box.appendChild(mk('div', 'empty', DATA.files.length ? 'No files match the filter.' :
+                                        'No files with an unknown format were found.'));
+  for (const f of list.slice(0, shown)) {
+    const r = mk('div', 'tr');
+    const a = mk('div', 'fn'); a.appendChild(document.createTextNode(f.filename || '(no filename)'));
+    a.appendChild(mk('span', 'sub', (f.title || '(untitled)') + ' · ' + (f.ref || '')));
+    a.appendChild(mk('span', 'sub', candidateText(f)));
+    r.appendChild(a);
+    r.appendChild(mk('div', f.folder ? '' : 'z', f.folder || '(top level)'));
+    const s = mk('div'); s.appendChild(mk('span', 'pill ' + (f.status === NO ? 'bad' : 'warn'),
+                                        f.status === NO ? 'No PUID' : 'Extension only'));
+    r.appendChild(s);
+    r.appendChild(mk('div', 'n', fmt(f.size)));
+    const gen = f.original === null || f.original === undefined ? '' : (f.original ? 'Original' : 'Migrated');
+    const g = mk('div', f.original === false && f.status === NO ? 'mig' : '', gen);
+    if (f.rep) g.appendChild(mk('span', 'sub', f.rep));
+    r.appendChild(g);
+    box.appendChild(r);
+  }
+  const more = document.getElementById('files-more');
+  more.hidden = list.length <= shown;
+  more.textContent = `Show more (${num(list.length - shown)} remaining)`;
+  const total = list.reduce((s, f) => s + f.size, 0);
+  document.getElementById('count').textContent = `${num(list.length)} file${list.length === 1 ? '' : 's'} · ${fmt(total)}`;
+}
+
+function renderAll() {
+  groupTable('exts', EXTS, extShown, 'ext');
+  groupTable('folders', FOLDERS, folderShown, 'folder');
+  renderFiles();
+}
+
+document.getElementById('q').addEventListener('input', () => { shown = PAGE; renderFiles(); });
+document.getElementById('status').addEventListener('change', () => { shown = PAGE; renderFiles(); });
+document.getElementById('sort').addEventListener('change', () => { shown = PAGE; renderFiles(); });
+document.getElementById('files-more').addEventListener('click', () => { shown += PAGE; renderFiles(); });
+document.getElementById('exts-more').addEventListener('click', () => { extShown = Infinity; renderAll(); });
+document.getElementById('folders-more').addEventListener('click', () => { folderShown = Infinity; renderAll(); });
+renderAll();
+</script>
+</body>
+</html>
+"""
+
+
 class ReportingAPI(AuthenticatedAPI):
     """
     API for generating reports about the content of a Preservica repository.
@@ -1271,6 +1906,33 @@ class ReportingAPI(AuthenticatedAPI):
         """
         report = DuplicateContentReport(self.entity_client, representation_types=representation_types,
                                         min_size=min_size, max_workers=max_workers, show_progress=show_progress)
+        report.scan(folder)
+        report.render_html(filename)
+        return report
+
+    def unknown_format_report(self, folder: Union[Folder, Entity, str, None] = None,
+                              filename: str = "unknown_formats.html",
+                              representation_types: Iterable[RepresentationType] = (RepresentationType.Preservation,),
+                              include_extension_only: bool = True, max_workers: int = 4,
+                              show_progress: bool = True) -> UnknownFormatReport:
+        """
+        Scan a folder (or the whole repository when folder is None) for bitstreams whose file format is
+        not known, and write an HTML report.
+
+        A file format is not known when none of the format candidates has a PRONOM identifier (PUID).
+        Files which have a PUID but were identified only from their file extension can also be included.
+
+        :param folder: The folder or folder reference to scan, None for the repository root
+        :param filename: The HTML file to write
+        :param representation_types: The representation types to include. Defaults to Preservation only.
+        :param include_extension_only: Include files which were identified by their file extension only
+        :param max_workers: The number of worker threads used to read assets
+        :param show_progress: Display progress bars on the console
+        :return: The UnknownFormatReport, which can be used to save the results as CSV or JSON
+        """
+        report = UnknownFormatReport(self.entity_client, representation_types=representation_types,
+                                     include_extension_only=include_extension_only, max_workers=max_workers,
+                                     show_progress=show_progress)
         report.scan(folder)
         report.render_html(filename)
         return report

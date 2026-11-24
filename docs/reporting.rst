@@ -142,3 +142,76 @@ or as JSON so the HTML report can be re-created later without scanning the repos
     The report reads the fixity values stored in Preservica, it does not re-calculate them. Files without a fixity
     value or have different fixity algorithms cannot be directly compared and are counted separately in the report.
 
+
+
+--------------------------
+Unknown File Format Report
+--------------------------
+
+Finds digital files (bitstreams) whose file format is not known, in a folder hierarchy or the whole repository.
+The report uses the format identification which Preservica has already recorded for each file, so it does not need
+to download any content. Two kinds of file are reported:
+
+* **No PUID**: none of the format candidates for the file has a PRONOM unique identifier (PUID), so the format is unknown.
+* **Extension only**: the file has a PUID, but it was identified only from its file extension. None of its format
+  candidates was matched from the file content by a signature or container match, so the format may be wrong.
+
+The report groups the files by file extension and by folder, which usually shows that most of the unknown files
+come from a small number of file types or ingests. It also shows whether each file is in the original generation
+or was created by a migration.
+
+.. code-block:: python
+
+    from pyPreservica import *
+
+    client = ReportingAPI()
+
+    report = client.unknown_format_report(folder='uuid', filename="unknown_formats.html")
+
+    print(f"{len(report.no_puid_files)} files with no PUID")
+    print(f"{len(report.extension_only_files)} files identified by extension only")
+
+.. warning::
+    The report can take a long time to run for large collections. The report is designed to be run infrequently.
+
+.. raw:: html
+
+    <iframe src="_static/unknown_formats_demo.html" style="width:100%; height:600px; border:1px solid #ccc;"
+            title="Example unknown file format report"></iframe>
+
+`Open the example report full screen <_static/unknown_formats_demo.html>`__
+
+
+By default only the active generations of Preservation representations are checked. Use ``representation_types``
+to include Access representations, and set ``include_extension_only`` to ``False`` to list only the files with no PUID.
+The number of files identified by extension only is still shown in the report summary.
+
+.. code-block:: python
+
+    report = client.unknown_format_report(folder='uuid', filename="unknown_formats.html",
+                                          include_extension_only=False)
+
+The report returned can be saved as a CSV file with one row per file, which can be opened in a spreadsheet,
+or as JSON so the HTML report can be re-created later without scanning the repository again.
+The ``formats`` column of the CSV file lists the format candidates for each file.
+
+.. code-block:: python
+
+    report.save_csv("unknown_formats.csv")
+    report.save_json("unknown_formats.json")
+
+    for group in report.by_extension():
+        print(group["extension"] or "(none)", group["files"], group["no_puid"], group["extension_only"], group["size"])
+
+    for file in report.no_puid_files:
+        print(file.filename, file.reference, file.folder_path, file.original)
+
+    # later, without connecting to Preservica
+    report = UnknownFormatReport(None)
+    report.load_json("unknown_formats.json")
+    report.render_html("unknown_formats.html")
+
+.. note::
+    The report reads the format identification stored in Preservica, it does not re-identify the files.
+    A file with a PUID which was not identified by its extension, for example a format set manually, is treated
+    as a known format.

@@ -416,7 +416,8 @@ API for retrieving information about configuration settings.
 Reporting API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-API for generating reports about the content of the repository, such as storage usage and duplicate content.
+API for generating reports about the content of the repository, such as storage usage, duplicate content
+and unknown file formats.
 
 .. py:currentmodule:: pyPreservica
 
@@ -436,4 +437,10 @@ API for generating reports about the content of the repository, such as storage 
      :members:
 
 .. autoclass:: DuplicateFile
+     :members:
+
+.. autoclass:: UnknownFormatReport
+     :members:
+
+.. autoclass:: UnknownFormatFile
      :members:

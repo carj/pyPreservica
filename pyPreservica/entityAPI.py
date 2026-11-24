@@ -1905,7 +1905,7 @@ class EntityAPI(AuthenticatedAPI):
             formats = entity_response.findall(f'.//{{{self.xip_ns}}}Formats/{{{self.xip_ns}}}Format')
             formats_list = []
             for tech_format in formats:
-                format_dict = {'Valid': tech_format.attrib['valid']}
+                format_dict = {'Valid': tech_format.attrib.get('valid')}
                 puid = tech_format.find(f'.//{{{self.xip_ns}}}PUID')
                 format_dict['PUID'] = puid.text if hasattr(puid, 'text') else None
                 priority = tech_format.find(f'.//{{{self.xip_ns}}}Priority')
